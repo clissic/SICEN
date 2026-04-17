@@ -2,7 +2,7 @@
   "type": "module",
   "name": "sigmu",
   "version": "1.0.0",
-  "description": "Sistema de Gestión de Multas",
+  "description": "Sistema Centinela — aplicación web Prefectura Puerto Montevideo",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -16,8 +16,9 @@
   "keywords": [
     "Armada",
     "PREMO",
-    "multas",
-    "gestion"
+    "Prefectura",
+    "Montevideo",
+    "Sistema Centinela"
   ],
   "author": "JPC",
   "license": "ISC",

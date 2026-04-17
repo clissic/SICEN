@@ -5,6 +5,182 @@
     Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 }
 
+:root {
+  color-scheme: light;
+  /* Texto principal (títulos / encabezado); dark mode redefine abajo */
+  --text: #000000;
+  /* Campos de formulario (fondo claro en light; dark mode redefine abajo) */
+  --control-bg: #ffffff;
+  --control-text: #111111;
+  --control-muted-bg: #f1f1f1;
+  --placeholder: #6b7280;
+  /* Tarjetas / paneles elevados (perfil usuario, etc.) */
+  --surface-card: #ffffff;
+  --text-muted: #6b7280;
+  --border-card: rgba(128, 128, 128, 0.2);
+}
+
+html[data-bs-theme="dark"] {
+  color-scheme: dark;
+  --text: #e6eaf2;
+  --control-bg: #0f172a;
+  --control-text: #e6eaf2;
+  --control-muted-bg: #111827;
+  --placeholder: #94a3b8;
+  --surface-card: #121212;
+  --text-muted: #94a3b8;
+  --border-card: #25324a;
+  /* Bootstrap 5: modo oscuro (clases .card, .table, formularios, etc.) */
+  --bs-body-bg: #121212;
+  --bs-body-color: #e6eaf2;
+  --bs-emphasis-color: #f8f9fa;
+  --bs-secondary-color: #adb5bd;
+  --bs-secondary-color-rgb: 173, 181, 189;
+  --bs-body-color-rgb: 230, 234, 242;
+  --bs-border-color: #25324a;
+  --bs-border-color-translucent: rgba(255, 255, 255, 0.15);
+  --bs-heading-color: #f8f9fa;
+  --bs-link-color: #6ea8fe;
+  --bs-link-hover-color: #9ec5fe;
+}
+
+html[data-bs-theme="light"] {
+  --bs-body-bg: #ffffff;
+  --bs-body-color: #212529;
+  --bs-border-color: #dee2e6;
+  --bs-heading-color: inherit;
+}
+
+/* Dark mode: inputs/textareas/selects (evita texto claro sobre fondo blanco del CSS actual) */
+html[data-bs-theme="dark"] #subBody input,
+html[data-bs-theme="dark"] #searchBody input,
+html[data-bs-theme="dark"] .formInput,
+html[data-bs-theme="dark"] .formInputTextarea,
+html[data-bs-theme="dark"] .fineSearchCard input,
+html[data-bs-theme="dark"] #fine_status,
+html[data-bs-theme="dark"] #inputRank,
+html[data-bs-theme="dark"] #inputRole,
+html[data-bs-theme="dark"] .userSearchCard input,
+html[data-bs-theme="dark"] th input {
+  background-color: var(--control-bg) !important;
+  color: var(--control-text) !important;
+  caret-color: var(--control-text);
+}
+
+html[data-bs-theme="dark"] .fineSearchCard input,
+html[data-bs-theme="dark"] #fine_status,
+html[data-bs-theme="dark"] #inputRank,
+html[data-bs-theme="dark"] #inputRole,
+html[data-bs-theme="dark"] .userSearchCard input,
+html[data-bs-theme="dark"] th input {
+  background-color: var(--control-muted-bg) !important;
+}
+
+html[data-bs-theme="dark"] #subBody input::placeholder,
+html[data-bs-theme="dark"] #searchBody input::placeholder,
+html[data-bs-theme="dark"] .formInput::placeholder,
+html[data-bs-theme="dark"] .formInputTextarea::placeholder,
+html[data-bs-theme="dark"] .fineSearchCard input::placeholder,
+html[data-bs-theme="dark"] .userSearchCard input::placeholder,
+html[data-bs-theme="dark"] th input::placeholder {
+  color: var(--placeholder);
+  opacity: 1;
+}
+
+html[data-bs-theme="dark"] #subBody input:-webkit-autofill,
+html[data-bs-theme="dark"] #searchBody input:-webkit-autofill,
+html[data-bs-theme="dark"] .formInput:-webkit-autofill,
+html[data-bs-theme="dark"] .fineSearchCard input:-webkit-autofill,
+html[data-bs-theme="dark"] #fine_status:-webkit-autofill,
+html[data-bs-theme="dark"] #inputRank:-webkit-autofill,
+html[data-bs-theme="dark"] #inputRole:-webkit-autofill,
+html[data-bs-theme="dark"] .userSearchCard input:-webkit-autofill,
+html[data-bs-theme="dark"] th input:-webkit-autofill {
+  -webkit-text-fill-color: var(--control-text) !important;
+  caret-color: var(--control-text);
+  transition: background-color 9999s ease-out 0s;
+  box-shadow: inset 0 0 0 1000px var(--control-bg) !important;
+}
+
+/* Toggle Dark Mode (global) */
+.themeToggle {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  cursor: pointer;
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  box-shadow: rgba(0, 0, 0, 0.25) 1px 1px 14px 1px;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+  user-select: none;
+}
+
+.themeToggle:hover {
+  transform: translateY(-1px);
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.themeToggle:active {
+  transform: translateY(0px);
+}
+
+.themeToggle:focus-visible {
+  outline: 3px solid rgba(0, 125, 191, 0.35);
+  outline-offset: 3px;
+}
+
+.themeToggle__track {
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+.themeToggle__thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  transform: translateX(0);
+  transition: transform 0.2s ease;
+}
+
+html[data-bs-theme="dark"] .themeToggle__thumb {
+  transform: translateX(20px);
+}
+
+.themeToggle__icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.themeToggle__icon {
+  opacity: 0.75;
+  transition: opacity 0.2s ease;
+}
+
+html[data-bs-theme="dark"] .themeToggle__icon--moon {
+  opacity: 1;
+}
+
+html[data-bs-theme="light"] .themeToggle__icon--sun {
+  opacity: 1;
+}
+
 a {
   text-decoration: none;
 }
@@ -43,9 +219,14 @@ a:visited {
 
 #mainTitle {
   width: auto;
-  font-size: 6vw;
+  font-size: 5vw;
   text-align: center;
-  color: black;
+  color: var(--text);
+}
+
+/* El título SIGMU suele estar dentro de un <a>; sin esto el enlace puede ignorar el color del h1 */
+#headerTitle a {
+  color: inherit;
 }
 
 #headerTitle h3 {
@@ -60,11 +241,11 @@ a:visited {
   text-align: center;
   width: 90%;
   margin: auto;
-  color: black;
+  color: var(--text);
 }
 
 .subTitle a {
-  color: black;
+  color: var(--text);
 }
 
 .subTitle a:hover {
@@ -453,11 +634,16 @@ a:visited {
 
 .userName {
   font-size: larger;
-  color: black;
+  color: var(--text);
 }
 
 .userName:hover {
   text-decoration: underline;
+}
+
+/* El nombre suele ir dentro de un <a> dentro del párrafo de bienvenida */
+#loginCont p a:not(#btnLogout) {
+  color: var(--text);
 }
 
 .linkDec100 {
@@ -537,11 +723,17 @@ a:visited {
 .userInfo {
   width: 12vw;
   grid-area: user;
-  background-color: white;
+  background-color: var(--surface-card);
+  color: var(--text);
   padding: 1vw;
   border-radius: 25px;
   box-shadow: rgba(0, 0, 0, 0.1) 1px 1px 10px 1px;
   height: fit-content;
+}
+
+html[data-bs-theme="dark"] .userInfo {
+  box-shadow: rgba(0, 0, 0, 0.45) 1px 1px 14px 1px;
+  border: 1px solid var(--border-card);
 }
 
 .userInfo img {
@@ -788,6 +980,12 @@ a:visited {
   width: 90%;
   margin: auto;
   font-size: 1vw;
+  color: var(--text);
+}
+
+#userFinesBody h2,
+#userFinesBody h3 {
+  color: var(--text);
 }
 
 table {
@@ -849,10 +1047,17 @@ th input {
 /* Inputs para buscar */
 #fineSearchContainer {
   margin: 2vh 0 0 0;
-  background-color: white;
+  background-color: var(--surface-card);
+  color: var(--text);
   padding: 1rem;
   border-radius: 25px 25px 0 0;
   box-shadow: rgba(0, 0, 0, 0.15) 1px 1px 10px 1px;
+}
+
+html[data-bs-theme="dark"] #fineSearchContainer {
+  box-shadow: rgba(0, 0, 0, 0.45) 1px 1px 14px 1px;
+  border: 1px solid var(--border-card);
+  border-bottom: none;
 }
 
 .fineSearchInputs {
@@ -903,6 +1108,22 @@ th input {
   background-color: rgb(100, 100, 100);
 }
 
+html[data-bs-theme="dark"] .filterBtn {
+  background-color: var(--control-muted-bg);
+  color: var(--text);
+  border: 1px solid var(--border-card);
+  border-top: none;
+  box-shadow: rgba(0, 0, 0, 0.25) 1px 1px 10px 1px;
+}
+
+html[data-bs-theme="dark"] .filterBtn:hover {
+  background-color: #1e293b;
+}
+
+html[data-bs-theme="dark"] .filterBtn:active {
+  background-color: #334155;
+}
+
 #fine_status {
   border: none;
   background-color: #f1f1f1;
@@ -924,10 +1145,15 @@ th input {
 
 .fineDivPrime {
   box-shadow: rgba(0, 0, 0, 0.05) 1px 1px 10px 1px;
-  border: solid 1px rgba(128, 128, 128, 0.1);
+  border: solid 1px var(--border-card);
   border-radius: 15px;
   margin-bottom: 1rem;
   padding: 5px 10px;
+}
+
+html[data-bs-theme="dark"] .fineDivPrime {
+  background-color: rgba(0, 0, 0, 0.22);
+  box-shadow: none;
 }
 
 .fineDivPrimeTitle {
@@ -936,10 +1162,16 @@ th input {
 
 .fineCard {
   flex-basis: 40%;
-  background-color: white;
+  background-color: var(--surface-card);
+  color: var(--text);
   padding: 1rem;
   border-radius: 25px;
   box-shadow: rgba(0, 0, 0, 0.15) 1px 1px 10px 1px;
+}
+
+html[data-bs-theme="dark"] .fineCard {
+  box-shadow: rgba(0, 0, 0, 0.45) 1px 1px 14px 1px;
+  border: 1px solid var(--border-card);
 }
 
 .fineDiv {
@@ -976,7 +1208,7 @@ th input {
 }
 
 .fineDivTitle {
-  color: rgb(75, 75, 75);
+  color: var(--text-muted);
   font-size: small;
   align-self: center;
   text-decoration: underline;
@@ -1079,7 +1311,7 @@ th input {
 
 #paginationBtns a {
   text-decoration: none;
-  color: black;
+  color: var(--text);
 }
 
 #paginationBtns a:hover {
@@ -1089,6 +1321,7 @@ th input {
 #paginationInfo {
   width: 100%;
   text-align: center;
+  color: var(--text);
 }
 
 .abled-false {
@@ -1208,10 +1441,16 @@ th input {
 
 .userCard {
   min-width: 90%;
-  background-color: white;
+  background-color: var(--surface-card);
+  color: var(--text);
   padding: 1rem;
   border-radius: 25px;
   box-shadow: rgba(0, 0, 0, 0.15) 1px 1px 10px 1px;
+}
+
+html[data-bs-theme="dark"] .userCard {
+  box-shadow: rgba(0, 0, 0, 0.45) 1px 1px 14px 1px;
+  border: 1px solid var(--border-card);
 }
 
 .allUsersPic {
@@ -1221,10 +1460,15 @@ th input {
 
 .userDivPrime {
   box-shadow: rgba(0, 0, 0, 0.05) 1px 1px 10px 1px;
-  border: solid 1px rgba(128, 128, 128, 0.1);
+  border: solid 1px var(--border-card);
   border-radius: 15px;
   margin-bottom: 1rem;
   padding: 5px 10px;
+}
+
+html[data-bs-theme="dark"] .userDivPrime {
+  background-color: rgba(0, 0, 0, 0.22);
+  box-shadow: none;
 }
 
 .userDiv {
@@ -1255,7 +1499,7 @@ th input {
 }
 
 .userDivTitle {
-  color: rgb(115, 115, 115);
+  color: var(--text-muted);
   text-decoration: underline;
 }
 
