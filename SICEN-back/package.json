@@ -1,0 +1,49 @@
+{
+  "type": "module",
+  "name": "sicen-back",
+  "version": "1.0.0",
+  "description": "Sistema Centinela — aplicación web Prefectura Puerto Montevideo",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:client": "npm run build --prefix ../SICEN-front",
+    "build": "npm run build:client",
+    "predev": "npm run build:client",
+    "start": "node ./src/app.js --mode PRODUCTION",
+    "dev": "nodemon -e yaml,js ./src/app.js --mode DEVELOPMENT"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/clissic/SIGMU.git"
+  },
+  "keywords": [
+    "Armada",
+    "PREMO",
+    "Prefectura",
+    "Montevideo",
+    "Sistema Centinela"
+  ],
+  "author": "JPC",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/clissic/SIGMU/issues"
+  },
+  "homepage": "https://github.com/clissic/SIGMU#readme",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "commander": "^11.0.0",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^7.5.3",
+    "mongoose-paginate-v2": "^1.7.4",
+    "nodemailer": "^6.9.5",
+    "sweetalert2": "^11.7.31",
+    "winston": "^3.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
