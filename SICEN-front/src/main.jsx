@@ -2,6 +2,9 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import "sweetalert2/dist/sweetalert2.min.css";
+import "./styles/sweetalert2-theme.css";
+import "./styles/menu-tiles.css";
+import "./styles/mi-unidad.css";
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 

@@ -1,0 +1,25 @@
+/* Resumen de unidad (escudo + datos): bloque oscuro con texto claro */
+.card.mi-unidad-resumen {
+  background-color: #2b3035;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  --bs-card-bg: #2b3035;
+  --bs-card-color: #fff;
+}
+
+.card.mi-unidad-resumen .card-body {
+  color: #fff;
+}
+
+.card.mi-unidad-resumen .text-muted {
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+
+.card.mi-unidad-resumen h2 {
+  color: #fff;
+}
+
+/* Sombra mínima para escudos sobre fondo claro */
+body:not([data-bs-theme="dark"]) .escudo-contraste-claro {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+}

@@ -4,6 +4,11 @@ import { ProtectedRoute } from "./components/ProtectedRoute.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
 import { SignupPage } from "./pages/SignupPage.jsx";
 import { HomePage } from "./pages/HomePage.jsx";
+import { MiUnidadPage } from "./pages/MiUnidadPage.jsx";
+import { MiUnidadDivisionPage } from "./pages/MiUnidadDivisionPage.jsx";
+import { MiUnidadAreaPage } from "./pages/MiUnidadAreaPage.jsx";
+import { BaseBuquesPage } from "./pages/BaseBuquesPage.jsx";
+import { BaseGenteMarPage } from "./pages/BaseGenteMarPage.jsx";
 import { CarFinesMenuPage } from "./pages/CarFinesMenuPage.jsx";
 import { CarFineFormPage } from "./pages/CarFineFormPage.jsx";
 import { AllCarFinesPage } from "./pages/AllCarFinesPage.jsx";
@@ -58,6 +63,46 @@ export default function App() {
         element={
           <ProtectedRoute>
             <HomePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mi-unidad"
+        element={
+          <ProtectedRoute>
+            <MiUnidadPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mi-unidad/:divisionSlug"
+        element={
+          <ProtectedRoute>
+            <MiUnidadDivisionPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mi-unidad/areas/:areaSlug"
+        element={
+          <ProtectedRoute>
+            <MiUnidadAreaPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/base-buques"
+        element={
+          <ProtectedRoute>
+            <BaseBuquesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/base-gente-mar"
+        element={
+          <ProtectedRoute>
+            <BaseGenteMarPage />
           </ProtectedRoute>
         }
       />

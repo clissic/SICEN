@@ -1,0 +1,26 @@
+/**
+ * Hover casi imperceptible en tarjetas de menú (enlace → .card.shadow-sm).
+ */
+a.text-decoration-none:has(> .card.shadow-sm) > .card {
+  transition: background-color 0.2s ease;
+}
+
+a.text-decoration-none:has(> .card.shadow-sm):hover > .card,
+a.text-decoration-none:has(> .card.shadow-sm):focus-visible > .card {
+  background-color: color-mix(
+    in srgb,
+    var(--bs-body-bg),
+    var(--bs-body-color) 2%
+  );
+}
+
+/** Íconos en recuadro (Home / menús con bi + bg-secondary): más oscuros al hover del tile */
+.menu-tile-icon {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+a.text-decoration-none:has(> .card.shadow-sm):hover .menu-tile-icon,
+a.text-decoration-none:has(> .card.shadow-sm):focus-visible .menu-tile-icon {
+  background-color: color-mix(in srgb, var(--bs-secondary), #000 28%) !important;
+  border-color: color-mix(in srgb, var(--bs-secondary), #000 35%) !important;
+}

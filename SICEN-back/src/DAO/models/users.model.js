@@ -11,6 +11,7 @@ class UsersModel {
         first_name: true,
         last_name: true,
         rank: true,
+        unit: true,
         email: true,
         role: true,
         fines: true,
@@ -33,6 +34,7 @@ class UsersModel {
         first_name: true,
         last_name: true,
         rank: true,
+        unit: true,
         email: true,
         password: true,
         role: true,
@@ -55,6 +57,7 @@ class UsersModel {
         first_name: true,
         last_name: true,
         rank: true,
+        unit: true,
         email: true,
         password: true,
         role: true,
@@ -64,12 +67,13 @@ class UsersModel {
     return user;
   }
 
-  async create({ avatar, first_name, last_name, rank, email, password, role, fines }) {
+  async create({ avatar, first_name, last_name, rank, unit, email, password, role, fines }) {
     const userCreated = await UserMongoose.create({
       avatar,
       first_name,
       last_name,
       rank,
+      unit,
       email,
       password,
       role,
@@ -84,6 +88,7 @@ class UsersModel {
     first_name,
     last_name,
     rank,
+    unit,
     email,
     password,
     role,
@@ -99,6 +104,7 @@ class UsersModel {
         first_name,
         last_name,
         rank,
+        unit,
         email,
         password,
         role,

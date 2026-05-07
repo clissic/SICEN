@@ -19,6 +19,41 @@ function readTheme() {
   return "light";
 }
 
+/** Tema efectivo de Bootstrap (`light` | `dark`) según `data-bs-theme` en `<html>`. */
+export function useBootstrapTheme() {
+  const [theme, setTheme] = useState(() => {
+    if (typeof document === "undefined") return "light";
+    const fromDom = document.documentElement.getAttribute("data-bs-theme");
+    if (fromDom === "dark" || fromDom === "light") return fromDom;
+    return readTheme();
+  });
+
+  useEffect(() => {
+    const el = document.documentElement;
+
+    const syncFromDom = () => {
+      const v = el.getAttribute("data-bs-theme");
+      if (v === "dark" || v === "light") setTheme(v);
+    };
+
+    const onStorage = (e) => {
+      if (e.key !== KEY && e.key !== LEGACY) return;
+      setTheme(readTheme());
+    };
+
+    syncFromDom();
+    const obs = new MutationObserver(syncFromDom);
+    obs.observe(el, { attributes: true, attributeFilter: ["data-bs-theme"] });
+    window.addEventListener("storage", onStorage);
+    return () => {
+      obs.disconnect();
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
+  return theme;
+}
+
 export function ThemeToggle() {
   const [theme, setTheme] = useState(readTheme);
 

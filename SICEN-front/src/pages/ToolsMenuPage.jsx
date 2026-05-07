@@ -6,7 +6,7 @@ export function ToolsMenuPage() {
     <Layout>
       <div className="container py-4">
         <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-          <h3 className="m-0">Herramientas de puerto</h3>
+          <h3 className="m-0">Sistemas externos</h3>
           <Link className="btn btn-outline-secondary btn-sm" to="/home">
             Menú principal
           </Link>

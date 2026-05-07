@@ -2,20 +2,61 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { createUserAdmin } from "../api/client.js";
 import { Layout } from "../components/Layout.jsx";
+import { UserUnitSelect } from "../components/UserUnitSelect.jsx";
+import { RANK_OPTIONS } from "../constants/ranks.js";
 
 export function NewUserPage() {
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
     rank: "",
+    unit: "",
     email: "",
     avatar: "",
   });
+  const [avatarErr, setAvatarErr] = useState("");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
 
   function set(k, v) {
     setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  async function onAvatarChange(e) {
+    setAvatarErr("");
+    const file = e.target.files?.[0] ?? null;
+    if (!file) {
+      set("avatar", "");
+      return;
+    }
+
+    const isJpeg =
+      file.type === "image/jpeg" ||
+      file.name.toLowerCase().endsWith(".jpg") ||
+      file.name.toLowerCase().endsWith(".jpeg");
+    if (!isJpeg) {
+      setAvatarErr("El archivo debe ser .jpg / .jpeg");
+      e.target.value = "";
+      set("avatar", "");
+      return;
+    }
+
+    const maxBytes = 1024 * 1024; // 1 MB
+    if (file.size > maxBytes) {
+      setAvatarErr("El archivo supera 1 MB");
+      e.target.value = "";
+      set("avatar", "");
+      return;
+    }
+
+    const dataUrl = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result || ""));
+      r.onerror = () => reject(new Error("No se pudo leer el archivo"));
+      r.readAsDataURL(file);
+    });
+
+    set("avatar", dataUrl);
   }
 
   async function onSubmit(e) {
@@ -66,11 +107,30 @@ export function NewUserPage() {
               </div>
               <div className="col-12 col-md-6">
                 <label className="form-label">Grado</label>
-                <input
-                  className="form-control"
+                <select
+                  className="form-select"
                   required
                   value={form.rank}
                   onChange={(e) => set("rank", e.target.value)}
+                  aria-label="Grado"
+                >
+                  <option value="">Seleccionar grado…</option>
+                  {RANK_OPTIONS.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-12 col-md-6">
+                <label className="form-label" htmlFor="new-user-unit">
+                  Unidad
+                </label>
+                <UserUnitSelect
+                  id="new-user-unit"
+                  value={form.unit}
+                  onChange={(v) => set("unit", v)}
+                  required
                 />
               </div>
               <div className="col-12 col-md-6">
@@ -84,12 +144,19 @@ export function NewUserPage() {
                 />
               </div>
               <div className="col-12">
-                <label className="form-label">Avatar (URL opcional)</label>
+                <label className="form-label">Avatar (archivo .jpg)</label>
                 <input
                   className="form-control"
-                  value={form.avatar}
-                  onChange={(e) => set("avatar", e.target.value)}
+                  type="file"
+                  accept=".jpg,.jpeg,image/jpeg"
+                  onChange={onAvatarChange}
                 />
+                <div className="form-text">
+                  Máx. 1 MB. Recomendado: 500 x 500 px.
+                </div>
+                {avatarErr ? (
+                  <div className="text-danger small mt-1">{avatarErr}</div>
+                ) : null}
               </div>
               <div className="col-12 d-grid">
                 <button type="submit" className="btn btn-primary">

@@ -16,10 +16,25 @@ export function FinesManagementPage() {
           <div className="col">
             <Link className="text-decoration-none" to="/multas/buques">
               <div className="card h-100 shadow-sm">
+                <img
+                  src="/img/shipFinesMenu.jpg"
+                  alt="Multas de buques"
+                  className="card-img-top"
+                  loading="lazy"
+                />
                 <div className="card-body">
-                  <div className="fw-semibold">MULTAS DE BUQUES</div>
-                  <div className="text-muted small">
-                    Consulta / flujos específicos
+                  <div className="d-flex align-items-start gap-2">
+                    <i
+                      className="menu-tile-icon bi bi-life-preserver me-1 px-2 py-1 border border-secondary rounded-1 bg-secondary text-white flex-shrink-0"
+                      style={{ fontSize: "0.95rem", marginTop: "0.15rem" }}
+                      aria-hidden
+                    />
+                    <div className="min-w-0">
+                      <div className="fw-semibold text-body">MULTAS DE BUQUES</div>
+                      <div className="text-muted small">
+                        Base de datos de multas de buques y flujos específicos.
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -28,10 +43,25 @@ export function FinesManagementPage() {
           <div className="col">
             <Link className="text-decoration-none" to="/multas/vehiculos">
               <div className="card h-100 shadow-sm">
+                <img
+                  src="/img/carFinesMenu.jpg"
+                  alt="Multas de vehículos"
+                  className="card-img-top"
+                  loading="lazy"
+                />
                 <div className="card-body">
-                  <div className="fw-semibold">MULTAS DE VEHÍCULOS</div>
-                  <div className="text-muted small">
-                    Alta, consulta, modificación y borrado
+                  <div className="d-flex align-items-start gap-2">
+                    <i
+                      className="menu-tile-icon bi bi-car-front me-1 px-2 py-1 border border-secondary rounded-1 bg-secondary text-white flex-shrink-0"
+                      style={{ fontSize: "0.95rem", marginTop: "0.15rem" }}
+                      aria-hidden
+                    />
+                    <div className="min-w-0">
+                      <div className="fw-semibold text-body">MULTAS DE VEHÍCULOS</div>
+                      <div className="text-muted small">
+                        Base de datos de multas de vehículos y flujos específicos.
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

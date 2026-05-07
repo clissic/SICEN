@@ -15,6 +15,7 @@ function publicShape(user) {
     first_name: u.first_name,
     last_name: u.last_name,
     rank: u.rank,
+    unit: u.unit ?? "",
     role: u.role,
     fines: u.fines ?? [],
   };

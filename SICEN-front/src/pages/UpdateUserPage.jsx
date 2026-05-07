@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { userForUpdate, userUpdate } from "../api/client.js";
 import { Layout } from "../components/Layout.jsx";
+import { UserUnitSelect } from "../components/UserUnitSelect.jsx";
 
 export function UpdateUserPage() {
   const [id, setId] = useState("");
@@ -29,6 +30,7 @@ export function UpdateUserPage() {
         first_name: u.first_name ?? "",
         last_name: u.last_name ?? "",
         rank: u.rank ?? "",
+        unit: u.unit ?? "",
         email: u.email ?? "",
         role: u.role ?? "",
         avatar: u.avatar ?? "",
@@ -110,6 +112,17 @@ export function UpdateUserPage() {
                     className="form-control"
                     value={form.rank}
                     onChange={(e) => set("rank", e.target.value)}
+                  />
+                </div>
+                <div className="col-12 col-md-6">
+                  <label className="form-label" htmlFor="edit-user-unit">
+                    Unidad
+                  </label>
+                  <UserUnitSelect
+                    id="edit-user-unit"
+                    value={form.unit}
+                    onChange={(v) => set("unit", v)}
+                    required
                   />
                 </div>
                 <div className="col-12 col-md-6">

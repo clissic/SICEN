@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { updateDataRequest } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Layout } from "../components/Layout.jsx";
+import { UserUnitSelect } from "../components/UserUnitSelect.jsx";
+import { RANK_OPTIONS } from "../constants/ranks.js";
 
 export function UpdateDataPage() {
   const { user } = useAuth();
@@ -10,6 +12,7 @@ export function UpdateDataPage() {
   const [newLastName, setNl] = useState("");
   const [newRank, setNr] = useState("");
   const [newRole, setNrole] = useState("");
+  const [newUnit, setNewUnit] = useState("");
   const [newEmail, setNe] = useState("");
   const [newDataBody, setBody] = useState("");
   const [msg, setMsg] = useState("");
@@ -29,6 +32,8 @@ export function UpdateDataPage() {
         newRank,
         role: user.role,
         newRole,
+        unit: user.unit,
+        newUnit,
         email: user.email,
         newEmail,
         newDataBody,
@@ -66,6 +71,9 @@ export function UpdateDataPage() {
                   value={newFirstName}
                   onChange={(e) => setNf(e.target.value)}
                 />
+                <div className="form-text">
+                  Actual: {user?.first_name ? user.first_name : "—"}
+                </div>
               </div>
               <div className="col-12 col-md-6">
                 <label className="form-label">Nuevo apellido</label>
@@ -74,14 +82,39 @@ export function UpdateDataPage() {
                   value={newLastName}
                   onChange={(e) => setNl(e.target.value)}
                 />
+                <div className="form-text">
+                  Actual: {user?.last_name ? user.last_name : "—"}
+                </div>
               </div>
               <div className="col-12 col-md-6">
                 <label className="form-label">Nuevo grado</label>
-                <input
-                  className="form-control"
+                <select
+                  className="form-select"
                   value={newRank}
                   onChange={(e) => setNr(e.target.value)}
+                  aria-label="Nuevo grado"
+                >
+                  <option value="">Seleccionar grado…</option>
+                  {RANK_OPTIONS.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+                <div className="form-text">Actual: {user?.rank ? user.rank : "—"}</div>
+              </div>
+              <div className="col-12 col-md-6">
+                <label className="form-label" htmlFor="update-data-unit">
+                  Unidad
+                </label>
+                <UserUnitSelect
+                  id="update-data-unit"
+                  value={newUnit}
+                  onChange={setNewUnit}
                 />
+                <div className="form-text">
+                  Actual: {user?.unit ? user.unit : "—"}
+                </div>
               </div>
               <div className="col-12 col-md-6">
                 <label className="form-label">Nuevo rol (solicitud)</label>
@@ -90,6 +123,7 @@ export function UpdateDataPage() {
                   value={newRole}
                   onChange={(e) => setNrole(e.target.value)}
                 />
+                <div className="form-text">Actual: {user?.role ? user.role : "—"}</div>
               </div>
               <div className="col-12">
                 <label className="form-label">Nuevo email</label>
@@ -99,6 +133,7 @@ export function UpdateDataPage() {
                   value={newEmail}
                   onChange={(e) => setNe(e.target.value)}
                 />
+                <div className="form-text">Actual: {user?.email ? user.email : "—"}</div>
               </div>
               <div className="col-12">
                 <label className="form-label">Motivo / cuerpo del mensaje</label>

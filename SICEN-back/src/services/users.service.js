@@ -20,13 +20,14 @@ class UserService {
     }
   }
 
-  async create({ avatar, first_name, last_name, rank, email, password }) {
+  async create({ avatar, first_name, last_name, rank, unit, email, password }) {
     try {
       return await usersModel.create({
         avatar,
         first_name,
         last_name,
         rank,
+        unit,
         email,
         password,
       });
@@ -41,6 +42,7 @@ class UserService {
     first_name,
     last_name,
     rank,
+    unit,
     email,
     password,
     role,
@@ -53,6 +55,7 @@ class UserService {
         first_name,
         last_name,
         rank,
+        unit,
         email,
         password,
         role,

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Layout } from "../components/Layout.jsx";
+import { useBootstrapTheme } from "../components/ThemeToggle.jsx";
 
 export function LoginPage() {
   const { user, loading, login } = useAuth();
@@ -11,6 +12,9 @@ export function LoginPage() {
   const [err, setErr] = useState("");
   const loc = useLocation();
   const from = loc.state?.from?.pathname || "/home";
+  const bsTheme = useBootstrapTheme();
+  const logoSrc =
+    bsTheme === "dark" ? "/img/Logo-PNN-Blanco.png" : "/img/Logo-PNN.png";
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -40,8 +44,10 @@ export function LoginPage() {
           <div className="col-12 col-md-8 col-lg-4">
             <div className="card shadow-sm">
               <div className="card-body p-4">
-                <h3 className="mb-1">Ingresar</h3>
-                <p className="text-muted small mb-3">Ingrese sus credenciales.</p>
+                <div className="text-center">
+                  <img src={logoSrc} alt="Logo PNN" className="img-fluid w-25 m-auto" />
+                  <h4 className="my-2 text-start">Ingrese sus credenciales:</h4>
+                </div>
                 {err ? <div className="alert alert-danger py-2">{err}</div> : null}
 
                 <form onSubmit={onSubmit} className="vstack gap-3">

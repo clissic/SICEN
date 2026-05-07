@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
 import { useAuth } from "../context/AuthContext.jsx";
-import { ThemeToggle } from "./ThemeToggle.jsx";
+import { ThemeToggle, useBootstrapTheme } from "./ThemeToggle.jsx";
 
 function LogoutPowerButton({ onLogout }) {
   const btnRef = useRef(null);
@@ -26,7 +26,7 @@ function LogoutPowerButton({ onLogout }) {
 
   async function handleClick() {
     const result = await Swal.fire({
-      title: "¿Cerrar sesión?",
+      title: "Cerrar sesión",
       text: "¿Confirma que desea cerrar la sesión?",
       icon: "question",
       showCancelButton: true,
@@ -107,6 +107,11 @@ function NavbarToolbar({ user, onLogout }) {
 
 export function Layout({ children }) {
   const { user, logout } = useAuth();
+  const bsTheme = useBootstrapTheme();
+  const navbarEmblemSrc =
+    bsTheme === "dark"
+      ? "/img/Franja-PNN-CUADRADO-Blanco.png"
+      : "/img/Franja-PNN-CUADRADO.png";
 
   return (
     <div className="min-vh-100 d-flex flex-column">
@@ -158,7 +163,7 @@ export function Layout({ children }) {
           >
             <img
               className="navbar-brand-emblem"
-              src="/img/Franja-PNN-CUADRADO.png"
+              src={navbarEmblemSrc}
               alt="Emblema Prefectura Nacional Naval"
               width="48"
               height="48"

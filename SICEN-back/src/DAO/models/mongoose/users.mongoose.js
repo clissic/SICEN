@@ -6,6 +6,7 @@ const schema = new Schema({
   first_name: { type: String, required: true, max: 100 },
   last_name: { type: String, required: true, max: 100 },
   rank: { type: String, required: true, max: 5},
+  unit: { type: String, default: "", maxlength: 20 },
   email: { type: String, required: true, max: 100, unique: true },
   password: { type: String, max: 100 },
   role: { type: String, default: "user"},

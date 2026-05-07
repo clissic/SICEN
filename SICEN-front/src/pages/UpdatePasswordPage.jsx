@@ -25,44 +25,48 @@ export function UpdatePasswordPage() {
 
   return (
     <Layout>
-      <div className="container-sm py-5">
-        <div className="card shadow-sm">
-          <div className="card-body p-4">
-            <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-              <h3 className="m-0">Cambiar contraseña</h3>
-              <Link className="btn btn-outline-secondary btn-sm" to="/home">
-                Volver
-              </Link>
+      <div className="container py-5">
+        <div className="row justify-content-center">
+          <div className="col-12 col-md-8 col-lg-4">
+            <div className="card shadow-sm">
+              <div className="card-body p-4">
+                <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                  <h3 className="m-0">Cambiar contraseña</h3>
+                  <Link className="btn btn-outline-secondary btn-sm" to="/home">
+                    Volver
+                  </Link>
+                </div>
+
+                {msg ? <div className="alert alert-success py-2">{msg}</div> : null}
+                {err ? <div className="alert alert-danger py-2">{err}</div> : null}
+
+                <form onSubmit={onSubmit} className="vstack gap-3">
+                  <div>
+                    <label className="form-label">Nueva contraseña</label>
+                    <input
+                      className="form-control"
+                      type="password"
+                      required
+                      value={newPassword}
+                      onChange={(e) => setNew(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">Confirmar</label>
+                    <input
+                      className="form-control"
+                      type="password"
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirm(e.target.value)}
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-primary">
+                    Actualizar
+                  </button>
+                </form>
+              </div>
             </div>
-
-            {msg ? <div className="alert alert-success py-2">{msg}</div> : null}
-            {err ? <div className="alert alert-danger py-2">{err}</div> : null}
-
-            <form onSubmit={onSubmit} className="vstack gap-3">
-              <div>
-                <label className="form-label">Nueva contraseña</label>
-                <input
-                  className="form-control"
-                  type="password"
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNew(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="form-label">Confirmar</label>
-                <input
-                  className="form-control"
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirm(e.target.value)}
-                />
-              </div>
-              <button type="submit" className="btn btn-primary">
-                Actualizar
-              </button>
-            </form>
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { createHash } from "../utils/Bcrypt.js";
 import { signAccessToken } from "../utils/jwt.util.js";
 import { logger } from "../utils/logger.js";
 import UserDTO from "./DTO/users.dto.js";
+import { isValidUserUnit } from "../constants/userUnits.js";
 
 function userWithoutPassword(user) {
   if (!user) return null;
@@ -104,6 +105,7 @@ class UsersController {
         first_name: u.first_name,
         last_name: u.last_name,
         rank: u.rank,
+        unit: u.unit ?? "",
         email: u.email,
         role: u.role,
         fines: u.fines.length,
@@ -149,14 +151,23 @@ class UsersController {
 
   async create(req, res) {
     try {
-      const { avatar, first_name, last_name, rank, email, password } = req.body;
+      const { avatar, first_name, last_name, rank, unit, email, password } = req.body;
+      if (!isValidUserUnit(unit)) {
+        return res.status(400).json({
+          status: "error",
+          msg: "Debe indicar una unidad válida.",
+          payload: {},
+        });
+      }
       const userDTO = new UserDTO(
         avatar,
         first_name,
         last_name,
         rank,
         email,
-        createHash(password)
+        createHash(password),
+        undefined,
+        unit
       );
       if (!userDTO.first_name || !userDTO.last_name || !userDTO.email) {
         logger.info(
@@ -399,7 +410,13 @@ class UsersController {
   async createAndSendEmail(req, res) {
     const user = req.user;
     try {
-      const { first_name, last_name, rank, email, avatar } = req.body;
+      const { first_name, last_name, rank, unit, email, avatar } = req.body;
+      if (!isValidUserUnit(unit)) {
+        return res.status(400).json({
+          ok: false,
+          msg: "Debe indicar una unidad válida.",
+        });
+      }
       const password = createHash("123456789");
       const emailSent = await userService.sendDataToNewUser({
         first_name,
@@ -412,6 +429,7 @@ class UsersController {
         first_name,
         last_name,
         rank,
+        unit,
         email,
         password,
       });
@@ -481,6 +499,15 @@ class UsersController {
     const updatedUser = { ...req.query, ...req.body };
     updatedUser._id = id;
     updatedUser.last_modified_by = user.email;
+    if (
+      Object.prototype.hasOwnProperty.call(updatedUser, "unit") &&
+      !isValidUserUnit(updatedUser.unit)
+    ) {
+      return res.status(400).json({
+        ok: false,
+        msg: "Debe indicar una unidad válida.",
+      });
+    }
     try {
       const result = await userService.updateOne(updatedUser);
       if (result.matchedCount > 0) {

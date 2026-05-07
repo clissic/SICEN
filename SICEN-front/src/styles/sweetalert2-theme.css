@@ -1,0 +1,63 @@
+/**
+ * SweetAlert2 alineado con el tema Bootstrap 5 (`data-bs-theme` en <html>).
+ * Las variables heredan al popup; al alternar claro/oscuro se recalculan sin cerrar el modal.
+ */
+
+html[data-bs-theme="light"] {
+  color-scheme: light;
+  --swal2-background: var(--bs-body-bg);
+  --swal2-color: var(--bs-body-color);
+  --swal2-border: 1px solid var(--bs-border-color);
+  --swal2-backdrop: rgba(15, 23, 42, 0.45);
+  --swal2-footer-border-color: var(--bs-border-color);
+  --swal2-confirm-button-background-color: var(--bs-primary);
+  --swal2-confirm-button-color: #fff;
+  --swal2-deny-button-background-color: var(--bs-danger);
+  --swal2-deny-button-color: #fff;
+  --swal2-cancel-button-background-color: var(--bs-secondary);
+  --swal2-cancel-button-color: #fff;
+  --swal2-close-button-color: var(--bs-secondary-color);
+  --swal2-input-border: 1px solid var(--bs-border-color);
+  --swal2-input-background: var(--bs-body-bg);
+  --swal2-input-focus-border: 1px solid var(--bs-primary);
+  --swal2-validation-message-background: var(--bs-secondary-bg);
+  --swal2-validation-message-color: var(--bs-body-color);
+  --swal2-timer-progress-bar-background: color-mix(
+    in srgb,
+    var(--bs-body-color),
+    transparent 70%
+  );
+}
+
+html[data-bs-theme="dark"] {
+  color-scheme: dark;
+  --swal2-background: var(--bs-body-bg);
+  --swal2-color: var(--bs-body-color);
+  --swal2-border: 1px solid var(--bs-border-color);
+  --swal2-backdrop: rgba(0, 0, 0, 0.72);
+  --swal2-footer-border-color: var(--bs-border-color);
+  --swal2-confirm-button-background-color: var(--bs-primary);
+  --swal2-confirm-button-color: #fff;
+  --swal2-deny-button-background-color: var(--bs-danger);
+  --swal2-deny-button-color: #fff;
+  --swal2-cancel-button-background-color: var(--bs-secondary);
+  --swal2-cancel-button-color: #fff;
+  --swal2-close-button-color: var(--bs-secondary-color);
+  --swal2-input-border: 1px solid var(--bs-border-color);
+  --swal2-input-background: var(--bs-tertiary-bg);
+  --swal2-input-focus-border: 1px solid var(--bs-primary);
+  --swal2-validation-message-background: var(--bs-secondary-bg);
+  --swal2-validation-message-color: var(--bs-body-color);
+  --swal2-timer-progress-bar-background: color-mix(
+    in srgb,
+    var(--bs-body-color),
+    transparent 55%
+  );
+}
+
+html[data-bs-theme="light"] .swal2-container input::placeholder,
+html[data-bs-theme="light"] .swal2-container textarea::placeholder,
+html[data-bs-theme="dark"] .swal2-container input::placeholder,
+html[data-bs-theme="dark"] .swal2-container textarea::placeholder {
+  color: var(--bs-secondary-color);
+}
