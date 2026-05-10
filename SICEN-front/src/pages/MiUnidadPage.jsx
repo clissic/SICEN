@@ -1,20 +1,25 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Layout } from "../components/Layout.jsx";
+import { useUnitFromApi } from "../hooks/useUnitFromApi.js";
 import { MI_UNIDAD_DIVISIONS } from "../constants/miUnidadDivisions.js";
 import { MI_UNIDAD_AREAS } from "../constants/miUnidadAreas.js";
-import { getUserUnitLabel } from "../constants/userUnits.js";
 
 const ESCUDO_BASE = "/img/ESCUDO-UNIDADES-PNN";
 const ESCUDO_PRENA = `${ESCUDO_BASE}/PRENA.png`;
 
 export function MiUnidadPage() {
   const { user } = useAuth();
-  const unitName = getUserUnitLabel(user?.unit);
   const unitCode = user?.unit?.trim() || "";
-  const escudoSrc = unitCode
-    ? `${ESCUDO_BASE}/${unitCode}.png`
-    : ESCUDO_PRENA;
+  const unitCodeUpper = unitCode ? unitCode.toUpperCase() : "";
+  const unitMeta = useUnitFromApi(user?.unit);
+
+  const displayName = unitMeta?.name?.trim() || unitCodeUpper || "";
+  const escudoSrc = unitMeta?.shieldRelativeUrl?.trim()
+    ? unitMeta.shieldRelativeUrl
+    : unitCodeUpper
+      ? `${ESCUDO_BASE}/${encodeURIComponent(unitCodeUpper)}.png`
+      : ESCUDO_PRENA;
 
   return (
     <Layout>
@@ -28,7 +33,7 @@ export function MiUnidadPage() {
 
         <div className="card shadow-sm mb-4 mi-unidad-resumen">
           <div className="card-body">
-            {unitName ? (
+            {unitCodeUpper ? (
               <div className="d-flex align-items-stretch gap-3">
                 <div
                   className="flex-shrink-0 align-self-stretch"
@@ -36,7 +41,7 @@ export function MiUnidadPage() {
                 >
                   <img
                     src={escudoSrc}
-                    alt={`Escudo ${unitCode || "PRENA"}`}
+                    alt={`Escudo ${unitCodeUpper || "PRENA"}`}
                     className="h-100 w-100 object-fit-contain"
                     loading="lazy"
                     onError={(e) => {
@@ -51,9 +56,16 @@ export function MiUnidadPage() {
                   />
                 </div>
                 <div className="flex-grow-1 min-w-0">
-                  <h2 className="fw-semibold mb-1">{unitName}</h2>
+                  <h2 className="fw-semibold mb-1">{displayName}</h2>
                   {unitCode ? (
-                    <p className="text-muted small mb-0">Código: {unitCode}</p>
+                    <>
+                      <p className="text-muted small mb-1 text-break">
+                        {unitMeta?.address?.trim() || "—"}
+                      </p>
+                      <p className="text-muted small mb-0">
+                        Tel. {unitMeta?.phone?.trim() || "—"}
+                      </p>
+                    </>
                   ) : null}
                 </div>
               </div>

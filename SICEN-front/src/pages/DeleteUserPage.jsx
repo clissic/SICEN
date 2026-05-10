@@ -40,7 +40,7 @@ export function DeleteUserPage() {
 
   return (
     <Layout>
-      <div className="container-md py-4">
+      <div className="container-lg py-4">
         <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
           <h3 className="m-0">Eliminar usuario</h3>
           <Link className="btn btn-outline-secondary btn-sm" to="/usuarios">
@@ -50,9 +50,12 @@ export function DeleteUserPage() {
 
         <div className="card shadow-sm mb-3">
           <div className="card-body p-4">
-            <form onSubmit={loadUser} className="row g-2 align-items-end">
-              <div className="col-12 col-md-8">
-                <label className="form-label">ID</label>
+            <form
+              onSubmit={loadUser}
+              className="row g-2 justify-content-center align-items-end"
+            >
+              <div className="col-12 col-md-6">
+                <label className="form-label">ID del usuario:</label>
                 <input
                   className="form-control"
                   value={id}
@@ -60,7 +63,7 @@ export function DeleteUserPage() {
                   required
                 />
               </div>
-              <div className="col-12 col-md-auto">
+              <div className="col-12 col-md-auto text-center text-md-start">
                 <button type="submit" className="btn btn-primary">
                   Buscar
                 </button>

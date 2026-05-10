@@ -12,6 +12,18 @@ Aplicación para la **Prefectura del Puerto de Montevideo**: API **Node.js (Expr
 
 Documentación de paleta y tokens CSS: **`SICEN-front/PALETA_COLORES.md`**.
 
+### Alcance del producto
+
+SICEN es una **plataforma operativa amplia** para la Prefectura: bases de datos (buques, gente de mar), gestión de unidades, usuarios, herramientas externas y, de forma **no central** en la experiencia diaria del usuario, **multas** (vehículos y buques). El menú principal y la tarjeta de datos personales **no priorizan** el módulo de multas; las pantallas y API relacionadas con multas **siguen disponibles** y se irán **reforzando y alineando** en próximas entregas.
+
+### Cambios recientes documentados en código
+
+| Área | Detalle |
+|------|---------|
+| **Inicio (`/home`)** | En la tarjeta de perfil se quitó el indicador «Multas realizadas» y el botón «MIS MULTAS». Siguen «Cambiar contraseña» y «Actualizar datos». La ruta `/mis-multas` puede seguir existiendo para uso directo o futuras mejoras. |
+| **Gestión de usuarios (`/usuarios`)** | Panel para administradores con estadísticas agregadas (totales, oficiales/subalternos/civiles), tabla «Usuarios por rol» (cantidades destacadas), gráficos de barras por **unidad** y por **jerarquía** (Chart.js, tema en `constants/usersChartTheme.js`). |
+| **Nuevo usuario (`/usuarios/nuevo`)** | Formulario con **selector de rol**: Usuario, Administrador y (solo si quien crea la cuenta es **super administrador**) Super administrador. La API `POST /api/users/createAndSendEmail` valida el rol; solo **superAdmin** puede asignar el rol `superAdmin` al crear. |
+
 ## Requisitos
 
 - **Node.js** (recomendado: LTS actual) y **npm**.
@@ -108,7 +120,7 @@ El hosting debe servir el proceso Node que ya expone estáticos y la API, o adap
 | Montaje | Contenido típico |
 |---------|-------------------|
 | **`/api/sessions`** | `GET /me` (JWT opcional), `POST /login`, `POST /signup`, `POST /logout`. |
-| **`/api/users`** | Usuarios, paginación, alta, actualización, borrado, formularios (según rol y middleware). |
+| **`/api/users`** | Usuarios, paginación, alta (incluye **`role`** en `createAndSendEmail` con reglas por rol), actualización, borrado, formularios (según rol y middleware). |
 | **`/api/carFines`** | Multas vehiculares: creación, listados, paginación, operaciones por número, etc. |
 | **`/api/tokens`** | Recuperación de contraseña y flujos de token por email. |
 
@@ -125,7 +137,7 @@ Los enlaces de correo usan la URL pública derivada de **`PUBLIC_APP_URL`** o **
 | **Auth (JWT)** | `GET /api/sessions/me`: sin `Authorization` → usuario nulo; token inválido → `401`. Rutas protegidas: **`Authorization: Bearer`**. `POST /logout` es informativo (JWT stateless; el cliente borra el token). |
 | **Tokens de recuperación** | Endpoints públicos; conviene **rate limiting** en producción. |
 | **Usuarios** | Operaciones sensibles requieren roles (**admin** / **superAdmin** / reglas por ruta). Datos de contraseña no se exponen en respuestas de perfil. |
-| **Multas** | Alta y “mis multas”: usuario autenticado. Listado paginado: autenticado. Operaciones administrativas y borrados según rol (**admin**, **contable**, etc.). |
+| **Multas** | API y pantallas de multas disponibles; permisos según rol (**admin**, **contable**, etc.). La **home** ya no muestra contador ni acceso rápido personales a «mis multas» (el foco de producto es más amplio). |
 
 Pendientes habituales en producción: **rate limiting** (login, recuperación, altas de cuenta), endurecer CORS, y desactivar **`POST /signup`** si no querés registro público.
 

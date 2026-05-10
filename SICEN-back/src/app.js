@@ -7,10 +7,13 @@ import { fileURLToPath } from "url";
 import env from "./config/env.config.js";
 import { logger } from "./utils/logger.js";
 import { connectMongo } from "./utils/db-connection.js";
+import { AVATARS_DIR, ensureAvatarsDirSync } from "./utils/avatarFiles.js";
 import { usersRouter } from "./routes/users.router.js";
 import { sessionsRouter } from "./routes/sessions.router.js";
 import { carFinesRouter } from "./routes/carFines.router.js";
 import { tokensRouter } from "./routes/tokens.router.js";
+import { unitFilesRouter } from "./routes/unitFiles.router.js";
+import { unitsRouter } from "./routes/units.router.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,13 +53,18 @@ app.use(
 );
 
 app.use(compression());
-app.use(express.json());
+app.use(express.json({ limit: "3mb" }));
 app.use(express.urlencoded({ extended: true }));
+
+ensureAvatarsDirSync();
+app.use("/uploads/avatars", express.static(AVATARS_DIR));
 
 app.use("/api/users", usersRouter);
 app.use("/api/sessions", sessionsRouter);
 app.use("/api/carFines", carFinesRouter);
 app.use("/api/tokens", tokensRouter);
+app.use("/api/unit-files", unitFilesRouter);
+app.use("/api/units", unitsRouter);
 
 if (fs.existsSync(CLIENT_DIST)) {
   app.use(express.static(CLIENT_DIST));

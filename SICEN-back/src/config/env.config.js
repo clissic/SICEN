@@ -36,6 +36,14 @@ const publicAppUrl = stripTrailingSlash(
     `http://localhost:${port}`
 );
 
+/**
+ * Base URL para assets servidos en correos (`{emailAssetsBaseUrl}/img/Logo-PNN.png`).
+ * Definí `EMAIL_LOGO_BASE_URL` si el logo debe resolverse desde otro origen (CDN/subdominio).
+ * Si está vacío, usa la misma base que la app (`PUBLIC_APP_URL` / `API_URL` / localhost).
+ */
+const emailAssetsBaseUrl =
+  stripTrailingSlash(process.env.EMAIL_LOGO_BASE_URL || "") || publicAppUrl;
+
 export default {
   port: process.env.PORT,
   jwtSecret,
@@ -51,4 +59,5 @@ export default {
   loggerEnv: process.env.LOGGER_ENV,
   apiUrl: process.env.API_URL,
   publicAppUrl,
+  emailAssetsBaseUrl,
 };

@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { updateDataRequest } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Layout } from "../components/Layout.jsx";
+import { UserAvatarFileInput } from "../components/UserAvatarFileInput.jsx";
 import { UserUnitSelect } from "../components/UserUnitSelect.jsx";
+import { ADMIN_EDIT_ROLES, normalizeRoleForSelect } from "../constants/userRoles.js";
 import { RANK_OPTIONS } from "../constants/ranks.js";
 
 export function UpdateDataPage() {
@@ -14,15 +16,33 @@ export function UpdateDataPage() {
   const [newRole, setNrole] = useState("");
   const [newUnit, setNewUnit] = useState("");
   const [newEmail, setNe] = useState("");
+  const [profilePhotoDataUrl, setProfilePhotoDataUrl] = useState("");
   const [newDataBody, setBody] = useState("");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!user?._id) return;
+    setNf(user.first_name ?? "");
+    setNl(user.last_name ?? "");
+    setNr(user.rank ?? "");
+    setNrole(
+      user.role === "superAdmin" ? "superAdmin" : normalizeRoleForSelect(user.role)
+    );
+    setNewUnit(user.unit ?? "");
+    setNe(user.email ?? "");
+    setProfilePhotoDataUrl("");
+  }, [user?._id]);
 
   async function onSubmit(e) {
     e.preventDefault();
     setErr("");
     setMsg("");
+    setSubmitting(true);
     try {
+      const newRolePayload =
+        user.role === "superAdmin" ? "superAdmin" : newRole;
       const data = await updateDataRequest({
         first_name: user.first_name,
         newFirstName,
@@ -31,18 +51,25 @@ export function UpdateDataPage() {
         rank: user.rank,
         newRank,
         role: user.role,
-        newRole,
+        newRole: newRolePayload,
         unit: user.unit,
         newUnit,
         email: user.email,
         newEmail,
         newDataBody,
+        ...(profilePhotoDataUrl
+          ? { profilePhotoDataUrl }
+          : {}),
       });
       setMsg(data.msg || "Solicitud enviada");
     } catch (ex) {
       setErr(ex.message || ex.data?.msg || "Error");
+    } finally {
+      setSubmitting(false);
     }
   }
+
+  const isSuperAdminUser = user?.role === "superAdmin";
 
   return (
     <Layout>
@@ -57,7 +84,8 @@ export function UpdateDataPage() {
             </div>
 
             <p className="small text-muted">
-              Complete solo los campos que desea modificar y el motivo.
+              Los datos actuales ya están cargados. Modifique lo necesario y
+              complete el motivo.
             </p>
 
             {msg ? <div className="alert alert-success py-2">{msg}</div> : null}
@@ -65,34 +93,28 @@ export function UpdateDataPage() {
 
             <form onSubmit={onSubmit} className="row g-3">
               <div className="col-12 col-md-6">
-                <label className="form-label">Nuevo nombre</label>
+                <label className="form-label">Nombre</label>
                 <input
                   className="form-control"
                   value={newFirstName}
                   onChange={(e) => setNf(e.target.value)}
                 />
-                <div className="form-text">
-                  Actual: {user?.first_name ? user.first_name : "—"}
-                </div>
               </div>
               <div className="col-12 col-md-6">
-                <label className="form-label">Nuevo apellido</label>
+                <label className="form-label">Apellido</label>
                 <input
                   className="form-control"
                   value={newLastName}
                   onChange={(e) => setNl(e.target.value)}
                 />
-                <div className="form-text">
-                  Actual: {user?.last_name ? user.last_name : "—"}
-                </div>
               </div>
               <div className="col-12 col-md-6">
-                <label className="form-label">Nuevo grado</label>
+                <label className="form-label">Grado</label>
                 <select
                   className="form-select"
                   value={newRank}
                   onChange={(e) => setNr(e.target.value)}
-                  aria-label="Nuevo grado"
+                  aria-label="Grado"
                 >
                   <option value="">Seleccionar grado…</option>
                   {RANK_OPTIONS.map((r) => (
@@ -101,7 +123,6 @@ export function UpdateDataPage() {
                     </option>
                   ))}
                 </select>
-                <div className="form-text">Actual: {user?.rank ? user.rank : "—"}</div>
               </div>
               <div className="col-12 col-md-6">
                 <label className="form-label" htmlFor="update-data-unit">
@@ -112,29 +133,54 @@ export function UpdateDataPage() {
                   value={newUnit}
                   onChange={setNewUnit}
                 />
-                <div className="form-text">
-                  Actual: {user?.unit ? user.unit : "—"}
-                </div>
               </div>
               <div className="col-12 col-md-6">
-                <label className="form-label">Nuevo rol (solicitud)</label>
-                <input
-                  className="form-control"
-                  value={newRole}
-                  onChange={(e) => setNrole(e.target.value)}
-                />
-                <div className="form-text">Actual: {user?.role ? user.role : "—"}</div>
+                <label className="form-label" htmlFor="update-data-role">
+                  Rol
+                </label>
+                {isSuperAdminUser ? (
+                  <>
+                    <input
+                      id="update-data-role"
+                      className="form-control"
+                      disabled
+                      readOnly
+                      value="superAdmin"
+                    />
+                    <div className="form-text">
+                      Este rol no puede modificarse desde este formulario.
+                    </div>
+                  </>
+                ) : (
+                  <select
+                    id="update-data-role"
+                    className="form-select"
+                    value={newRole}
+                    onChange={(e) => setNrole(e.target.value)}
+                    aria-label="Rol"
+                  >
+                    {ADMIN_EDIT_ROLES.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
-              <div className="col-12">
-                <label className="form-label">Nuevo email</label>
+              <div className="col-12 col-md-6">
+                <label className="form-label">Email</label>
                 <input
                   className="form-control"
                   type="email"
                   value={newEmail}
                   onChange={(e) => setNe(e.target.value)}
                 />
-                <div className="form-text">Actual: {user?.email ? user.email : "—"}</div>
               </div>
+              <UserAvatarFileInput
+                id="update-data-profile-photo"
+                onDataUrl={setProfilePhotoDataUrl}
+                label="Foto de perfil (archivo .jpg, opcional)"
+              />
               <div className="col-12">
                 <label className="form-label">Motivo / cuerpo del mensaje</label>
                 <textarea
@@ -146,8 +192,29 @@ export function UpdateDataPage() {
                 />
               </div>
               <div className="col-12 d-grid">
-                <button type="submit" className="btn btn-primary">
-                  Enviar solicitud
+                <button
+                  type="submit"
+                  className="btn btn-primary w-100 d-inline-flex align-items-center justify-content-center gap-2"
+                  disabled={submitting}
+                  aria-busy={submitting}
+                >
+                  {submitting ? (
+                    <>
+                      <span
+                        className="spinner-border spinner-border-sm"
+                        role="status"
+                        aria-hidden
+                        style={{
+                          width: "1em",
+                          height: "1em",
+                          borderWidth: "0.15em",
+                        }}
+                      />
+                      <span>Enviando solicitud…</span>
+                    </>
+                  ) : (
+                    "Enviar solicitud"
+                  )}
                 </button>
               </div>
             </form>

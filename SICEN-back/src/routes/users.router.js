@@ -1,6 +1,7 @@
 import express from "express";
 import { usersController } from "../controllers/users.controller.js";
 import { checkLogin, checkAdmin, checkSelfOrAdmin } from "../middlewares/auth.js";
+import { uploadAvatarOptional } from "../middlewares/avatarUpload.middleware.js";
 
 export const usersRouter = express.Router();
 
@@ -8,7 +9,13 @@ usersRouter.post("/newAccount", usersController.sendNewAccEmail);
 
 usersRouter.post("/create", checkLogin, checkAdmin, usersController.create);
 
-usersRouter.post("/createAndSendEmail", checkLogin, checkAdmin, usersController.createAndSendEmail);
+usersRouter.post(
+  "/createAndSendEmail",
+  checkLogin,
+  checkAdmin,
+  uploadAvatarOptional,
+  usersController.createAndSendEmail
+);
 
 usersRouter.get("/paginated", checkLogin, checkAdmin, usersController.paginateList);
 
@@ -18,8 +25,13 @@ usersRouter.get("/update/userUpdate", checkLogin, checkAdmin, usersController.fi
 
 usersRouter.get("/findBy/id/delete", checkLogin, checkAdmin, usersController.findByIdAndRenderForDelete);
 
-usersRouter.get("/updateUser/:id", checkLogin, checkAdmin, usersController.findByIdAndUpdate);
-usersRouter.put("/updateUser/:id", checkLogin, checkAdmin, usersController.findByIdAndUpdate);
+usersRouter.put(
+  "/updateUser/:id",
+  checkLogin,
+  checkAdmin,
+  uploadAvatarOptional,
+  usersController.findByIdAndUpdate
+);
 
 usersRouter.get("/delete/:id", checkLogin, checkAdmin, usersController.findByIdAndDelete);
 

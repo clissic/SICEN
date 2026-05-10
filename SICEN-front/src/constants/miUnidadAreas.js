@@ -2,7 +2,7 @@ export const MI_UNIDAD_AREAS = [
   {
     slug: "centro-control",
     title: "CENTRO DE CONTROL",
-    subtitle: "Centro de Control e Información del Movimiento Marítimo",
+    subtitle: "Centro de Control e Información del Movimiento Marítimo.",
     iconClass: "bi-broadcast",
   },
   {
@@ -14,13 +14,13 @@ export const MI_UNIDAD_AREAS = [
   {
     slug: "puerto-capurro",
     title: "PUERTO CAPURRO",
-    subtitle: "Información relacionada con la pesca nacional",
+    subtitle: "Información relacionada con la pesca nacional.",
     iconClass: "bi-geo-alt",
   },
   {
     slug: "depto-control-pesquero",
     title: "DEPTO. CONTROL PESQUERO",
-    subtitle: "Buques de interés y herramientas de analisis de datos",
+    subtitle: "Buques de interés y herramientas de analisis de datos.",
     iconClass: "bi-bar-chart",
   },
 ];

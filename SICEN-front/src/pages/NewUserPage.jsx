@@ -1,73 +1,63 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { createUserAdmin } from "../api/client.js";
 import { Layout } from "../components/Layout.jsx";
 import { UserUnitSelect } from "../components/UserUnitSelect.jsx";
+import { UserAvatarFileInput } from "../components/UserAvatarFileInput.jsx";
 import { RANK_OPTIONS } from "../constants/ranks.js";
+import {
+  CREATE_USER_ROLE_OPTIONS_ADMIN,
+  CREATE_USER_ROLE_OPTIONS_SUPERADMIN,
+} from "../constants/userRoles.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export function NewUserPage() {
+  const { user } = useAuth();
+  const roleOptions = useMemo(
+    () =>
+      user?.role === "superAdmin"
+        ? CREATE_USER_ROLE_OPTIONS_SUPERADMIN
+        : CREATE_USER_ROLE_OPTIONS_ADMIN,
+    [user?.role]
+  );
+
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
     rank: "",
     unit: "",
     email: "",
-    avatar: "",
+    role: "user",
   });
-  const [avatarErr, setAvatarErr] = useState("");
+  const [avatarFile, setAvatarFile] = useState(null);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (user?.role !== "superAdmin") {
+      setForm((f) =>
+        f.role === "superAdmin" ? { ...f, role: "user" } : f
+      );
+    }
+  }, [user?.role]);
 
   function set(k, v) {
     setForm((f) => ({ ...f, [k]: v }));
-  }
-
-  async function onAvatarChange(e) {
-    setAvatarErr("");
-    const file = e.target.files?.[0] ?? null;
-    if (!file) {
-      set("avatar", "");
-      return;
-    }
-
-    const isJpeg =
-      file.type === "image/jpeg" ||
-      file.name.toLowerCase().endsWith(".jpg") ||
-      file.name.toLowerCase().endsWith(".jpeg");
-    if (!isJpeg) {
-      setAvatarErr("El archivo debe ser .jpg / .jpeg");
-      e.target.value = "";
-      set("avatar", "");
-      return;
-    }
-
-    const maxBytes = 1024 * 1024; // 1 MB
-    if (file.size > maxBytes) {
-      setAvatarErr("El archivo supera 1 MB");
-      e.target.value = "";
-      set("avatar", "");
-      return;
-    }
-
-    const dataUrl = await new Promise((resolve, reject) => {
-      const r = new FileReader();
-      r.onload = () => resolve(String(r.result || ""));
-      r.onerror = () => reject(new Error("No se pudo leer el archivo"));
-      r.readAsDataURL(file);
-    });
-
-    set("avatar", dataUrl);
   }
 
   async function onSubmit(e) {
     e.preventDefault();
     setErr("");
     setMsg("");
+    setSubmitting(true);
     try {
-      const data = await createUserAdmin(form);
+      const data = await createUserAdmin(form, avatarFile);
       setMsg(data.msg || "Usuario creado");
     } catch (ex) {
       setErr(ex.message || ex.data?.msg || "Error");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -134,6 +124,25 @@ export function NewUserPage() {
                 />
               </div>
               <div className="col-12 col-md-6">
+                <label className="form-label" htmlFor="new-user-role">
+                  Rol
+                </label>
+                <select
+                  id="new-user-role"
+                  className="form-select"
+                  required
+                  value={form.role}
+                  onChange={(e) => set("role", e.target.value)}
+                  aria-label="Rol del usuario"
+                >
+                  {roleOptions.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-12 col-md-6">
                 <label className="form-label">Email</label>
                 <input
                   className="form-control"
@@ -143,24 +152,30 @@ export function NewUserPage() {
                   onChange={(e) => set("email", e.target.value)}
                 />
               </div>
-              <div className="col-12">
-                <label className="form-label">Avatar (archivo .jpg)</label>
-                <input
-                  className="form-control"
-                  type="file"
-                  accept=".jpg,.jpeg,image/jpeg"
-                  onChange={onAvatarChange}
-                />
-                <div className="form-text">
-                  Máx. 1 MB. Recomendado: 500 x 500 px.
-                </div>
-                {avatarErr ? (
-                  <div className="text-danger small mt-1">{avatarErr}</div>
-                ) : null}
-              </div>
+              <UserAvatarFileInput
+                id="new-user-avatar"
+                onFileChange={setAvatarFile}
+              />
               <div className="col-12 d-grid">
-                <button type="submit" className="btn btn-primary">
-                  Crear y enviar email
+                <button
+                  type="submit"
+                  className="btn btn-primary w-100 d-inline-flex align-items-center justify-content-center gap-2"
+                  disabled={submitting}
+                  aria-busy={submitting}
+                >
+                  {submitting ? (
+                    <>
+                      <span
+                        className="spinner-border spinner-border-sm"
+                        role="status"
+                        aria-hidden
+                        style={{ width: "1em", height: "1em", borderWidth: "0.15em" }}
+                      />
+                      <span>Enviando…</span>
+                    </>
+                  ) : (
+                    "Crear y enviar email"
+                  )}
                 </button>
               </div>
             </form>

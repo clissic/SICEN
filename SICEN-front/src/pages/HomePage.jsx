@@ -1,20 +1,25 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Layout } from "../components/Layout.jsx";
-import { getUserUnitLabel } from "../constants/userUnits.js";
+import { useUnitFromApi } from "../hooks/useUnitFromApi.js";
 
 const ESCUDO_BASE = "/img/ESCUDO-UNIDADES-PNN";
 const ESCUDO_PRENA = `${ESCUDO_BASE}/PRENA.png`;
 
 export function HomePage() {
   const { user } = useAuth();
-  const unitDisplay = getUserUnitLabel(user?.unit);
+  const unitDoc = useUnitFromApi(user?.unit);
+  const unitCode = user?.unit?.trim() || "";
+  const unitCodeUpper = unitCode ? unitCode.toUpperCase() : "";
+  const unitDisplay = unitDoc?.name?.trim() || unitCodeUpper || "";
   const unitMenuTitle = (unitDisplay || "Unidad no asignada").toLocaleUpperCase(
     "es-UY"
   );
-  const unitCode = user?.unit?.trim() || "";
-  const escudoSrc = unitCode ? `${ESCUDO_BASE}/${unitCode}.png` : ESCUDO_PRENA;
-  const finesQuantity = user?.fines?.length ?? 0;
+  const escudoSrc = unitDoc?.shieldRelativeUrl?.trim()
+    ? unitDoc.shieldRelativeUrl
+    : unitCodeUpper
+      ? `${ESCUDO_BASE}/${encodeURIComponent(unitCodeUpper)}.png`
+      : ESCUDO_PRENA;
   const isAdmin = user?.role === "admin" || user?.role === "superAdmin";
 
   return (
@@ -55,16 +60,10 @@ export function HomePage() {
                   <span className="badge text-bg-secondary">
                     Rol: {user?.role ?? "—"}
                   </span>
-                  <span className="badge text-bg-secondary">
-                    Multas realizadas: {finesQuantity}
-                  </span>
                 </div>
 
                 <div className="d-grid gap-2 mt-3">
-                  <Link className="btn btn-outline-primary" to="/mis-multas">
-                    MIS MULTAS
-                  </Link>
-                  <Link className="btn btn-outline-secondary" to="/cambiar-clave">
+                  <Link className="btn btn-outline-primary" to="/cambiar-clave">
                     CAMBIAR CONTRASEÑA
                   </Link>
                   <Link className="btn btn-outline-secondary" to="/actualizar-datos">
@@ -213,6 +212,36 @@ export function HomePage() {
                           </div>
                           <div className="text-muted small">
                             Multas de buques o de vehículos terrestres.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+
+              <div className="col">
+                <Link className="text-decoration-none" to="/gestion-unidades">
+                  <div className="card h-100 shadow-sm">
+                    <img
+                      src="/img/unitManagement.jpg"
+                      alt="Gestión de unidades"
+                      className="card-img-top"
+                      loading="lazy"
+                    />
+                    <div className="card-body">
+                      <div className="d-flex align-items-start gap-2">
+                        <i
+                          className="menu-tile-icon bi bi-buildings me-1 px-2 py-1 border border-secondary rounded-1 bg-secondary text-white flex-shrink-0"
+                          style={{ fontSize: "0.95rem", marginTop: "0.15rem" }}
+                          aria-hidden
+                        />
+                        <div className="min-w-0">
+                          <div className="fw-semibold text-body">
+                            GESTIÓN DE UNIDADES
+                          </div>
+                          <div className="text-muted small">
+                            Base de datos de unidades.
                           </div>
                         </div>
                       </div>

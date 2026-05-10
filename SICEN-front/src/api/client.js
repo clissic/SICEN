@@ -1,4 +1,37 @@
 const AUTH_TOKEN_KEY = "sicen_auth_token";
+const USER_UNIT_CACHE_KEY = "sicen_user_unit_cache";
+
+/** `{ acronym: string, unit: object | null }` — datos de la unidad del usuario en sesión. */
+export function readUserUnitCache() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(USER_UNIT_CACHE_KEY);
+    if (!raw) return null;
+    const o = JSON.parse(raw);
+    if (!o || typeof o.acronym !== "string") return null;
+    return o;
+  } catch {
+    return null;
+  }
+}
+
+export function writeUserUnitCache(acronym, unitDoc) {
+  if (typeof window === "undefined") return;
+  const a = acronym?.trim()?.toUpperCase();
+  if (!a) {
+    localStorage.removeItem(USER_UNIT_CACHE_KEY);
+    return;
+  }
+  localStorage.setItem(
+    USER_UNIT_CACHE_KEY,
+    JSON.stringify({ acronym: a, unit: unitDoc ?? null })
+  );
+}
+
+export function clearUserUnitCache() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(USER_UNIT_CACHE_KEY);
+}
 
 export function getAuthToken() {
   if (typeof window === "undefined") return null;
@@ -13,11 +46,14 @@ export function setAuthToken(token) {
 
 export function clearAuthToken() {
   setAuthToken(null);
+  clearUserUnitCache();
 }
 
 export async function apiFetch(path, options = {}) {
   const headers = { ...(options.headers || {}) };
-  if (options.body && !headers["Content-Type"]) {
+  const isFormData =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
+  if (options.body && !isFormData && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
   const token = getAuthToken();
@@ -47,6 +83,137 @@ export async function apiFetch(path, options = {}) {
 
 export function getMe() {
   return apiFetch("/api/sessions/me");
+}
+
+/** .pdf / .doc / .docx en `files/units/<su unidad>/DIV-I/Procedimientos`. */
+export function listProcedimientosDivIFiles() {
+  return apiFetch("/api/unit-files/procedimientos-div-i");
+}
+
+/** .pdf / .doc / .docx en `files/units/<su unidad>/DIV-II/Procedimientos`. */
+export function listProcedimientosDivIIFiles() {
+  return apiFetch("/api/unit-files/procedimientos-div-ii");
+}
+
+/** Sube un archivo a la carpeta Procedimientos de la unidad del usuario (JWT). */
+export async function uploadProcedimientosFile(file, division) {
+  const path =
+    division === "DIV-II"
+      ? "/api/unit-files/procedimientos-div-ii/upload"
+      : "/api/unit-files/procedimientos-div-i/upload";
+  const token = getAuthToken();
+  const form = new FormData();
+  form.append("file", file);
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const res = await fetch(path, {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: form,
+  });
+  const text = await res.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = { raw: text };
+  }
+  if (!res.ok) {
+    const err = new Error(data?.msg || data?.message || res.statusText);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+/** Unidades registradas en BD (admin). */
+export function listUnitsRegistered() {
+  return apiFetch("/api/units");
+}
+
+/** Alta de unidad (admin). `formData`: nombre, sigla (4–6 caracteres), …; escudo opcional (sin archivo → URL PRENA.png). */
+export async function createUnit(formData) {
+  const token = getAuthToken();
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const res = await fetch("/api/units", {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: formData,
+  });
+  const text = await res.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = { raw: text };
+  }
+  if (!res.ok) {
+    const err = new Error(data?.msg || data?.message || res.statusText);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+/** Detalle de una unidad por sigla (sesión iniciada). */
+export function getUnit(acronym) {
+  const enc = encodeURIComponent(acronym);
+  return apiFetch(`/api/units/${enc}`);
+}
+
+/** Actualiza una unidad (admin). `formData`: campos de alta; `sigla` puede cambiar; escudo opcional. */
+export async function updateUnit(acronym, formData) {
+  const token = getAuthToken();
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const enc = encodeURIComponent(acronym);
+  const res = await fetch(`/api/units/${enc}`, {
+    method: "PUT",
+    credentials: "include",
+    headers,
+    body: formData,
+  });
+  const text = await res.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = { raw: text };
+  }
+  if (!res.ok) {
+    const err = new Error(data?.msg || data?.message || res.statusText);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+/** Elimina una unidad por sigla (admin). */
+export function deleteUnit(acronym) {
+  const enc = encodeURIComponent(acronym);
+  return apiFetch(`/api/units/${enc}`, { method: "DELETE" });
+}
+
+/** Borra un archivo en Procedimientos (`relativePath` como en el listado). */
+export function deleteProcedimientoFile(division, relativePath) {
+  const base =
+    division === "DIV-II"
+      ? "/api/unit-files/procedimientos-div-ii/file"
+      : "/api/unit-files/procedimientos-div-i/file";
+  const q = `relativePath=${encodeURIComponent(relativePath)}`;
+  return apiFetch(`${base}?${q}`, { method: "DELETE" });
 }
 
 export async function login(email, password) {
@@ -119,16 +286,36 @@ export function usersPaginated(params) {
   return apiFetch(`/api/users/paginated?${q}`);
 }
 
+/** Lista completa de usuarios (admin). GET /api/users */
+export function usersGetAll() {
+  return apiFetch("/api/users");
+}
+
 export function userForUpdate(id) {
   return apiFetch(
     `/api/users/update/userUpdate?id=${encodeURIComponent(id)}`
   );
 }
 
-export function userUpdate(id, body) {
+export function userUpdate(id, body, avatarFile) {
+  if (avatarFile instanceof File) {
+    const fd = new FormData();
+    const fields = ["first_name", "last_name", "rank", "unit", "email", "role"];
+    for (const key of fields) {
+      if (body[key] !== undefined && body[key] !== null) {
+        fd.append(key, String(body[key]));
+      }
+    }
+    fd.append("avatar", avatarFile);
+    return apiFetch(`/api/users/updateUser/${id}`, {
+      method: "PUT",
+      body: fd,
+    });
+  }
+  const { avatar: _drop, ...rest } = body;
   return apiFetch(`/api/users/updateUser/${id}`, {
     method: "PUT",
-    body: JSON.stringify(body),
+    body: JSON.stringify(rest),
   });
 }
 
@@ -183,9 +370,31 @@ export function resetPassword(email, newPassword, confirmPassword) {
   });
 }
 
-export function createUserAdmin(body) {
+export function createUserAdmin(body, avatarFile) {
+  if (avatarFile instanceof File) {
+    const fd = new FormData();
+    fd.append("first_name", body.first_name ?? "");
+    fd.append("last_name", body.last_name ?? "");
+    fd.append("rank", body.rank ?? "");
+    fd.append("unit", body.unit ?? "");
+    fd.append("email", body.email ?? "");
+    fd.append("role", body.role ?? "user");
+    fd.append("avatar", avatarFile);
+    return apiFetch("/api/users/createAndSendEmail", {
+      method: "POST",
+      body: fd,
+    });
+  }
   return apiFetch("/api/users/createAndSendEmail", {
     method: "POST",
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      first_name: body.first_name,
+      last_name: body.last_name,
+      rank: body.rank,
+      unit: body.unit,
+      email: body.email,
+      role: body.role ?? "user",
+      avatar: "/img/avatar.png",
+    }),
   });
 }

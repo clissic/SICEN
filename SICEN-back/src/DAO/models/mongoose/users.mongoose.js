@@ -9,7 +9,11 @@ const schema = new Schema({
   unit: { type: String, default: "", maxlength: 20 },
   email: { type: String, required: true, max: 100, unique: true },
   password: { type: String, max: 100 },
-  role: { type: String, default: "user"},
+  role: {
+    type: String,
+    enum: ["user", "admin", "superAdmin"],
+    default: "user",
+  },
   fines: { type: Array, default: [] },
   last_modified_by: { type: String, default: "S/M" },
 });

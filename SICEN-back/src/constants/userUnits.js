@@ -1,32 +1,11 @@
-/** Unidades organizativas válidas para usuarios (orden de negocio). */
-export const USER_UNITS = Object.freeze([
-  "PREMO",
-  "SUBEL",
-  "PRESA",
-  "PREPA",
-  "PREFA",
-  "PREME",
-  "SUDOL",
-  "PRENU",
-  "SUBCA",
-  "PRECO",
-  "SULAC",
-  "SUVAZ",
-  "PREVI",
-  "SUCOS",
-  "PRECA",
-  "SUFLO",
-  "SUPIR",
-  "PREMA",
-  "SUBCI",
-  "PRELA",
-  "SUCHU",
-  "SUCHA",
-  "PRERI",
-]);
+import { UnitMongoose } from "../DAO/models/mongoose/units.mongoose.js";
 
-const VALID = new Set(USER_UNITS);
-
-export function isValidUserUnit(unit) {
-  return typeof unit === "string" && VALID.has(unit);
+/** La sigla del usuario debe existir en la colección `units`. */
+export async function isValidUserUnitAsync(unit) {
+  if (typeof unit !== "string" || !unit.trim()) {
+    return false;
+  }
+  const u = unit.trim().toUpperCase();
+  const doc = await UnitMongoose.findOne({ acronym: u }).select("_id").lean();
+  return !!doc;
 }

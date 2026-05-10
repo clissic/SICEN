@@ -4,8 +4,13 @@ import { ProtectedRoute } from "./components/ProtectedRoute.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
 import { SignupPage } from "./pages/SignupPage.jsx";
 import { HomePage } from "./pages/HomePage.jsx";
+import { GestionUnidadesPage } from "./pages/GestionUnidadesPage.jsx";
+import { SumarUnidadPage } from "./pages/SumarUnidadPage.jsx";
+import { ModificarUnidadPage } from "./pages/ModificarUnidadPage.jsx";
+import { BorrarUnidadPage } from "./pages/BorrarUnidadPage.jsx";
 import { MiUnidadPage } from "./pages/MiUnidadPage.jsx";
 import { MiUnidadDivisionPage } from "./pages/MiUnidadDivisionPage.jsx";
+import { MiUnidadDivisionMenuItemPage } from "./pages/MiUnidadDivisionMenuItemPage.jsx";
 import { MiUnidadAreaPage } from "./pages/MiUnidadAreaPage.jsx";
 import { BaseBuquesPage } from "./pages/BaseBuquesPage.jsx";
 import { BaseGenteMarPage } from "./pages/BaseGenteMarPage.jsx";
@@ -67,6 +72,38 @@ export default function App() {
         }
       />
       <Route
+        path="/gestion-unidades"
+        element={
+          <ProtectedRoute>
+            <GestionUnidadesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/gestion-unidades/sumar"
+        element={
+          <ProtectedRoute admin>
+            <SumarUnidadPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/gestion-unidades/modificar"
+        element={
+          <ProtectedRoute admin>
+            <ModificarUnidadPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/gestion-unidades/borrar"
+        element={
+          <ProtectedRoute admin>
+            <BorrarUnidadPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/mi-unidad"
         element={
           <ProtectedRoute>
@@ -75,18 +112,26 @@ export default function App() {
         }
       />
       <Route
-        path="/mi-unidad/:divisionSlug"
-        element={
-          <ProtectedRoute>
-            <MiUnidadDivisionPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/mi-unidad/areas/:areaSlug"
         element={
           <ProtectedRoute>
             <MiUnidadAreaPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mi-unidad/:divisionSlug/:sectionSlug/:itemSlug"
+        element={
+          <ProtectedRoute>
+            <MiUnidadDivisionMenuItemPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mi-unidad/:divisionSlug"
+        element={
+          <ProtectedRoute>
+            <MiUnidadDivisionPage />
           </ProtectedRoute>
         }
       />

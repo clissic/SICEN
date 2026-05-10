@@ -4,7 +4,15 @@ import { createHash } from "../utils/Bcrypt.js";
 import { signAccessToken } from "../utils/jwt.util.js";
 import { logger } from "../utils/logger.js";
 import UserDTO from "./DTO/users.dto.js";
-import { isValidUserUnit } from "../constants/userUnits.js";
+import { isValidUserUnitAsync } from "../constants/userUnits.js";
+import {
+  deleteStoredAvatarFile,
+  finalizeAvatarFilename,
+} from "../utils/avatarFiles.js";
+
+function escapeRegex(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 function userWithoutPassword(user) {
   if (!user) return null;
@@ -64,6 +72,7 @@ class UsersController {
         email,
         role,
         fines,
+        unit,
       } = req.query;
       const sortOption =
         sort === "asc"
@@ -92,7 +101,11 @@ class UsersController {
         mongooseFilter.email = { $regex: new RegExp(email, "i") };
       }
       if (role) {
-        mongooseFilter.role = { $regex: new RegExp(role, "i") };
+        mongooseFilter.role = { $regex: new RegExp(`^${escapeRegex(role)}$`, "i") };
+      }
+      if (unit && String(unit).trim()) {
+        const u = String(unit).trim();
+        mongooseFilter.unit = { $regex: new RegExp(`^${escapeRegex(u)}$`, "i") };
       }
       if (fines) {
         mongooseFilter.fines = { $size: parseInt(fines, 10) };
@@ -152,7 +165,7 @@ class UsersController {
   async create(req, res) {
     try {
       const { avatar, first_name, last_name, rank, unit, email, password } = req.body;
-      if (!isValidUserUnit(unit)) {
+      if (!(await isValidUserUnitAsync(unit))) {
         return res.status(400).json({
           status: "error",
           msg: "Debe indicar una unidad válida.",
@@ -377,9 +390,12 @@ class UsersController {
         newRank,
         role,
         newRole,
+        unit,
+        newUnit,
         email,
         newEmail,
         newDataBody,
+        profilePhotoDataUrl,
       } = req.body;
       const emailSent = await userService.sendNewDataEmail({
         first_name,
@@ -390,9 +406,12 @@ class UsersController {
         newRank,
         role,
         newRole,
+        unit,
+        newUnit,
         email,
         newEmail,
         newDataBody,
+        profilePhotoDataUrl,
       });
       return res.status(200).json({
         ok: true,
@@ -409,9 +428,33 @@ class UsersController {
 
   async createAndSendEmail(req, res) {
     const user = req.user;
+    let uploadedAvatarPath = null;
     try {
-      const { first_name, last_name, rank, unit, email, avatar } = req.body;
-      if (!isValidUserUnit(unit)) {
+      if (req.file) {
+        uploadedAvatarPath = `/uploads/avatars/${req.file.filename}`;
+      }
+      const avatar = uploadedAvatarPath || "/img/avatar.png";
+      const { first_name, last_name, rank, unit, email } = req.body;
+      const ALLOWED_CREATE_ROLES = new Set(["user", "admin", "superAdmin"]);
+      let role =
+        typeof req.body.role === "string" ? req.body.role.trim() : "";
+      if (!role) role = "user";
+      if (!ALLOWED_CREATE_ROLES.has(role)) {
+        if (uploadedAvatarPath) deleteStoredAvatarFile(uploadedAvatarPath);
+        return res.status(400).json({
+          ok: false,
+          msg: "El rol indicado no es válido.",
+        });
+      }
+      if (role === "superAdmin" && user.role !== "superAdmin") {
+        if (uploadedAvatarPath) deleteStoredAvatarFile(uploadedAvatarPath);
+        return res.status(403).json({
+          ok: false,
+          msg: "Solo un super administrador puede asignar el rol super administrador.",
+        });
+      }
+      if (!(await isValidUserUnitAsync(unit))) {
+        if (uploadedAvatarPath) deleteStoredAvatarFile(uploadedAvatarPath);
         return res.status(400).json({
           ok: false,
           msg: "Debe indicar una unidad válida.",
@@ -432,25 +475,50 @@ class UsersController {
         unit,
         email,
         password,
+        role,
       });
       console.log(emailSent + " " + userCreated);
       if (emailSent && userCreated) {
+        if (req.file && userCreated._id) {
+          const finalAvatar = finalizeAvatarFilename(
+            req.file.filename,
+            first_name,
+            last_name,
+            userCreated._id
+          );
+          if (finalAvatar) {
+            await userService.updateOne({
+              _id: userCreated._id,
+              avatar: finalAvatar,
+            });
+          } else {
+            deleteStoredAvatarFile(`/uploads/avatars/${req.file.filename}`);
+            await userService.updateOne({
+              _id: userCreated._id,
+              avatar: "/img/avatar.png",
+            });
+          }
+        }
         logger.info(
-          `La cuenta de ${email} fue creada correctamente por ${user.email} (${user.rank}).`
+          `La cuenta de ${rank} ${first_name} ${last_name} fue creada correctamente por ${user.rank} ${user.first_name} ${user.last_name} (${user.role}).`
         );
         return res.status(200).json({
           ok: true,
-          msg: `Cuenta de ${email} fue creada con éxito.`,
+          msg: `Cuenta de ${rank} ${first_name} ${last_name} fue creada con éxito.`,
         });
       }
+      if (uploadedAvatarPath) deleteStoredAvatarFile(uploadedAvatarPath);
       logger.info(
-        `La cuenta de ${email} no fue creada correctamente por ${user.email} (${user.rank})`
+        `La cuenta de ${rank} ${first_name} ${last_name} no fue creada correctamente por ${user.rank} ${user.first_name} ${user.last_name} (${user.role}).`
       );
       return res.status(400).json({
         ok: false,
         msg: "La cuenta no pudo ser creada con éxito.",
       });
     } catch (error) {
+      if (req.file) {
+        deleteStoredAvatarFile(`/uploads/avatars/${req.file.filename}`);
+      }
       logger.error("Error in users.controller createAndSendEmail: " + error);
       return res.status(400).json({
         ok: false,
@@ -496,21 +564,91 @@ class UsersController {
   async findByIdAndUpdate(req, res) {
     const user = req.user;
     const { id } = req.params;
+
+    function discardUploadedAvatar() {
+      if (req.file) {
+        deleteStoredAvatarFile(`/uploads/avatars/${req.file.filename}`);
+      }
+    }
+
+    const existing = await userService.findById(id);
+    if (!existing) {
+      discardUploadedAvatar();
+      return res.status(404).json({
+        ok: false,
+        msg: `El usuario con ID: ${id} no fue encontrado en la base de datos.`,
+      });
+    }
+
     const updatedUser = { ...req.query, ...req.body };
+    delete updatedUser.avatar;
+
     updatedUser._id = id;
     updatedUser.last_modified_by = user.email;
+
+    const ALLOWED_ROLES = new Set(["user", "admin", "superAdmin"]);
+    if (
+      updatedUser.role !== undefined &&
+      updatedUser.role !== null &&
+      updatedUser.role !== ""
+    ) {
+      if (!ALLOWED_ROLES.has(updatedUser.role)) {
+        discardUploadedAvatar();
+        return res.status(400).json({
+          ok: false,
+          msg: "El rol indicado no es válido. Use user, admin o superAdmin.",
+        });
+      }
+      if (updatedUser.role === "superAdmin" && user.role !== "superAdmin") {
+        if (!existing || existing.role !== "superAdmin") {
+          discardUploadedAvatar();
+          return res.status(403).json({
+            ok: false,
+            msg: "Solo un super administrador puede asignar el rol superAdmin.",
+          });
+        }
+      }
+    }
+
     if (
       Object.prototype.hasOwnProperty.call(updatedUser, "unit") &&
-      !isValidUserUnit(updatedUser.unit)
+      !(await isValidUserUnitAsync(updatedUser.unit))
     ) {
+      discardUploadedAvatar();
       return res.status(400).json({
         ok: false,
         msg: "Debe indicar una unidad válida.",
       });
     }
+
+    let newAvatarPath = null;
+    if (req.file) {
+      newAvatarPath = finalizeAvatarFilename(
+        req.file.filename,
+        updatedUser.first_name,
+        updatedUser.last_name,
+        id
+      );
+      if (!newAvatarPath) {
+        discardUploadedAvatar();
+        return res.status(500).json({
+          ok: false,
+          msg: "No se pudo guardar la foto de perfil.",
+        });
+      }
+      updatedUser.avatar = newAvatarPath;
+    }
+
     try {
       const result = await userService.updateOne(updatedUser);
       if (result.matchedCount > 0) {
+        if (
+          newAvatarPath &&
+          existing.avatar &&
+          existing.avatar !== newAvatarPath
+        ) {
+          deleteStoredAvatarFile(existing.avatar);
+        }
         logger.info(
           `Usuario ${updatedUser.rank} ${updatedUser.first_name} ${
             updatedUser.last_name
@@ -518,11 +656,16 @@ class UsersController {
             user.last_name
           }: ${JSON.stringify(updatedUser)}`
         );
-        return res.status(200).json({
+        const payload = {
           ok: true,
           msg: `Usuario ${updatedUser.rank} ${updatedUser.first_name} ${updatedUser.last_name} actualizado con éxito.`,
-        });
+        };
+        if (newAvatarPath) {
+          payload.avatarUrl = newAvatarPath;
+        }
+        return res.status(200).json(payload);
       }
+      discardUploadedAvatar();
       logger.info(
         `No se encontró el usuario con el ID: ${id} por ${user.rank} ${user.first_name} ${user.last_name}.`
       );
@@ -531,6 +674,7 @@ class UsersController {
         msg: `El usuario con ID: ${id} no fue encontrado en la base de datos.`,
       });
     } catch (error) {
+      discardUploadedAvatar();
       logger.error(
         `Error de servidor al actualizar usuario con ID: ${id} por ${user.rank} ${user.first_name} ${user.last_name}:`,
         error
@@ -578,6 +722,7 @@ class UsersController {
     try {
       const userFound = await userService.findById(id);
       if (userFound) {
+        deleteStoredAvatarFile(userFound.avatar);
         const userDeleted = await userService.deleteOne({ _id: id });
         if (userDeleted.deletedCount > 0) {
           logger.info(

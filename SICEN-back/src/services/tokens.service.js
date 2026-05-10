@@ -1,5 +1,12 @@
 import env from "../config/env.config.js";
 import { createHash } from "../utils/Bcrypt.js";
+import {
+  escapeHtml,
+  sicenButtonPrimaryHtml,
+  sicenCalloutHtml,
+  sicenEmailBodyStyles,
+  sicenEmailLayout,
+} from "../utils/emailTemplates.js";
 import { logger } from "../utils/logger.js";
 import { transport } from "../utils/nodemailer.js";
 import { generateRandomCode } from "../utils/random-code.js";
@@ -47,21 +54,32 @@ class RecoverTokensService {
       token
     )}&email=${encodeURIComponent(email)}`;
     if (user) {
+      const S = sicenEmailBodyStyles;
+      const tokenBox = sicenCalloutHtml(
+        `<p style="${S.tokenLabel}">Código de verificación</p>
+<p style="${S.tokenCode}">${escapeHtml(token)}</p>
+<p style="${S.tokenHint}">Válido por <strong>1 hora</strong> desde el envío de este correo.</p>`,
+        "muted"
+      );
+      const bodyHtml = `
+<p style="${S.paragraph}">Recibimos una solicitud para restablecer la contraseña asociada a su cuenta en <strong>SICEN</strong>.</p>
+${tokenBox}
+<p style="${S.paragraphAfterBlock}">Use el botón siguiente para continuar en el sitio seguro. También puede copiar el enlace al final del mensaje.</p>
+${sicenButtonPrimaryHtml(recoveryHref, "Restablecer contraseña")}
+<p style="${S.recoveryUrl}">${escapeHtml(recoveryHref)}</p>
+<p style="${S.recoveryDisclaimer}">Si usted no solicitó este cambio, ignore este mensaje; su contraseña no se modificará.</p>
+`;
       await transport.sendMail({
         from: env.googleEmail,
         to: email,
-        subject: "[SIGMU] Recuperación de contraseña",
-        html: `
-                <div>
-                    <h1>SIGMU</h1>
-                    <p>Su token de recuperación de contraseña es:</p>
-                    <h3>${token}</h3>
-                    <p>Tenga en cuenta que este token caducará pasada 1 (una) hora desde su generación.</p>
-                    <strong>Para continuar con la recuperación de contraseña, haga click <a href="${recoveryHref}">en este link</a>.</strong>
-                    <p>Si el enlace no funciona, copie y pegue esta dirección en el navegador:<br><small>${recoveryHref}</small></p>
-                    <p>Si usted no solicitó la recuperación de su contraseña, haga caso omiso a este email.</p>
-                </div>
-            `,
+        subject: "[SICEN] Recuperación de contraseña",
+        html: sicenEmailLayout({
+          title: "Recuperación de contraseña",
+          introLine: "Complete el proceso desde el enlace seguro (caduca en 1 hora).",
+          bodyHtml,
+          footerNote:
+            "Por seguridad no comparta este código ni el enlace con terceros.",
+        }),
       });
     } else {
       logger.error(`Email ${email} does not exist in DB`);
