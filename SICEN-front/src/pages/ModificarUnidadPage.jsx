@@ -4,6 +4,8 @@ import Swal from "sweetalert2";
 import { getUnit, listUnitsRegistered, updateUnit } from "../api/client.js";
 import { Layout } from "../components/Layout.jsx";
 
+const ESCUDO_PRENA = "/img/ESCUDO-UNIDADES-PNN/PRENA.png";
+
 function isoToDateInput(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -138,13 +140,22 @@ export function ModificarUnidadPage() {
             <div className="card-body p-4">
               <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
                 <img
-                  src={detail.shieldRelativeUrl || "/img/avatar.png"}
+                  src={
+                    detail.shieldRelativeUrl?.trim() || ESCUDO_PRENA
+                  }
                   alt=""
                   className="object-fit-contain flex-shrink-0"
                   style={{ maxHeight: "4rem", maxWidth: "5rem" }}
                   loading="lazy"
                   onError={(ev) => {
-                    ev.currentTarget.src = "/img/avatar.png";
+                    const el = ev.currentTarget;
+                    if (
+                      el.src.endsWith("/PRENA.png") ||
+                      el.src.endsWith("PRENA.png")
+                    ) {
+                      return;
+                    }
+                    el.src = ESCUDO_PRENA;
                   }}
                 />
                 <p className="text-muted small mb-0">

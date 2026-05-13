@@ -72,6 +72,19 @@ if (fs.existsSync(CLIENT_DIST)) {
     if (req.path.startsWith("/api")) {
       return next();
     }
+    /* Si falta el build (no hay /assets/*.js), express.static no sirve el archivo y
+       este fallback enviaba index.html → el navegador esperaba JS y recibía HTML (MIME). */
+    if (
+      req.path.startsWith("/assets/") ||
+      /\.(?:js|mjs|css|map)$/i.test(req.path)
+    ) {
+      return res
+        .status(404)
+        .type("text/plain")
+        .send(
+          "Recurso estático no encontrado. Genere el front: cd SICEN-front && npm run build"
+        );
+    }
     res.sendFile(path.join(CLIENT_DIST, "index.html"));
   });
 }

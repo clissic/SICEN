@@ -198,6 +198,12 @@ export function GestionUnidadesPage() {
                 to="/gestion-unidades/sumar"
               >
                 <div className="card h-100 shadow-sm">
+                  <img
+                    src="/img/sumarUnidad.jpg"
+                    alt="Sumar unidad"
+                    className="card-img-top"
+                    loading="lazy"
+                  />
                   <div className="card-body">
                     <div className="d-flex align-items-start gap-2">
                       <i
@@ -225,6 +231,12 @@ export function GestionUnidadesPage() {
                 to="/gestion-unidades/modificar"
               >
                 <div className="card h-100 shadow-sm">
+                  <img
+                    src="/img/modificarUnidad.jpg"
+                    alt="Modificar unidad"
+                    className="card-img-top"
+                    loading="lazy"
+                  />
                   <div className="card-body">
                     <div className="d-flex align-items-start gap-2">
                       <i
@@ -237,8 +249,8 @@ export function GestionUnidadesPage() {
                           MODIFICAR UNIDAD
                         </div>
                         <div className="text-muted small">
-                          Actualizar datos de contacto, heráldica u opcionalmente
-                          el escudo PNG.
+                          Actualizar datos de contacto, heráldica u
+                          opcionalmente el escudo PNG.
                         </div>
                       </div>
                     </div>
@@ -252,6 +264,12 @@ export function GestionUnidadesPage() {
                 to="/gestion-unidades/borrar"
               >
                 <div className="card h-100 shadow-sm border-danger">
+                  <img
+                    src="/img/borrarUnidad.jpg"
+                    alt="Borrar unidad"
+                    className="card-img-top"
+                    loading="lazy"
+                  />
                   <div className="card-body">
                     <div className="d-flex align-items-start gap-2">
                       <i

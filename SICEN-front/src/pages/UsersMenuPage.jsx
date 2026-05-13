@@ -117,7 +117,7 @@ export function UsersMenuPage() {
           </div>
           <div className="col">
             <Link className="text-decoration-none" to="/usuarios/eliminar">
-              <div className="card h-100 shadow-sm">
+              <div className="card h-100 shadow-sm border-danger">
                 <img
                   src="/img/deleteUser.jpg"
                   alt="Borrar usuario"
@@ -125,8 +125,19 @@ export function UsersMenuPage() {
                   loading="lazy"
                 />
                 <div className="card-body">
-                  <div className="fw-semibold text-danger">Borrar</div>
-                  <div className="text-muted small">Eliminar usuario.</div>
+                  <div className="d-flex align-items-start gap-2">
+                    <i
+                      className="menu-tile-icon bi bi-trash3 me-1 px-2 py-1 border border-danger rounded-1 bg-danger text-white flex-shrink-0"
+                      style={{ fontSize: "0.95rem", marginTop: "0.15rem" }}
+                      aria-hidden
+                    />
+                    <div className="min-w-0">
+                      <div className="fw-semibold text-danger">
+                        BORRAR USUARIO
+                      </div>
+                      <div className="text-muted small">Eliminar usuario.</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </Link>
@@ -195,7 +206,7 @@ export function UsersMenuPage() {
             </div>
           </div>
           <div className="col-12 col-lg-6">
-            <div className="card shadow-sm border bg-white h-100">
+            <div className="card shadow-sm h-100">
               <div className="card-header fw-semibold py-2 small border-bottom">
                 Usuarios por rol
               </div>
@@ -252,7 +263,7 @@ export function UsersMenuPage() {
 
         <div className="row g-3 mt-1">
           <div className="col-12 col-lg-6">
-            <div className="card shadow-sm border bg-white h-100">
+            <div className="card shadow-sm h-100">
               <div className="card-header fw-semibold py-2 small border-bottom">
                 Usuarios por unidad
               </div>
@@ -266,7 +277,7 @@ export function UsersMenuPage() {
             </div>
           </div>
           <div className="col-12 col-lg-6">
-            <div className="card shadow-sm border bg-white h-100">
+            <div className="card shadow-sm h-100">
               <div className="card-header fw-semibold py-2 small border-bottom">
                 Usuarios por jerarquía
               </div>

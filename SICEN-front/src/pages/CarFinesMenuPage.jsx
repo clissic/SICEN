@@ -55,10 +55,27 @@ export function CarFinesMenuPage() {
               className="text-decoration-none"
               to="/multas/vehiculos/eliminar"
             >
-              <div className="card h-100 shadow-sm">
+              <div className="card h-100 shadow-sm border-danger">
+                <img
+                  src="/img/deleteFineCard.jpg"
+                  alt="Borrar multa"
+                  className="card-img-top"
+                  loading="lazy"
+                />
                 <div className="card-body">
-                  <div className="fw-semibold text-danger">Borrar</div>
-                  <div className="text-muted small">Eliminar una multa</div>
+                  <div className="d-flex align-items-start gap-2">
+                    <i
+                      className="menu-tile-icon bi bi-trash3 me-1 px-2 py-1 border border-danger rounded-1 bg-danger text-white flex-shrink-0"
+                      style={{ fontSize: "0.95rem", marginTop: "0.15rem" }}
+                      aria-hidden
+                    />
+                    <div className="min-w-0">
+                      <div className="fw-semibold text-danger">BORRAR MULTA</div>
+                      <div className="text-muted small">
+                        Eliminar una multa.
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </Link>

@@ -62,9 +62,24 @@ export function MiUnidadPage() {
                       <p className="text-muted small mb-1 text-break">
                         {unitMeta?.address?.trim() || "—"}
                       </p>
-                      <p className="text-muted small mb-0">
-                        Tel. {unitMeta?.phone?.trim() || "—"}
-                      </p>
+                      <div className="text-muted small mb-0 d-flex flex-wrap align-items-baseline column-gap-3 row-gap-1">
+                        <span className="text-nowrap">
+                          Tel. {unitMeta?.phone?.trim() || "—"}
+                        </span>
+                        <span className="text-break">
+                          <span className="me-1">Sala de radio:</span>
+                          {unitMeta?.emailRadio?.trim() ? (
+                            <a
+                              href={`mailto:${unitMeta.emailRadio.trim()}`}
+                              className="link-secondary"
+                            >
+                              {unitMeta.emailRadio.trim()}
+                            </a>
+                          ) : (
+                            "—"
+                          )}
+                        </span>
+                      </div>
                     </>
                   ) : null}
                 </div>

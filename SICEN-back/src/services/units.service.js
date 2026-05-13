@@ -51,6 +51,11 @@ export function renameShieldFiles(oldSiglaUpper, newSiglaUpper) {
   }
 }
 
+/** True si existe al menos un PNG del escudo para la sigla (back o front público). */
+export function shieldPngFileExists(siglaUpper) {
+  return escudoTargets(siglaUpper).some((p) => fs.existsSync(p));
+}
+
 export function shieldPublicUrl(siglaUpper) {
   return `/img/ESCUDO-UNIDADES-PNN/${encodeURIComponent(siglaUpper)}.png`;
 }

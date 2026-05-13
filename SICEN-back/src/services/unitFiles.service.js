@@ -93,7 +93,16 @@ function listDocsRecursive(absDir, baseDir, out) {
     const kind = fileKind(e.name);
     if (!kind) continue;
     const relativePath = path.relative(baseDir, full).split(path.sep).join("/");
-    out.push({ name: e.name, relativePath, kind });
+    let sizeBytes = 0;
+    let modifiedAt = null;
+    try {
+      const st = fs.statSync(full);
+      sizeBytes = Number.isFinite(st.size) ? st.size : 0;
+      modifiedAt = st.mtime?.toISOString?.() ?? null;
+    } catch {
+      /* omitir metadatos si stat falla */
+    }
+    out.push({ name: e.name, relativePath, kind, sizeBytes, modifiedAt });
   }
 }
 

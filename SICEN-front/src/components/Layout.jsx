@@ -112,6 +112,8 @@ export function Layout({ children }) {
     bsTheme === "dark"
       ? "/img/Franja-PNN-CUADRADO-Blanco.png"
       : "/img/Franja-PNN-CUADRADO.png";
+  const footerPnnLogoSrc =
+    bsTheme === "dark" ? "/img/Logo-PNN-Blanco.png" : "/img/Logo-PNN.png";
 
   return (
     <div className="min-vh-100 d-flex flex-column">
@@ -124,12 +126,26 @@ export function Layout({ children }) {
         footer .jpc-footer-link:hover {
           text-decoration: underline;
         }
+        footer .footer-pnn-logo {
+          height: 2.5rem;
+          width: auto;
+          max-width: 8rem;
+          object-fit: contain;
+        }
+        @media (min-width: 576px) {
+          footer .footer-pnn-logo {
+            height: 2.75rem;
+          }
+        }
         footer .jpc-footer-logo {
-          opacity: 0.5;
+          width: auto;
+          height: 1em;
+          display: inline-block;
+          vertical-align: -0.12em;
+          object-fit: contain;
         }
         [data-bs-theme="dark"] footer .jpc-footer-logo {
           filter: brightness(0) invert(1);
-          opacity: 0.65;
         }
         .btn-logout-power:hover,
         .btn-logout-power:focus-visible {
@@ -181,28 +197,47 @@ export function Layout({ children }) {
       <main className="flex-grow-1">{children}</main>
 
       <footer className="border-top py-3">
-        <div className="container text-center">
-          <div className="small text-muted">
-            Desarrollado por{" "}
-            <a
-              className="jpc-footer-link"
-              href="https://jpc-dev.uy"
-              target="_blank"
-              rel="noreferrer"
-            >
-              JPC®
-            </a>{" "}
-            - Montevideo - 25/09/2023
-          </div>
-          <div className="small text-muted">Versión de DESARROLLO</div>
-          <div className="mt-2">
-            <img
-              className="jpc-footer-logo"
-              src="/img/LogoJPC.svg"
-              alt="JPC logo"
-              width="24"
-              height="24"
-            />
+        <div className="container">
+          <div className="d-flex flex-column flex-md-row flex-wrap align-items-center justify-content-center justify-content-md-between w-100 gap-3">
+            <div className="d-flex flex-row align-items-center gap-3 min-w-0 justify-content-center justify-content-md-start">
+              <img
+                className="footer-pnn-logo flex-shrink-0"
+                src={footerPnnLogoSrc}
+                alt="Prefectura Nacional Naval"
+                width="120"
+                height="48"
+                loading="lazy"
+              />
+              <div className="d-flex flex-column align-items-center align-items-md-start gap-1 small text-center text-md-start">
+                <div className="fw-semibold text-body">
+                  Sistema Centinela - 2026
+                </div>
+                <div className="text-muted">Versión de DESARROLLO</div>
+              </div>
+            </div>
+            <div className="d-flex flex-column align-items-center text-center align-items-md-end text-md-end small gap-1 flex-shrink-0">
+              <div className="d-inline-flex align-items-center fw-semibold justify-content-center justify-content-md-end flex-wrap gap-1">
+                <span>
+                  Desarrollado por{" "}
+                  <a
+                    className="jpc-footer-link"
+                    href="https://jpc-dev.uy"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <img
+                      className="jpc-footer-logo flex-shrink-0"
+                      src="/img/LogoJPC.svg"
+                      alt=""
+                      aria-hidden="true"
+                      decoding="async"
+                    />
+                  </a>
+                </span>
+                
+              </div>
+              <div className="text-muted">Montevideo - 25/09/2023</div>
+            </div>
           </div>
         </div>
       </footer>

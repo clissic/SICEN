@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,8 +12,9 @@ import { Bar } from "react-chartjs-2";
 import {
   horizontalUsersBarOptions,
   horizontalUsersChartHeight,
-  USERS_BAR_COLORS,
+  usersBarColorAt,
 } from "../constants/usersChartTheme.js";
+import { useBootstrapTheme } from "./ThemeToggle.jsx";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -21,6 +23,33 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
  * `byUnit`: { unit: string, count: number }[]
  */
 export function UsersUnitBarChart({ byUnit, loading, error }) {
+  const bsTheme = useBootstrapTheme();
+  const isDark = bsTheme === "dark";
+  const rows = Array.isArray(byUnit) ? byUnit : [];
+  const labels = rows.map((r) => r.unit);
+  const counts = rows.map((r) => r.count);
+
+  const chartData = useMemo(
+    () => ({
+      labels,
+      datasets: [
+        {
+          label: "Usuarios",
+          data: counts,
+          backgroundColor: labels.map((_, i) => usersBarColorAt(i, isDark)),
+          borderWidth: 0,
+          borderRadius: 6,
+        },
+      ],
+    }),
+    [labels, counts, isDark]
+  );
+
+  const options = useMemo(
+    () => horizontalUsersBarOptions(isDark),
+    [isDark]
+  );
+
   if (error) {
     return (
       <div className="users-chart-empty text-muted small py-5 text-center">
@@ -37,10 +66,6 @@ export function UsersUnitBarChart({ byUnit, loading, error }) {
     );
   }
 
-  const rows = Array.isArray(byUnit) ? byUnit : [];
-  const labels = rows.map((r) => r.unit);
-  const counts = rows.map((r) => r.count);
-
   if (labels.length === 0) {
     return (
       <div className="users-chart-empty text-muted small py-5 text-center">
@@ -49,28 +74,14 @@ export function UsersUnitBarChart({ byUnit, loading, error }) {
     );
   }
 
-  const data = {
-    labels,
-    datasets: [
-      {
-        label: "Usuarios",
-        data: counts,
-        backgroundColor: labels.map((_, i) => USERS_BAR_COLORS[i % USERS_BAR_COLORS.length]),
-        borderWidth: 0,
-        borderRadius: 6,
-      },
-    ],
-  };
-
   const chartHeight = horizontalUsersChartHeight(labels.length);
-  const options = horizontalUsersBarOptions();
 
   return (
     <div
       className="position-relative w-100 flex-grow-1 users-chart-canvas"
       style={{ height: `${chartHeight}px`, minHeight: "220px" }}
     >
-      <Bar data={data} options={options} />
+      <Bar data={chartData} options={options} />
     </div>
   );
 }

@@ -19,6 +19,16 @@ function readTheme() {
   return "light";
 }
 
+/**
+ * Alinea `<html data-bs-theme>` con la preferencia guardada (o `prefers-color-scheme`)
+ * antes de que monte cualquier pantalla (p. ej. carga de sesión sin `Layout`).
+ */
+export function applyStoredBootstrapTheme() {
+  if (typeof document === "undefined") return;
+  const mode = readTheme() === "dark" ? "dark" : "light";
+  document.documentElement.setAttribute("data-bs-theme", mode);
+}
+
 /** Tema efectivo de Bootstrap (`light` | `dark`) según `data-bs-theme` en `<html>`. */
 export function useBootstrapTheme() {
   const [theme, setTheme] = useState(() => {

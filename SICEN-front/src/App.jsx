@@ -34,6 +34,8 @@ import { NewUserPage } from "./pages/NewUserPage.jsx";
 import { AllUsersPage } from "./pages/AllUsersPage.jsx";
 import { UpdateUserPage } from "./pages/UpdateUserPage.jsx";
 import { DeleteUserPage } from "./pages/DeleteUserPage.jsx";
+import { NotFoundPage } from "./pages/NotFoundPage.jsx";
+import { EstadoRectorPuertosPage } from "./pages/EstadoRectorPuertosPage.jsx";
 
 function Landing() {
   const { user, loading } = useAuth();
@@ -232,10 +234,42 @@ export default function App() {
         }
       />
       <Route
+        path="/estado-rector-puertos"
+        element={
+          <ProtectedRoute>
+            <EstadoRectorPuertosPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/herramientas"
         element={
           <ProtectedRoute>
             <ToolsMenuPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/herramientas/mapas"
+        element={
+          <ProtectedRoute>
+            <Navigate to="/herramientas" replace />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/herramientas/meteorologia"
+        element={
+          <ProtectedRoute>
+            <Navigate to="/herramientas" replace />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/herramientas/otras"
+        element={
+          <ProtectedRoute>
+            <Navigate to="/herramientas" replace />
           </ProtectedRoute>
         }
       />
@@ -287,7 +321,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

@@ -10,6 +10,18 @@ const FRAMES = {
     title: "Windy",
     src: "https://windy.app/map/#c=-34.8925,-56.22437&z=11",
   },
+  catastro: {
+    title: "Información Catastral",
+    subtitle: "GeoCatastro",
+    src: "http://visor.catastro.gub.uy/VisorDNC",
+    iframeStyle: { height: "70vh", minHeight: "70vh" },
+  },
+  opensea: {
+    title: "Carta Náutica",
+    subtitle: "OpenSeaMap",
+    src: "https://map.openseamap.org/",
+    iframeStyle: { height: "70vh", minHeight: "70vh" },
+  },
 };
 
 export function ToolEmbedPage() {
@@ -29,11 +41,24 @@ export function ToolEmbedPage() {
     );
   }
 
+  const iframeStyle = {
+    width: "100%",
+    display: "block",
+    border: "none",
+    height: 550,
+    ...cfg.iframeStyle,
+  };
+
   return (
     <Layout>
       <div className="container py-4">
         <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-          <h3 className="m-0">{cfg.title}</h3>
+          <div>
+            <h3 className="m-0">{cfg.title}</h3>
+            {cfg.subtitle ? (
+              <div className="text-muted small mt-1">{cfg.subtitle}</div>
+            ) : null}
+          </div>
           <Link className="btn btn-outline-secondary btn-sm" to="/herramientas">
             Volver
           </Link>
@@ -42,10 +67,9 @@ export function ToolEmbedPage() {
           <div className="card-body p-0">
             <iframe
               src={cfg.src}
-              width="100%"
-              height="550"
+              style={iframeStyle}
               title={cfg.title}
-              className="d-block border-0"
+              className="d-block border-0 w-100"
             />
           </div>
         </div>

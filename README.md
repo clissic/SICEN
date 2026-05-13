@@ -1,6 +1,6 @@
 # Sistema Centinela (SICEN)
 
-Aplicación para la **Prefectura del Puerto de Montevideo**: API **Node.js (Express, ESM)** con **MongoDB (Mongoose)** y autenticación **JWT**, más SPA **React 18 + Vite 5** y **React Router 6**. Estilos: **Bootstrap 5.3** (CDN) e iconos Bootstrap Icons; tema claro/oscuro con `data-bs-theme` y estilos en `SICEN-front/src/styles/sistema.css`.
+Aplicación para la **Prefectura del Puerto de Montevideo**: API **Node.js (Express, ESM)** con **MongoDB (Mongoose)** y autenticación **JWT**, más SPA **React 18 + Vite 5** y **React Router 6**. Estilos: **Bootstrap 5.3** (CDN) e iconos Bootstrap Icons; tema claro/oscuro con `data-bs-theme` y estilos en `SICEN-front/src/styles/sistema.css` y `SICEN-front/src/styles/menu-tiles.css` (tarjetas de menú e inicio).
 
 ## Estructura del monorepo
 
@@ -20,9 +20,18 @@ SICEN es una **plataforma operativa amplia** para la Prefectura: bases de datos 
 
 | Área | Detalle |
 |------|---------|
-| **Inicio (`/home`)** | En la tarjeta de perfil se quitó el indicador «Multas realizadas» y el botón «MIS MULTAS». Siguen «Cambiar contraseña» y «Actualizar datos». La ruta `/mis-multas` puede seguir existiendo para uso directo o futuras mejoras. |
-| **Gestión de usuarios (`/usuarios`)** | Panel para administradores con estadísticas agregadas (totales, oficiales/subalternos/civiles), tabla «Usuarios por rol» (cantidades destacadas), gráficos de barras por **unidad** y por **jerarquía** (Chart.js, tema en `constants/usersChartTheme.js`). |
+| **Inicio (`/home`) — menú principal** | La columna derecha agrupa las opciones en **subsecciones** (mismo criterio visual que Sistemas externos: título en mayúsculas y borde inferior). **Menú principal:** *El Centinela* (`centinelaMenu.jpg`, sin enlace; overlay al hover con texto «EN DESARROLLO» y estilos en `SICEN-front/src/styles/menu-tiles.css`); *Estado Rector de Puertos* → `/estado-rector-puertos` (`erpMenu.jpg`, ícono `bi-globe`); *Mi Unidad* → `/mi-unidad` (cabecera `/img/<unit>.jpg` según `user.unit`, codificado en URL, con imagen de respaldo si falta el archivo; en el recuadro del tile se mantiene el **escudo** de la unidad como antes). **Áreas de Gestión:** gestión de buques, gente de mar, multas, unidades y usuarios (la última solo enlaza para **admin** / **superAdmin**). **Ayudas al navegante:** *Sistemas externos* → `/herramientas` (hub de mapas, meteorología y otras herramientas). Las rejillas de tarjetas usan `row-cols-1 row-cols-md-2 row-cols-lg-1 row-cols-xl-3`: entre **992px y 1199px** las fichas se muestran **una debajo de la otra**; desde **1200px**, tres columnas. |
+| **Inicio (`/home`) — tarjeta de perfil** | Se quitó el bloque lateral «Mi Unidad» (pasó al menú principal). En la tarjeta de perfil siguen datos de usuario y unidad; se mantienen **sin** indicador «Multas realizadas» ni botón «MIS MULTAS» (la ruta `/mis-multas` puede seguir existiendo). Los botones **Cambiar contraseña**, **Actualizar datos** y **Manual del usuario** (este último **deshabilitado**): disposición en **fila de tres** con ícono arriba, texto centrado y línea inferior; en viewport **992px–1199px** la misma fila pasa a **una columna** (`row-cols-3 row-cols-lg-1 row-cols-xl-3`). Estilo del botón según tema: **`btn-light`** en modo claro y **`btn-dark`** en modo oscuro (`useBootstrapTheme()` en `HomePage.jsx`). |
+| **Estado Rector de Puertos** | Ruta protegida **`/estado-rector-puertos`** (`SICEN-front/src/pages/EstadoRectorPuertosPage.jsx`): pantalla placeholder con enlace al menú principal. Registrada en `SICEN-front/src/App.jsx`. |
+| **Gestión de usuarios (`/usuarios`)** | Panel para administradores con estadísticas agregadas (totales, oficiales/subalternos/civiles), tabla «Usuarios por rol» (cantidades destacadas), gráficos de barras por **unidad** y por **jerarquía** (Chart.js; paleta y ejes en `constants/usersChartTheme.js`, **adaptados al tema claro/oscuro**). Tarjeta **Borrar** alineada visualmente con el patrón de borrado de otras secciones. |
 | **Nuevo usuario (`/usuarios/nuevo`)** | Formulario con **selector de rol**: Usuario, Administrador y (solo si quien crea la cuenta es **super administrador**) Super administrador. La API `POST /api/users/createAndSendEmail` valida el rol; solo **superAdmin** puede asignar el rol `superAdmin` al crear. |
+| **Gestión de unidades (`/gestion-unidades`)** | Tarjetas admin (sumar / modificar / borrar) con **imagen** e **icono**; borrado con borde de advertencia. Al **modificar** una unidad sin PNG de escudo en disco, la API guarda la URL de escudo genérico (**PRENA**) y el front evita usar el avatar de usuario como placeholder. |
+| **Multas vehículos (`/multas/vehiculos`)** | Menú con tarjeta **Borrar** con imagen e iconografía coherente con el resto de acciones destructivas. |
+| **Sistemas externos (`/herramientas`)** | Una sola pantalla con tres bloques: **Aplicaciones de mapas** (AIS y Windy embebidos, catastro en iframe, **Carta náutica** OpenSeaMap en iframe vía `/herramientas/opensea`), **Información meteorológica** (enlaces a SOHMA, TCP y meteograma Montevideo, con imágenes en tarjetas) y **Otras herramientas** (cámaras Antel TV, consulta arribos ANP). Iconos en tarjetas; imágenes de apoyo en mapas y cámaras/arribos. El acceso desde el inicio está bajo **Ayudas al navegante**. |
+| **Mi Unidad (`/mi-unidad`)** | En el resumen de la unidad, junto al teléfono se muestra el **email de sala de radio** (`emailRadio`) con enlace `mailto:` cuando existe. |
+| **Procedimientos (Mi unidad → divisiones I/II, Capital humano)** | Listado de PDF/Word con **fecha** (mtime en disco) y **tamaño** bajo el nombre del archivo. **Subir** y **eliminar** archivos: solo en UI para **admin** y **superAdmin**; la API (`POST`/`DELETE` bajo `/api/unit-files/...`) exige el mismo rol. |
+| **Rutas no definidas** | Cualquier path que no coincida con las rutas de la SPA muestra la página **404** (`NotFoundPage`) con imagen `public/img/404.png` y enlace al inicio o al login según sesión. |
+| **Servidor (`SICEN-back/src/app.js`)** | Si falta el build del front y el navegador pide un `.js`/`.css` bajo `/assets/`, la respuesta ya **no** devuelve `index.html` (evita el error de MIME «expected JavaScript»); conviene siempre generar `SICEN-front` → `SICEN-back/public` antes de servir en producción. |
 
 ## Requisitos
 
@@ -121,6 +130,8 @@ El hosting debe servir el proceso Node que ya expone estáticos y la API, o adap
 |---------|-------------------|
 | **`/api/sessions`** | `GET /me` (JWT opcional), `POST /login`, `POST /signup`, `POST /logout`. |
 | **`/api/users`** | Usuarios, paginación, alta (incluye **`role`** en `createAndSendEmail` con reglas por rol), actualización, borrado, formularios (según rol y middleware). |
+| **`/api/units`** | Unidades registradas: listado, alta/baja/modificación (roles admin), `GET` por sigla para datos de escudo y contacto. |
+| **`/api/unit-files`** | Archivos bajo `files/units/<sigla>/…`: listados de **procedimientos** por división (DIV-I / DIV-II). **Subida y borrado** de procedimientos requieren **admin** o **superAdmin**; el listado y la descarga por URL siguen disponibles al usuario con unidad registrada. |
 | **`/api/carFines`** | Multas vehiculares: creación, listados, paginación, operaciones por número, etc. |
 | **`/api/tokens`** | Recuperación de contraseña y flujos de token por email. |
 
@@ -138,6 +149,7 @@ Los enlaces de correo usan la URL pública derivada de **`PUBLIC_APP_URL`** o **
 | **Tokens de recuperación** | Endpoints públicos; conviene **rate limiting** en producción. |
 | **Usuarios** | Operaciones sensibles requieren roles (**admin** / **superAdmin** / reglas por ruta). Datos de contraseña no se exponen en respuestas de perfil. |
 | **Multas** | API y pantallas de multas disponibles; permisos según rol (**admin**, **contable**, etc.). La **home** ya no muestra contador ni acceso rápido personales a «mis multas» (el foco de producto es más amplio). |
+| **Procedimientos en disco** | Solo **admin** / **superAdmin** pueden subir o eliminar archivos en las carpetas de procedimientos por división; el resto de roles solo consulta y descarga. |
 
 Pendientes habituales en producción: **rate limiting** (login, recuperación, altas de cuenta), endurecer CORS, y desactivar **`POST /signup`** si no querés registro público.
 

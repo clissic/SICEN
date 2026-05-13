@@ -8,6 +8,7 @@ import {
   deleteShieldPngFiles,
   fallbackShieldPublicUrl,
   renameShieldFiles,
+  shieldPngFileExists,
   shieldPublicUrl,
   writeShieldPng,
 } from "../services/units.service.js";
@@ -261,7 +262,10 @@ export const unitsController = {
       existing.phone = phone;
       existing.heraldica = heraldica;
       existing.foundationDate = foundationDate;
-      existing.shieldRelativeUrl = shieldPublicUrl(newSigla);
+      existing.shieldRelativeUrl =
+        hasNewFile || shieldPngFileExists(newSigla)
+          ? shieldPublicUrl(newSigla)
+          : fallbackShieldPublicUrl();
       Object.assign(existing, emails);
 
       try {

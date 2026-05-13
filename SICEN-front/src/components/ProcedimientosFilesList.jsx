@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Swal from "sweetalert2";
 import * as api from "../api/client.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import { useUnitFromApi } from "../hooks/useUnitFromApi.js";
 
 const PAGE_SIZE = 15;
@@ -12,10 +13,48 @@ function iconForKind(kind) {
   return { className: "bi-file-earmark-word text-primary", label: "Word" };
 }
 
+/** Tamaño legible; `bytes` viene del listado API. */
+function formatFileSize(bytes) {
+  if (typeof bytes !== "number" || !Number.isFinite(bytes) || bytes < 0) {
+    return "—";
+  }
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) {
+    const kb = bytes / 1024;
+    return kb < 10 ? `${kb.toFixed(1)} KB` : `${Math.round(kb)} KB`;
+  }
+  const mb = bytes / (1024 * 1024);
+  return mb < 10 ? `${mb.toFixed(1)} MB` : `${Math.round(mb)} MB`;
+}
+
+/**
+ * Fecha según metadatos del archivo en disco (mtime ≈ alta o última modificación).
+ */
+function formatProcedimientoSubtitle(modifiedAtIso, sizeBytes) {
+  const sizePart = formatFileSize(sizeBytes);
+  if (!modifiedAtIso) {
+    return sizePart !== "—" ? `(${sizePart})` : "";
+  }
+  const d = new Date(modifiedAtIso);
+  if (Number.isNaN(d.getTime())) {
+    return sizePart !== "—" ? `(${sizePart})` : "";
+  }
+  const dateStr = d.toLocaleDateString("es-UY", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+  return `Creado el ${dateStr} (${sizePart})`;
+}
+
 export function ProcedimientosFilesList({
   userUnit,
   filesDivision = "DIV-I",
 }) {
+  const { user } = useAuth();
+  const canManageProcedimientos =
+    user?.role === "admin" || user?.role === "superAdmin";
+
   const [state, setState] = useState({
     loading: true,
     error: null,
@@ -182,44 +221,46 @@ export function ProcedimientosFilesList({
 
   return (
     <div>
-      <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="d-none"
-          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-          onChange={handleFileSelected}
-          disabled={uploading}
-          aria-hidden
-        />
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          disabled={uploading}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          {uploading ? (
-            <>
-              <span
-                className="spinner-border spinner-border-sm me-2"
-                role="status"
-                aria-hidden
-              />
-              Subiendo…
-            </>
-          ) : (
-            <>
-              <i className="bi bi-upload me-1" aria-hidden />
-              Subir archivo
-            </>
-          )}
-        </button>
-        <span className="small text-muted">
-          Formatos: PDF, Word (.doc, .docx). Máx. 40 MB.
-        </span>
-      </div>
+      {canManageProcedimientos ? (
+        <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="d-none"
+            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            onChange={handleFileSelected}
+            disabled={uploading}
+            aria-hidden
+          />
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {uploading ? (
+              <>
+                <span
+                  className="spinner-border spinner-border-sm me-2"
+                  role="status"
+                  aria-hidden
+                />
+                Subiendo…
+              </>
+            ) : (
+              <>
+                <i className="bi bi-upload me-1" aria-hidden />
+                Subir archivo
+              </>
+            )}
+          </button>
+          <span className="small text-muted">
+            Formatos: PDF, Word (.doc, .docx). Máx. 40 MB.
+          </span>
+        </div>
+      ) : null}
 
-      {uploadMsg ? (
+      {canManageProcedimientos && uploadMsg ? (
         <div
           className={`alert alert-${uploadMsg.type === "success" ? "success" : "danger"} py-2 mb-3`}
           role="status"
@@ -254,12 +295,24 @@ export function ProcedimientosFilesList({
       {state.files.length === 0 ? (
         <div className="alert alert-secondary mb-0">
           No hay documentos (.pdf, .doc, .docx) en Procedimientos
-          {unitLabel ? ` para ${unitLabel}` : ""}. Puede subir el primero con
-          «Subir archivo». Los archivos se guardan en{" "}
-          <code className="small">
-            public/files/units/{userUnit}/{filesDivision}/Procedimientos
-          </code>
-          .
+          {unitLabel ? ` para ${unitLabel}` : ""}.
+          {canManageProcedimientos ? (
+            <>
+              {" "}
+              Puede subir el primero con «Subir archivo». Los archivos se guardan
+              en{" "}
+              <code className="small">
+                public/files/units/{userUnit}/{filesDivision}/Procedimientos
+              </code>
+              .
+            </>
+          ) : (
+            <>
+              {" "}
+              Si necesita documentación, consulte a un administrador del
+              sistema.
+            </>
+          )}
         </div>
       ) : filtered.length === 0 ? (
         <div className="alert alert-secondary mb-0">
@@ -289,8 +342,15 @@ export function ProcedimientosFilesList({
                   />
                   <div className="min-w-0 flex-grow-1">
                     <div className="fw-medium text-break">{f.name}</div>
-                    <div className="small text-muted text-break">
-                      {f.relativePath}
+                    <div
+                      className="small text-muted text-break"
+                      title={f.relativePath}
+                    >
+                      {f.modifiedAt != null ||
+                      (typeof f.sizeBytes === "number" &&
+                        Number.isFinite(f.sizeBytes))
+                        ? formatProcedimientoSubtitle(f.modifiedAt, f.sizeBytes)
+                        : f.relativePath}
                     </div>
                   </div>
                   <div className="d-flex flex-shrink-0 gap-1 align-items-center">
@@ -304,26 +364,28 @@ export function ProcedimientosFilesList({
                       <i className="bi bi-download me-1" aria-hidden />
                       Descargar
                     </a>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-danger"
-                      title="Eliminar archivo"
-                      aria-label={`Eliminar ${f.name}`}
-                      disabled={
-                        deletingRelativePath !== null || uploading
-                      }
-                      onClick={() => handleDelete(f)}
-                    >
-                      {deletingRelativePath === f.relativePath ? (
-                        <span
-                          className="spinner-border spinner-border-sm"
-                          role="status"
-                          aria-hidden
-                        />
-                      ) : (
-                        <i className="bi bi-trash" aria-hidden />
-                      )}
-                    </button>
+                    {canManageProcedimientos ? (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-danger"
+                        title="Eliminar archivo"
+                        aria-label={`Eliminar ${f.name}`}
+                        disabled={
+                          deletingRelativePath !== null || uploading
+                        }
+                        onClick={() => handleDelete(f)}
+                      >
+                        {deletingRelativePath === f.relativePath ? (
+                          <span
+                            className="spinner-border spinner-border-sm"
+                            role="status"
+                            aria-hidden
+                          />
+                        ) : (
+                          <i className="bi bi-trash" aria-hidden />
+                        )}
+                      </button>
+                    ) : null}
                   </div>
                 </li>
               );
