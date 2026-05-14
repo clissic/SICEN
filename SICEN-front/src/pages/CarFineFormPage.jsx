@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { carFineCreateAndRender } from "../api/client.js";
 import { Layout } from "../components/Layout.jsx";
 import { FINE_ARTICLE_OPTIONS } from "../constants/fineArticles.js";
+import { preventNegativeNumberKeys } from "../utils/nonNegativeNumberInput.js";
 
 const initial = {
   fine_date: "",
@@ -133,6 +134,9 @@ export function CarFineFormPage() {
                   type="number"
                   id="fine_amount"
                   required
+                  min={0}
+                  step="any"
+                  onKeyDown={preventNegativeNumberKeys}
                   value={form.fine_amount}
                   onChange={(e) => set("fine_amount", e.target.value)}
                 />
@@ -145,6 +149,9 @@ export function CarFineFormPage() {
                   className="form-control"
                   type="number"
                   id="fine_extra_amount"
+                  min={0}
+                  step="any"
+                  onKeyDown={preventNegativeNumberKeys}
                   value={form.fine_extra_amount}
                   onChange={(e) => set("fine_extra_amount", e.target.value)}
                 />

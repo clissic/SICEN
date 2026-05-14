@@ -19,6 +19,8 @@ const STAT_STACK_NUMBER_STYLE = {
 
 const ROLE_TABLE_NUMBER_STYLE = { fontSize: "2rem", lineHeight: 1 };
 
+const ICON_TILE = { fontSize: "0.95rem", marginTop: "0.15rem" };
+
 export function UsersMenuPage() {
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -77,8 +79,17 @@ export function UsersMenuPage() {
                   loading="lazy"
                 />
                 <div className="card-body">
-                  <div className="fw-semibold text-body">Crear</div>
-                  <div className="text-muted small">Alta de usuario.</div>
+                  <div className="d-flex align-items-start gap-2">
+                    <i
+                      className="menu-tile-icon bi bi-plus-lg me-1 px-2 py-1 border border-secondary rounded-1 bg-secondary text-white flex-shrink-0"
+                      style={ICON_TILE}
+                      aria-hidden
+                    />
+                    <div className="min-w-0">
+                      <div className="fw-semibold text-body">CREAR</div>
+                      <div className="text-muted small">Dar de alta un usuario en el sistema.</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </Link>
@@ -93,8 +104,17 @@ export function UsersMenuPage() {
                   loading="lazy"
                 />
                 <div className="card-body">
-                  <div className="fw-semibold text-body">Consultar</div>
-                  <div className="text-muted small">Listado paginado.</div>
+                  <div className="d-flex align-items-start gap-2">
+                    <i
+                      className="menu-tile-icon bi bi-list-ul me-1 px-2 py-1 border border-secondary rounded-1 bg-secondary text-white flex-shrink-0"
+                      style={ICON_TILE}
+                      aria-hidden
+                    />
+                    <div className="min-w-0">
+                      <div className="fw-semibold text-body">CONSULTAR</div>
+                      <div className="text-muted small">Listado paginado de usuarios creados.</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </Link>
@@ -109,8 +129,17 @@ export function UsersMenuPage() {
                   loading="lazy"
                 />
                 <div className="card-body">
-                  <div className="fw-semibold text-body">Modificar</div>
-                  <div className="text-muted small">Buscar y editar.</div>
+                  <div className="d-flex align-items-start gap-2">
+                    <i
+                      className="menu-tile-icon bi bi-pencil-square me-1 px-2 py-1 border border-secondary rounded-1 bg-secondary text-white flex-shrink-0"
+                      style={ICON_TILE}
+                      aria-hidden
+                    />
+                    <div className="min-w-0">
+                      <div className="fw-semibold text-body">MODIFICAR</div>
+                      <div className="text-muted small">Buscar usuarios y editar datos personales.</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </Link>
@@ -128,14 +157,14 @@ export function UsersMenuPage() {
                   <div className="d-flex align-items-start gap-2">
                     <i
                       className="menu-tile-icon bi bi-trash3 me-1 px-2 py-1 border border-danger rounded-1 bg-danger text-white flex-shrink-0"
-                      style={{ fontSize: "0.95rem", marginTop: "0.15rem" }}
+                      style={ICON_TILE}
                       aria-hidden
                     />
                     <div className="min-w-0">
                       <div className="fw-semibold text-danger">
                         BORRAR USUARIO
                       </div>
-                      <div className="text-muted small">Eliminar usuario.</div>
+                      <div className="text-muted small">Eliminar un usuario del sistema.</div>
                     </div>
                   </div>
                 </div>

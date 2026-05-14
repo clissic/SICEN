@@ -206,6 +206,70 @@ export function deleteUnit(acronym) {
   return apiFetch(`/api/units/${enc}`, { method: "DELETE" });
 }
 
+/** Alta inicial de buque (JWT). */
+export function createVessel(payload) {
+  return apiFetch("/api/vessels", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Consulta paginada de buques (JWT). */
+export function vesselsPaginated(params) {
+  const q = new URLSearchParams(params);
+  return apiFetch(`/api/vessels/paginated?${q}`);
+}
+
+/** Datos del buque para la vista de certificados (JWT). */
+export function getVesselForCertificates(vesselId) {
+  const enc = encodeURIComponent(String(vesselId ?? "").trim());
+  return apiFetch(`/api/vessels/by-business-id/${enc}`);
+}
+
+/** Formulario plano del buque para edición (JWT). */
+export function getVesselForEdit(vesselId) {
+  const enc = encodeURIComponent(String(vesselId ?? "").trim());
+  return apiFetch(`/api/vessels/by-business-id/${enc}/for-edit`);
+}
+
+/** Actualiza datos de registro del buque (JWT). */
+export function updateVessel(vesselId, payload) {
+  const enc = encodeURIComponent(String(vesselId ?? "").trim());
+  return apiFetch(`/api/vessels/by-business-id/${enc}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Elimina el buque por id de negocio o _id MongoDB (JWT). */
+export function deleteVessel(vesselId) {
+  const enc = encodeURIComponent(String(vesselId ?? "").trim());
+  return apiFetch(`/api/vessels/by-business-id/${enc}`, {
+    method: "DELETE",
+  });
+}
+
+/** Guarda o actualiza un certificado del buque (`certificates` en MongoDB). */
+export function saveVesselCertificate(vesselId, payload) {
+  const enc = encodeURIComponent(String(vesselId ?? "").trim());
+  return apiFetch(`/api/vessels/by-business-id/${enc}/certificates`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Añade un certificado adicional (`other_*`) a la lista del buque (persistido). */
+export function addVesselExtraCertificatePreset(vesselId, key) {
+  const enc = encodeURIComponent(String(vesselId ?? "").trim());
+  return apiFetch(
+    `/api/vessels/by-business-id/${enc}/extra-certificate-presets`,
+    {
+      method: "POST",
+      body: JSON.stringify({ key }),
+    }
+  );
+}
+
 /** Borra un archivo en Procedimientos (`relativePath` como en el listado). */
 export function deleteProcedimientoFile(division, relativePath) {
   const base =

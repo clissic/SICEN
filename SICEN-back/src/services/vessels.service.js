@@ -1,0 +1,449 @@
+import { randomUUID } from "crypto";
+import { isValidObjectId } from "mongoose";
+import { VesselMongoose } from "../DAO/models/mongoose/vessels.mongoose.js";
+import {
+  buildAutoridadSummary,
+  normalizeCertificatePayload,
+} from "../constants/vesselCertificates.js";
+
+function escapeRegex(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const INITIAL_PORT_STATE_CONTROL = {
+  hasDeficiencies: false,
+  deficiencies: [],
+  detained: false,
+  detentions: [],
+};
+
+const INITIAL_LEGAL_STATUS = {
+  hasVesselEmbargo: false,
+  vesselEmbargoDetails: null,
+  hasCompanyEmbargo: false,
+  companyEmbargoDetails: null,
+};
+
+function emptyToNull(s) {
+  if (s == null) return null;
+  const t = String(s).trim();
+  return t === "" ? null : t;
+}
+
+function parseFiniteNumber(v) {
+  if (v === "" || v == null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * @param {object|null|undefined} existing — documento lean actual (edición) o null (alta)
+ */
+function navigationAreaFrom(existing) {
+  const ex = existing && typeof existing === "object" ? existing : {};
+  return typeof ex.classification?.navigationArea === "string"
+    ? ex.classification.navigationArea
+    : "";
+}
+
+/**
+ * Fragmento de documento alineado con `createVesselInitial` (identificación, tripulación, etc.).
+ * @param {ReturnType<typeof normalizeVesselInitialPayload>} p
+ * @param {object|null} existing — documento lean previo (para conservar campos no editados en formulario)
+ */
+export function buildRegistrationSubdoc(p, existing) {
+  const na = navigationAreaFrom(existing);
+  const companyAddress =
+    existing && typeof existing === "object"
+      ? typeof existing.ownership?.companyAddress === "string"
+        ? existing.ownership.companyAddress
+        : ""
+      : "";
+
+  const classification =
+    p.vesselType === "Deportivo"
+      ? {
+          kind: "",
+          classificationSociety: "",
+          flagRegistryCountry: "",
+          navigationArea: na,
+        }
+      : {
+          kind: p.classificationKind,
+          classificationSociety:
+            p.classificationKind === "recognized"
+              ? String(p.classificationSociety || "").trim()
+              : "",
+          flagRegistryCountry:
+            p.classificationKind === "flag"
+              ? String(p.classificationFlagRegistry || "").trim()
+              : "",
+          navigationArea: na,
+        };
+
+  return {
+    vesselType: p.vesselType,
+    recreationalDocType:
+      p.vesselType === "Deportivo"
+        ? String(p.recreationalDocType || "").trim()
+        : "",
+    identification: {
+      imoNumber:
+        p.vesselType === "Deportivo" ? null : emptyToNull(p.imoNumber),
+      nationalRegistryNumber: emptyToNull(p.nationalRegistryNumber),
+      mmsi: emptyToNull(p.mmsi),
+      callSign: emptyToNull(p.callSign),
+    },
+    generalInfo: {
+      name: p.name.trim(),
+      flagState: p.flagState.trim(),
+      portOfRegistry: p.portOfRegistry.trim().toUpperCase(),
+      yearBuilt: p.yearBuilt,
+      shipType: p.shipType.trim(),
+      grossTonnage: p.grossTonnage,
+      netTonnage: p.netTonnage,
+      deadweight: p.deadweight,
+      lengthOverall: p.lengthOverall,
+      beam: p.beam,
+      puntal: p.puntal,
+      draft: p.draft,
+    },
+    ownership: {
+      owner: p.owner.trim(),
+      operator: p.operator.trim(),
+      companyAddress,
+    },
+    classification,
+    crew: {
+      master: p.master.trim(),
+      crewCapacity: p.crewCapacity,
+    },
+  };
+}
+
+/**
+ * Crea un buque con datos iniciales; el resto de módulos completará PSC, embargos, etc.
+ * @param {ReturnType<typeof normalizeVesselInitialPayload>} p — cuerpo ya normalizado.
+ */
+export async function createVesselInitial(p) {
+  const id = randomUUID();
+  const reg = buildRegistrationSubdoc(p, null);
+
+  const doc = {
+    id,
+    ...reg,
+    propulsion: {
+      engineType: "",
+      enginePowerKW: null,
+      serviceSpeedKnots: null,
+    },
+    certificates: [],
+    tracking: {
+      lastKnownPosition: { latitude: null, longitude: null },
+      lastPort: "",
+      nextPort: "",
+      eta: "",
+    },
+    portStateControl: { ...INITIAL_PORT_STATE_CONTROL },
+    legalStatus: { ...INITIAL_LEGAL_STATUS },
+    status: {
+      operationalStatus: "",
+      remarks: null,
+    },
+  };
+
+  const created = await VesselMongoose.create(doc);
+  return created;
+}
+
+/**
+ * Documento lean → campos planos del formulario de alta/edición.
+ * @param {object|null} doc
+ * @returns {object|null}
+ */
+export function vesselDocToFormPayload(doc) {
+  if (!doc || typeof doc !== "object") return null;
+  const id = doc.identification || {};
+  const gi = doc.generalInfo || {};
+  const own = doc.ownership || {};
+  const cls = doc.classification || {};
+  const cr = doc.crew || {};
+  const numStr = (n) =>
+    n == null || n === "" || !Number.isFinite(Number(n)) ? "" : String(n);
+  const intStr = (n) =>
+    n == null || !Number.isInteger(n) ? "" : String(n);
+  const str = (v) => (v == null ? "" : String(v));
+
+  return {
+    vesselType: str(doc.vesselType),
+    recreationalDocType: str(doc.recreationalDocType),
+    name: str(gi.name),
+    imoNumber:
+      id.imoNumber != null && id.imoNumber !== "" ? str(id.imoNumber) : "",
+    nationalRegistryNumber:
+      id.nationalRegistryNumber != null && id.nationalRegistryNumber !== ""
+        ? str(id.nationalRegistryNumber)
+        : "",
+    mmsi: id.mmsi != null && id.mmsi !== "" ? str(id.mmsi) : "",
+    callSign: str(id.callSign),
+    flagState: str(gi.flagState),
+    portOfRegistry: str(gi.portOfRegistry),
+    shipType: str(gi.shipType),
+    yearBuilt: intStr(gi.yearBuilt),
+    grossTonnage: numStr(gi.grossTonnage),
+    netTonnage: numStr(gi.netTonnage),
+    deadweight: numStr(gi.deadweight),
+    lengthOverall: numStr(gi.lengthOverall),
+    beam: numStr(gi.beam),
+    puntal: numStr(gi.puntal),
+    draft: numStr(gi.draft),
+    owner: str(own.owner),
+    operator: str(own.operator),
+    classificationKind: str(cls.kind),
+    classificationSociety: str(cls.classificationSociety),
+    classificationFlagRegistry: str(cls.flagRegistryCountry),
+    master: str(cr.master),
+    crewCapacity: intStr(cr.crewCapacity),
+  };
+}
+
+/**
+ * Actualiza datos de registro del buque (misma forma que el alta).
+ * @param {string} vesselIdParam
+ * @param {object} rawBody — cuerpo HTTP (se normaliza en servicio)
+ * @returns {Promise<object|null>} documento lean actualizado o null
+ */
+export async function updateVesselInitial(vesselIdParam, rawBody) {
+  const doc = await findVesselByIdentifier(vesselIdParam);
+  if (!doc) return null;
+  const p = normalizeVesselInitialPayload(rawBody || {});
+  const sub = buildRegistrationSubdoc(p, doc);
+  await VesselMongoose.updateOne({ _id: doc._id }, { $set: sub });
+  return findVesselByIdentifier(vesselIdParam);
+}
+
+export function normalizeVesselInitialPayload(raw) {
+  const vesselType =
+    typeof raw.vesselType === "string" ? raw.vesselType.trim() : "";
+  const recreationalDocType =
+    typeof raw.recreationalDocType === "string"
+      ? raw.recreationalDocType.trim()
+      : "";
+  const name = typeof raw.name === "string" ? raw.name : "";
+  const imoNumber = typeof raw.imoNumber === "string" ? raw.imoNumber : "";
+  const nationalRegistryNumber =
+    typeof raw.nationalRegistryNumber === "string"
+      ? raw.nationalRegistryNumber
+      : "";
+  const mmsi = typeof raw.mmsi === "string" ? raw.mmsi : "";
+  const callSign = typeof raw.callSign === "string" ? raw.callSign : "";
+  const flagState = typeof raw.flagState === "string" ? raw.flagState : "";
+  const portOfRegistry =
+    typeof raw.portOfRegistry === "string"
+      ? raw.portOfRegistry.trim().toUpperCase()
+      : "";
+  const shipType = typeof raw.shipType === "string" ? raw.shipType : "";
+  const yearBuilt = parseFiniteNumber(raw.yearBuilt);
+  const grossTonnage = parseFiniteNumber(raw.grossTonnage);
+  let netTonnage = parseFiniteNumber(raw.netTonnage);
+  let deadweight = parseFiniteNumber(raw.deadweight);
+  if (vesselType === "Deportivo") {
+    netTonnage = 0;
+    deadweight = 0;
+  }
+  const lengthOverall = parseFiniteNumber(raw.lengthOverall);
+  const beam = parseFiniteNumber(raw.beam);
+  const puntal =
+    vesselType === "Deportivo" ? parseFiniteNumber(raw.puntal) : null;
+  const draft = parseFiniteNumber(raw.draft);
+  const owner = typeof raw.owner === "string" ? raw.owner : "";
+  const operator = typeof raw.operator === "string" ? raw.operator : "";
+  const classificationKind =
+    typeof raw.classificationKind === "string"
+      ? raw.classificationKind.trim()
+      : "";
+  const classificationSociety =
+    typeof raw.classificationSociety === "string"
+      ? raw.classificationSociety
+      : "";
+  const classificationFlagRegistry =
+    typeof raw.classificationFlagRegistry === "string"
+      ? raw.classificationFlagRegistry
+      : "";
+  const master = typeof raw.master === "string" ? raw.master : "";
+  const crewCapacity = parseFiniteNumber(raw.crewCapacity);
+
+  return {
+    vesselType,
+    recreationalDocType,
+    name,
+    imoNumber,
+    nationalRegistryNumber,
+    mmsi,
+    callSign,
+    flagState,
+    portOfRegistry,
+    shipType,
+    yearBuilt,
+    grossTonnage,
+    netTonnage,
+    deadweight,
+    lengthOverall,
+    beam,
+    puntal,
+    draft,
+    owner,
+    operator,
+    classificationKind,
+    classificationSociety,
+    classificationFlagRegistry,
+    master,
+    crewCapacity,
+  };
+}
+
+/**
+ * Lista buques paginados según tipo y criterios (OMI o matrícula + puerto;
+ * si es Deportivo, también por tipo de documentación).
+ */
+export async function listVesselsPaginated({
+  vesselType,
+  imoNumber,
+  nationalRegistryNumber,
+  portOfRegistry,
+  recreationalDocType,
+  page,
+  limit,
+}) {
+  const filter = { vesselType };
+  if (vesselType === "Ultramar") {
+    const imo = String(imoNumber ?? "").trim();
+    if (imo) filter["identification.imoNumber"] = imo;
+  } else if (vesselType === "Cabotaje" || vesselType === "Deportivo") {
+    const mat = String(nationalRegistryNumber ?? "").trim();
+    const port = String(portOfRegistry ?? "").trim().toUpperCase();
+    if (mat) filter["identification.nationalRegistryNumber"] = mat;
+    if (port) {
+      filter["generalInfo.portOfRegistry"] = {
+        $regex: new RegExp(`^${escapeRegex(port)}$`, "i"),
+      };
+    }
+    if (vesselType === "Deportivo") {
+      const doc = String(recreationalDocType ?? "").trim();
+      if (doc) filter.recreationalDocType = doc;
+    }
+  }
+
+  const safePage = Math.max(1, Number(page) || 1);
+  const safeLimit = Math.min(50, Math.max(1, Number(limit) || 10));
+
+  return VesselMongoose.paginate(filter, {
+    page: safePage,
+    limit: safeLimit,
+    sort: { createdAt: -1 },
+  });
+}
+
+/**
+ * Busca un buque por `id` de negocio (UUID) o, si aplica, por `_id` de MongoDB.
+ * @returns {Promise<object|null>} documento lean o null
+ */
+export async function findVesselByIdentifier(vesselIdParam) {
+  const raw = String(vesselIdParam ?? "").trim();
+  if (!raw) return null;
+  const byBusinessId = await VesselMongoose.findOne({ id: raw }).lean().exec();
+  if (byBusinessId) return byBusinessId;
+  if (isValidObjectId(raw)) {
+    const byMongo = await VesselMongoose.findById(raw).lean().exec();
+    if (byMongo) return byMongo;
+  }
+  return null;
+}
+
+/**
+ * Elimina el documento del buque por `id` de negocio o `_id` MongoDB.
+ * @param {string} vesselIdParam
+ * @returns {Promise<boolean>} true si se eliminó un documento
+ */
+export async function deleteVesselByIdentifier(vesselIdParam) {
+  const doc = await findVesselByIdentifier(vesselIdParam);
+  if (!doc?._id) return false;
+  const res = await VesselMongoose.deleteOne({ _id: doc._id }).exec();
+  return res.deletedCount === 1;
+}
+
+/**
+ * Inserta o actualiza (por `key`) un elemento en `certificates` del buque.
+ * @param {string} vesselIdParam — `id` de negocio o `_id` MongoDB
+ * @param {object} normalized — salida de `normalizeCertificatePayload`
+ * @returns {Promise<object|null>} documento lean actualizado o null si no hay buque
+ */
+export async function upsertVesselCertificate(vesselIdParam, normalized) {
+  const doc = await findVesselByIdentifier(vesselIdParam);
+  if (!doc) return null;
+
+  const autoridadText =
+    buildAutoridadSummary(normalized) || normalized.autoridad || "";
+  const entry = {
+    key: normalized.key,
+    otorgado: normalized.otorgado || "",
+    convalidacion: normalized.convalidacion || "",
+    vencimiento: normalized.vencimiento || "",
+    puertoConvalidacion: normalized.puertoConvalidacion || "",
+    autoridadKind: normalized.autoridadKind || "",
+    autoridadSociety: normalized.autoridadSociety || "",
+    autoridadFlagCountry: normalized.autoridadFlagCountry || "",
+    autoridad: autoridadText,
+  };
+
+  const certificates = Array.isArray(doc.certificates)
+    ? doc.certificates.map((c) =>
+        typeof c === "object" && c != null ? { ...c } : c
+      )
+    : [];
+
+  const idx = certificates.findIndex(
+    (c) => c && typeof c === "object" && c.key === entry.key
+  );
+  if (idx >= 0) {
+    certificates[idx] = { ...certificates[idx], ...entry };
+  } else {
+    certificates.push(entry);
+  }
+
+  await VesselMongoose.updateOne(
+    { _id: doc._id },
+    { $set: { certificates } }
+  );
+
+  return findVesselByIdentifier(vesselIdParam);
+}
+
+/**
+ * Añade una clave de certificado adicional (`other_*`) al buque si aún no está.
+ * @param {string} vesselIdParam
+ * @param {string} key
+ * @returns {Promise<object|null>}
+ */
+export async function addExtraCertificatePresetKey(vesselIdParam, key) {
+  const rawKey = String(key ?? "").trim();
+  if (!rawKey) return null;
+
+  const doc = await findVesselByIdentifier(vesselIdParam);
+  if (!doc) return null;
+
+  const prev = Array.isArray(doc.extraCertificatePresetKeys)
+    ? doc.extraCertificatePresetKeys.map((k) => String(k ?? "").trim()).filter(Boolean)
+    : [];
+
+  if (prev.includes(rawKey)) {
+    return findVesselByIdentifier(vesselIdParam);
+  }
+
+  await VesselMongoose.updateOne(
+    { _id: doc._id },
+    { $set: { extraCertificatePresetKeys: [...prev, rawKey] } }
+  );
+
+  return findVesselByIdentifier(vesselIdParam);
+}

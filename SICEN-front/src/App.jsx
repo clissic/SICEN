@@ -12,7 +12,11 @@ import { MiUnidadPage } from "./pages/MiUnidadPage.jsx";
 import { MiUnidadDivisionPage } from "./pages/MiUnidadDivisionPage.jsx";
 import { MiUnidadDivisionMenuItemPage } from "./pages/MiUnidadDivisionMenuItemPage.jsx";
 import { MiUnidadAreaPage } from "./pages/MiUnidadAreaPage.jsx";
-import { BaseBuquesPage } from "./pages/BaseBuquesPage.jsx";
+import { BuquesMenuPage } from "./pages/BuquesMenuPage.jsx";
+import { NewShipPage } from "./pages/NewShipPage.jsx";
+import { AllShipsPage } from "./pages/AllShipsPage.jsx";
+import { ShipCertificatesPage } from "./pages/ShipCertificatesPage.jsx";
+import { EditShipPage } from "./pages/EditShipPage.jsx";
 import { BaseGenteMarPage } from "./pages/BaseGenteMarPage.jsx";
 import { CarFinesMenuPage } from "./pages/CarFinesMenuPage.jsx";
 import { CarFineFormPage } from "./pages/CarFineFormPage.jsx";
@@ -141,7 +145,55 @@ export default function App() {
         path="/base-buques"
         element={
           <ProtectedRoute>
-            <BaseBuquesPage />
+            <BuquesMenuPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/base-buques/nuevo"
+        element={
+          <ProtectedRoute>
+            <NewShipPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/base-buques/todos"
+        element={
+          <ProtectedRoute>
+            <AllShipsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/base-buques/certificados/:vesselId"
+        element={
+          <ProtectedRoute>
+            <ShipCertificatesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/base-buques/editar/:vesselId"
+        element={
+          <ProtectedRoute>
+            <EditShipPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/base-buques/editar"
+        element={
+          <ProtectedRoute>
+            <AllShipsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/base-buques/eliminar"
+        element={
+          <ProtectedRoute admin>
+            <AllShipsPage />
           </ProtectedRoute>
         }
       />

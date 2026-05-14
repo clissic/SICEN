@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { carFineForUpdate, carFineUpdate } from "../api/client.js";
 import { Layout } from "../components/Layout.jsx";
 import { FINE_ARTICLE_OPTIONS } from "../constants/fineArticles.js";
+import { preventNegativeNumberKeys } from "../utils/nonNegativeNumberInput.js";
 
 function mapFine(cf) {
   if (!cf) return {};
@@ -90,6 +91,9 @@ export function UpdateCarFinePage() {
                 <input
                   className="form-control"
                   type="number"
+                  min={0}
+                  step={1}
+                  onKeyDown={preventNegativeNumberKeys}
                   value={num}
                   onChange={(e) => setNum(e.target.value)}
                   required
@@ -149,6 +153,9 @@ export function UpdateCarFinePage() {
                   <input
                     className="form-control"
                     type="number"
+                    min={0}
+                    step="any"
+                    onKeyDown={preventNegativeNumberKeys}
                     value={form.fine_amount}
                     onChange={(e) => set("fine_amount", e.target.value)}
                   />

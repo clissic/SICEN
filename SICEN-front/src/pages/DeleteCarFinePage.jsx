@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { carFineDelete, carFineForDelete } from "../api/client.js";
 import { Layout } from "../components/Layout.jsx";
+import { preventNegativeNumberKeys } from "../utils/nonNegativeNumberInput.js";
 
 export function DeleteCarFinePage() {
   const [num, setNum] = useState("");
@@ -56,6 +57,9 @@ export function DeleteCarFinePage() {
                 <input
                   className="form-control"
                   type="number"
+                  min={0}
+                  step={1}
+                  onKeyDown={preventNegativeNumberKeys}
                   value={num}
                   onChange={(e) => setNum(e.target.value)}
                   required

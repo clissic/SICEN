@@ -14,6 +14,7 @@ import { carFinesRouter } from "./routes/carFines.router.js";
 import { tokensRouter } from "./routes/tokens.router.js";
 import { unitFilesRouter } from "./routes/unitFiles.router.js";
 import { unitsRouter } from "./routes/units.router.js";
+import { vesselsRouter } from "./routes/vessels.router.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,6 +66,7 @@ app.use("/api/carFines", carFinesRouter);
 app.use("/api/tokens", tokensRouter);
 app.use("/api/unit-files", unitFilesRouter);
 app.use("/api/units", unitsRouter);
+app.use("/api/vessels", vesselsRouter);
 
 if (fs.existsSync(CLIENT_DIST)) {
   app.use(express.static(CLIENT_DIST));
