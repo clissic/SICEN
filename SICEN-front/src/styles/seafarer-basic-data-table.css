@@ -1,0 +1,28 @@
+/* Tabla de datos del registro (gente de mar): etiquetas compactas y contraste legible. */
+.seafarer-basic-data-table {
+  max-width: 100%;
+}
+
+.seafarer-basic-data-table th[scope="row"] {
+  width: 1%;
+  white-space: nowrap;
+  vertical-align: top;
+  padding-right: 1.25rem;
+  font-weight: 600;
+  background-color: var(--bs-secondary-bg);
+  color: var(--bs-emphasis-color);
+  border-color: var(--bs-border-color);
+}
+
+.seafarer-basic-data-table td {
+  width: auto;
+  vertical-align: top;
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  word-break: break-word;
+}
+
+html[data-bs-theme="dark"] .seafarer-basic-data-table th[scope="row"] {
+  background-color: var(--bs-tertiary-bg);
+  color: var(--bs-body-color);
+}

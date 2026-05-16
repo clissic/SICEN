@@ -206,12 +206,206 @@ export function deleteUnit(acronym) {
   return apiFetch(`/api/units/${enc}`, { method: "DELETE" });
 }
 
+/** Listado paginado del catálogo `licences` (JWT). `kind`: title | license (default license). */
+export function licencesCatalogList({ page = 1, pageSize = 10, q = "", kind }) {
+  const params = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
+  });
+  const t = String(q ?? "").trim();
+  if (t) params.set("q", t);
+  const k = String(kind ?? "").trim().toLowerCase();
+  if (k === "title") params.set("kind", "title");
+  else params.set("kind", "license");
+  return apiFetch(`/api/licences?${params}`);
+}
+
+/** Alta en catálogo `licences` (JWT). */
+export function createLicenceCatalogEntry(payload) {
+  return apiFetch("/api/licences", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Actualiza un registro del catálogo `licences` (JWT). */
+export function updateLicenceCatalogEntry(id, payload) {
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/licences/${enc}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Elimina un registro del catálogo `licences` (JWT). */
+export function deleteLicenceCatalogEntry(id) {
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/licences/${enc}`, { method: "DELETE" });
+}
+
+/** Listado paginado del catálogo `titles` (JWT). */
+export function titlesCatalogList({ page = 1, pageSize = 10, q = "" }) {
+  const params = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
+  });
+  const t = String(q ?? "").trim();
+  if (t) params.set("q", t);
+  return apiFetch(`/api/titles?${params}`);
+}
+
+/** Alta en catálogo `titles` (JWT). */
+export function createTitleCatalogEntry(payload) {
+  return apiFetch("/api/titles", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Actualiza un registro del catálogo `titles` (JWT). */
+export function updateTitleCatalogEntry(id, payload) {
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/titles/${enc}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Elimina un registro del catálogo `titles` (JWT). */
+export function deleteTitleCatalogEntry(id) {
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/titles/${enc}`, { method: "DELETE" });
+}
+
+/** Alta de gente de mar (JWT). Solo datos iniciales; licencias, cursos, etc. en otras pantallas. */
+export function createSeafarer(payload) {
+  return apiFetch("/api/seafarers", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Busca gente de mar por tipo y número de documento (JWT). */
+export function findSeafarerByDocument(documentType, documentNumber) {
+  const q = new URLSearchParams({
+    documentType: String(documentType ?? "").trim(),
+    documentNumber: String(documentNumber ?? "").trim(),
+  });
+  return apiFetch(`/api/seafarers/by-document?${q}`);
+}
+
+export function addSeafarerTitle(seafarerId, entry) {
+  return apiFetch(`/api/seafarers/${encodeURIComponent(seafarerId)}/titles`, {
+    method: "POST",
+    body: JSON.stringify({ entry }),
+  });
+}
+
+export function updateSeafarerHeldTitle(seafarerId, heldEntryId, entry) {
+  const sid = encodeURIComponent(String(seafarerId ?? "").trim());
+  const eid = encodeURIComponent(String(heldEntryId ?? "").trim());
+  return apiFetch(`/api/seafarers/${sid}/titles/${eid}`, {
+    method: "PATCH",
+    body: JSON.stringify({ entry }),
+  });
+}
+
+export function deleteSeafarerHeldTitle(seafarerId, heldEntryId) {
+  const sid = encodeURIComponent(String(seafarerId ?? "").trim());
+  const eid = encodeURIComponent(String(heldEntryId ?? "").trim());
+  return apiFetch(`/api/seafarers/${sid}/titles/${eid}`, { method: "DELETE" });
+}
+
+export function addSeafarerHeldLicense(seafarerId, entry) {
+  return apiFetch(
+    `/api/seafarers/${encodeURIComponent(seafarerId)}/held-licenses`,
+    {
+      method: "POST",
+      body: JSON.stringify({ entry }),
+    },
+  );
+}
+
+export function updateSeafarerHeldLicense(seafarerId, heldEntryId, entry) {
+  const sid = encodeURIComponent(String(seafarerId ?? "").trim());
+  const eid = encodeURIComponent(String(heldEntryId ?? "").trim());
+  return apiFetch(`/api/seafarers/${sid}/held-licenses/${eid}`, {
+    method: "PATCH",
+    body: JSON.stringify({ entry }),
+  });
+}
+
+export function deleteSeafarerHeldLicense(seafarerId, heldEntryId) {
+  const sid = encodeURIComponent(String(seafarerId ?? "").trim());
+  const eid = encodeURIComponent(String(heldEntryId ?? "").trim());
+  return apiFetch(`/api/seafarers/${sid}/held-licenses/${eid}`, {
+    method: "DELETE",
+  });
+}
+
+export function addSeafarerLicense(seafarerId, bucket, entry) {
+  return apiFetch(`/api/seafarers/${encodeURIComponent(seafarerId)}/licenses`, {
+    method: "POST",
+    body: JSON.stringify({ bucket, entry }),
+  });
+}
+
+export function addSeafarerCourse(seafarerId, entry) {
+  return apiFetch(`/api/seafarers/${encodeURIComponent(seafarerId)}/courses`, {
+    method: "POST",
+    body: JSON.stringify({ entry }),
+  });
+}
+
+export function addSeafarerSanction(seafarerId, entry) {
+  return apiFetch(`/api/seafarers/${encodeURIComponent(seafarerId)}/sanctions`, {
+    method: "POST",
+    body: JSON.stringify({ entry }),
+  });
+}
+
+export function addSeafarerObservation(seafarerId, entry) {
+  return apiFetch(
+    `/api/seafarers/${encodeURIComponent(seafarerId)}/observations`,
+    {
+      method: "POST",
+      body: JSON.stringify({ entry }),
+    },
+  );
+}
+
+/** Listados agregados para METADATOS (JWT): cursos / sanciones en todos los marineros. */
+export function seafarerMetadataCourses({ page = 1, pageSize = 10, q = "" }) {
+  const params = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
+  });
+  const t = String(q ?? "").trim();
+  if (t) params.set("q", t);
+  return apiFetch(`/api/seafarers/metadata/courses?${params}`);
+}
+
+export function seafarerMetadataSanctions({ page = 1, pageSize = 10, q = "" }) {
+  const params = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
+  });
+  const t = String(q ?? "").trim();
+  if (t) params.set("q", t);
+  return apiFetch(`/api/seafarers/metadata/sanctions?${params}`);
+}
+
 /** Alta inicial de buque (JWT). */
 export function createVessel(payload) {
   return apiFetch("/api/vessels", {
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+/** Estadísticas agregadas de buques para el menú de gestión (JWT). */
+export function vesselsStats() {
+  return apiFetch("/api/vessels/stats");
 }
 
 /** Consulta paginada de buques (JWT). */

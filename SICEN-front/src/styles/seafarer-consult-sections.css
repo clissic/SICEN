@@ -1,0 +1,86 @@
+/* Tablas de licencias, cursos, sanciones y observaciones (consulta gente de mar). */
+.seafarer-consult-table {
+  --sf-consult-head-bg: var(--bs-secondary-bg);
+  --sf-consult-head-color: var(--bs-emphasis-color);
+  margin-bottom: 0;
+}
+
+.seafarer-consult-table thead th {
+  background-color: var(--sf-consult-head-bg);
+  color: var(--sf-consult-head-color);
+  font-weight: 600;
+  border-color: var(--bs-border-color);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.seafarer-consult-table tbody td {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  border-color: var(--bs-border-color);
+  vertical-align: middle;
+}
+
+.seafarer-consult-table tbody tr:nth-of-type(even) td {
+  background-color: var(--bs-secondary-bg);
+}
+
+.seafarer-consult-table tbody tr.seafarer-consult-table-empty td {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-secondary-color);
+}
+
+html[data-bs-theme="dark"] .seafarer-consult-table {
+  --sf-consult-head-bg: var(--bs-tertiary-bg);
+  --sf-consult-head-color: var(--bs-body-color);
+}
+
+html[data-bs-theme="dark"] .seafarer-consult-table tbody tr:nth-of-type(even) td {
+  background-color: var(--bs-tertiary-bg);
+}
+
+/* Panel de formulario «Agregar …» */
+.seafarer-consult-add-form {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+  background-color: var(--bs-secondary-bg);
+}
+
+.seafarer-consult-add-form h6 {
+  margin-bottom: 0.75rem;
+  color: var(--bs-emphasis-color);
+  font-weight: 600;
+}
+
+.seafarer-consult-add-form .form-label {
+  color: var(--bs-emphasis-color);
+  font-weight: 500;
+}
+
+.seafarer-consult-add-form .form-control,
+.seafarer-consult-add-form .form-select,
+.seafarer-consult-add-form textarea.form-control {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  border-color: var(--bs-border-color);
+}
+
+.seafarer-consult-add-form .form-control::placeholder {
+  color: var(--bs-secondary-color);
+  opacity: 1;
+}
+
+.seafarer-consult-add-form .form-control:focus,
+.seafarer-consult-add-form .form-select:focus,
+.seafarer-consult-add-form textarea.form-control:focus {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+html[data-bs-theme="dark"] .seafarer-consult-add-form {
+  background-color: var(--bs-tertiary-bg);
+}

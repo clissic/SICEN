@@ -12,6 +12,7 @@ export function deportivoGrossTonnageCoherent(gt, recreationalDocType) {
   if (d === "Registro de Embarcaciones Deportivas")
     return gt >= 0.601 && gt <= 6;
   if (d === "Matrícula de Cabotaje") return gt > 6;
+  if (d === "Extranjero") return gt >= 0;
   return false;
 }
 
@@ -33,6 +34,25 @@ export function getShipRegistrationClientErr(form) {
   }
   if (isDeportivo && !form.recreationalDocType) {
     return "Seleccione el tipo de documentación del buque deportivo.";
+  }
+  if (
+    isDeportivo &&
+    form.recreationalDocType &&
+    form.recreationalDocType !== "Extranjero"
+  ) {
+    if (form.recreationalDocType === "Certificado de Construcción") {
+      if (String(form.recreationalCategory ?? "").trim() !== "500 metros") {
+        return "Con Certificado de Construcción la categoría debe ser 500 metros.";
+      }
+    } else {
+      const cat = String(form.recreationalCategory ?? "").trim();
+      const ok = ["Categoría A", "Categoría B", "Categoría C", "Categoría D"].includes(
+        cat
+      );
+      if (!ok) {
+        return "Seleccione la categoría del buque deportivo (A, B, C o D).";
+      }
+    }
   }
   return "";
 }

@@ -16,11 +16,24 @@ export const RECREATIONAL_DOC_OPTIONS = [
     label: "Registro de Embarcaciones Deportivas",
   },
   { value: "Matrícula de Cabotaje", label: "Matrícula de Cabotaje" },
+  { value: "Extranjero", label: "Extranjero" },
+];
+
+/** Fija con Certificado de Construcción (documentación deportiva). */
+export const RECREATIONAL_CATEGORY_FIXED_CONSTRUCCION = "500 metros";
+
+export const RECREATIONAL_CATEGORY_OPTIONS = [
+  { value: "", label: "Seleccione…" },
+  { value: "Categoría A", label: "Categoría A" },
+  { value: "Categoría B", label: "Categoría B" },
+  { value: "Categoría C", label: "Categoría C" },
+  { value: "Categoría D", label: "Categoría D" },
 ];
 
 export const INITIAL_SHIP_REGISTRATION_FORM = {
   vesselType: "",
   recreationalDocType: "",
+  recreationalCategory: "",
   name: "",
   imoNumber: "",
   nationalRegistryNumber: "",

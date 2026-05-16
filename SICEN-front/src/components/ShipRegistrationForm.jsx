@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { CLASSIFICATION_SOCIETY_OPTIONS } from "../constants/classificationSocieties.js";
 import { FLAG_STATE_OPTIONS } from "../constants/flagStates.js";
 import {
+  RECREATIONAL_CATEGORY_FIXED_CONSTRUCCION,
+  RECREATIONAL_CATEGORY_OPTIONS,
   RECREATIONAL_DOC_OPTIONS,
   VESSEL_TYPE_OPTIONS,
 } from "../constants/shipRegistrationFormDefaults.js";
@@ -197,6 +199,75 @@ export function ShipRegistrationForm({
                     </option>
                   ))}
                 </select>
+              </div>
+            ) : null}
+            {isDeportivo && form.recreationalDocType === "Extranjero" ? (
+              <div className="col-12 col-md-6">
+                <label className="form-label" htmlFor="recreationalCategory">
+                  Dato según matrícula deportiva (extranjera)
+                </label>
+                <input
+                  id="recreationalCategory"
+                  type="text"
+                  className="form-control"
+                  autoComplete="off"
+                  maxLength={500}
+                  value={form.recreationalCategory}
+                  onChange={(e) =>
+                    set("recreationalCategory", e.target.value)
+                  }
+                  placeholder="Opcional: categoría u otro dato que figure en la matrícula"
+                />
+                <div className="form-text small">
+                  Solo si la matrícula extranjera lo indica; puede dejarse vacío.
+                </div>
+              </div>
+            ) : null}
+            {isDeportivo &&
+            form.recreationalDocType &&
+            form.recreationalDocType !== "Extranjero" ? (
+              <div className="col-12 col-md-6">
+                <label className="form-label" htmlFor="recreationalCategory">
+                  Categoría
+                  <span className="text-danger"> *</span>
+                </label>
+                {form.recreationalDocType === "Certificado de Construcción" ? (
+                  <>
+                    <input
+                      id="recreationalCategory"
+                      type="text"
+                      className="form-control bg-body-secondary"
+                      readOnly
+                      tabIndex={-1}
+                      value={
+                        form.recreationalCategory ===
+                        RECREATIONAL_CATEGORY_FIXED_CONSTRUCCION
+                          ? form.recreationalCategory
+                          : RECREATIONAL_CATEGORY_FIXED_CONSTRUCCION
+                      }
+                      aria-readonly="true"
+                    />
+                    <div className="form-text small">
+                      Fijado automáticamente para Certificado de Construcción.
+                    </div>
+                  </>
+                ) : (
+                  <select
+                    id="recreationalCategory"
+                    className="form-select"
+                    required
+                    value={form.recreationalCategory}
+                    onChange={(e) =>
+                      set("recreationalCategory", e.target.value)
+                    }
+                  >
+                    {RECREATIONAL_CATEGORY_OPTIONS.map((o) => (
+                      <option key={o.value || "empty"} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             ) : null}
           </>

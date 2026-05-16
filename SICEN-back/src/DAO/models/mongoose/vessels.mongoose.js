@@ -32,6 +32,16 @@ const schema = new Schema(
 
     /** Documentación deportiva (solo si vesselType es Deportivo). */
     recreationalDocType: { type: String, default: "", trim: true },
+    /**
+     * Categoría deportiva (A–D) o valor fijo «500 metros» con Certificado de Construcción;
+     * vacío si Extranjero o no deportivo.
+     */
+    recreationalCategory: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 500,
+    },
 
     identification: {
       imoNumber: { type: String, default: null },

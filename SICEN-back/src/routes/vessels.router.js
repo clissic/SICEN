@@ -4,6 +4,8 @@ import { checkLogin, checkAdmin } from "../middlewares/auth.js";
 
 export const vesselsRouter = express.Router();
 
+vesselsRouter.get("/stats", checkLogin, vesselsController.getStats);
+
 vesselsRouter.get("/paginated", checkLogin, vesselsController.listPaginated);
 
 vesselsRouter.get(

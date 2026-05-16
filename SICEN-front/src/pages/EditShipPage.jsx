@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import { getVesselForEdit, updateVessel } from "../api/client.js";
 import { ShipRegistrationForm } from "../components/ShipRegistrationForm.jsx";
 import { Layout } from "../components/Layout.jsx";
-import { INITIAL_SHIP_REGISTRATION_FORM } from "../constants/shipRegistrationFormDefaults.js";
+import { INITIAL_SHIP_REGISTRATION_FORM, RECREATIONAL_CATEGORY_FIXED_CONSTRUCCION } from "../constants/shipRegistrationFormDefaults.js";
 import { scrollPageToTop } from "../utils/scrollPageToTop.js";
 import {
   deportivoGrossTonnageCoherent,
@@ -67,16 +67,19 @@ export function EditShipPage() {
         next.classificationFlagRegistry = "";
         next.shipType = "";
         next.recreationalDocType = "";
+        next.recreationalCategory = "";
         next.grossTonnage = "";
         next.netTonnage = "";
         next.deadweight = "";
       } else if (v === "Ultramar") {
         next.nationalRegistryNumber = "";
         next.recreationalDocType = "";
+        next.recreationalCategory = "";
         next.grossTonnage = "";
         if (wasDeportivo) next.shipType = "";
       } else if (v === "Cabotaje") {
         next.recreationalDocType = "";
+        next.recreationalCategory = "";
         next.grossTonnage = "";
         if (wasDeportivo) next.shipType = "";
       }
@@ -88,10 +91,19 @@ export function EditShipPage() {
   }
 
   function setRecreationalDocType(v) {
-    setForm((f) => ({
-      ...f,
-      recreationalDocType: v,
-    }));
+    setForm((f) => {
+      let recreationalCategory = f.recreationalCategory;
+      if (v === "Extranjero") recreationalCategory = "";
+      else if (v === "Certificado de Construcción") {
+        recreationalCategory = RECREATIONAL_CATEGORY_FIXED_CONSTRUCCION;
+      } else if (
+        v === "Registro de Embarcaciones Deportivas" ||
+        v === "Matrícula de Cabotaje"
+      ) {
+        recreationalCategory = "";
+      } else if (!v) recreationalCategory = "";
+      return { ...f, recreationalDocType: v, recreationalCategory };
+    });
   }
 
   function set(k, v) {

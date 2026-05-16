@@ -4,6 +4,7 @@ import {
   createVesselInitial,
   deleteVesselByIdentifier,
   findVesselByIdentifier,
+  getVesselStatsForDashboard,
   listVesselsPaginated,
   normalizeVesselInitialPayload,
   updateVesselInitial,
@@ -24,6 +25,14 @@ const RECREATIONAL_DOC_TYPES = new Set([
   "Certificado de Construcción",
   "Registro de Embarcaciones Deportivas",
   "Matrícula de Cabotaje",
+  "Extranjero",
+]);
+
+const RECREATIONAL_CATEGORY_LETTERS = new Set([
+  "Categoría A",
+  "Categoría B",
+  "Categoría C",
+  "Categoría D",
 ]);
 
 /** Respuesta mínima del buque para la vista de certificados. */
@@ -60,6 +69,10 @@ function validateSportGrossTonnage(gt, docLabel) {
     if (gt <= 6 + 1e-9) {
       return "Con Matrícula de Cabotaje (deportivo), el arqueo bruto debe ser mayor a 6 GT.";
     }
+  } else if (docLabel === "Extranjero") {
+    if (gt < 0) {
+      return "El arqueo bruto no puede ser negativo.";
+    }
   }
   return null;
 }
@@ -87,6 +100,16 @@ function validateVesselInitial(p) {
     }
     if (!RECREATIONAL_DOC_TYPES.has(p.recreationalDocType)) {
       return "Seleccione el tipo de documentación del buque deportivo.";
+    }
+    if (p.recreationalDocType !== "Extranjero") {
+      const cat = String(p.recreationalCategory ?? "").trim();
+      if (p.recreationalDocType === "Certificado de Construcción") {
+        if (cat !== "500 metros") {
+          return "Con Certificado de Construcción la categoría debe ser 500 metros.";
+        }
+      } else if (!RECREATIONAL_CATEGORY_LETTERS.has(cat)) {
+        return "Seleccione la categoría del buque deportivo (A, B, C o D).";
+      }
     }
   }
   if (!p.flagState.trim()) return "El estado de bandera es obligatorio.";
@@ -154,6 +177,19 @@ function validateCertificateBody(body) {
 }
 
 export const vesselsController = {
+  async getStats(req, res) {
+    try {
+      const stats = await getVesselStatsForDashboard();
+      return res.status(200).json({ ok: true, stats });
+    } catch (e) {
+      logger.error("vessels.getStats: " + (e?.message || e));
+      return res.status(500).json({
+        ok: false,
+        msg: "No se pudieron obtener las estadísticas de buques.",
+      });
+    }
+  },
+
   async listPaginated(req, res) {
     try {
       const vesselType = String(req.query.vesselType || "").trim();

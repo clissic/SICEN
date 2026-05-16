@@ -15,6 +15,9 @@ import { tokensRouter } from "./routes/tokens.router.js";
 import { unitFilesRouter } from "./routes/unitFiles.router.js";
 import { unitsRouter } from "./routes/units.router.js";
 import { vesselsRouter } from "./routes/vessels.router.js";
+import { seafarersRouter } from "./routes/seafarers.router.js";
+import { licencesRouter } from "./routes/licences.router.js";
+import { titlesRouter } from "./routes/titles.router.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,6 +70,9 @@ app.use("/api/tokens", tokensRouter);
 app.use("/api/unit-files", unitFilesRouter);
 app.use("/api/units", unitsRouter);
 app.use("/api/vessels", vesselsRouter);
+app.use("/api/seafarers", seafarersRouter);
+app.use("/api/licences", licencesRouter);
+app.use("/api/titles", titlesRouter);
 
 if (fs.existsSync(CLIENT_DIST)) {
   app.use(express.static(CLIENT_DIST));

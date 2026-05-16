@@ -17,7 +17,11 @@ import { NewShipPage } from "./pages/NewShipPage.jsx";
 import { AllShipsPage } from "./pages/AllShipsPage.jsx";
 import { ShipCertificatesPage } from "./pages/ShipCertificatesPage.jsx";
 import { EditShipPage } from "./pages/EditShipPage.jsx";
-import { BaseGenteMarPage } from "./pages/BaseGenteMarPage.jsx";
+import { GenteMarMenuPage } from "./pages/GenteMarMenuPage.jsx";
+import { GenteMarPlaceholderPage } from "./pages/GenteMarPlaceholderPage.jsx";
+import { NewSeafarerPage } from "./pages/NewSeafarerPage.jsx";
+import { SeafarerConsultPage } from "./pages/SeafarerConsultPage.jsx";
+import { SeafarerMetadataPage } from "./pages/SeafarerMetadataPage.jsx";
 import { CarFinesMenuPage } from "./pages/CarFinesMenuPage.jsx";
 import { CarFineFormPage } from "./pages/CarFineFormPage.jsx";
 import { AllCarFinesPage } from "./pages/AllCarFinesPage.jsx";
@@ -201,7 +205,39 @@ export default function App() {
         path="/base-gente-mar"
         element={
           <ProtectedRoute>
-            <BaseGenteMarPage />
+            <GenteMarMenuPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/base-gente-mar/nuevo"
+        element={
+          <ProtectedRoute>
+            <NewSeafarerPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/base-gente-mar/todos"
+        element={
+          <ProtectedRoute>
+            <SeafarerConsultPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/base-gente-mar/editar"
+        element={
+          <ProtectedRoute>
+            <SeafarerMetadataPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/base-gente-mar/eliminar"
+        element={
+          <ProtectedRoute admin>
+            <GenteMarPlaceholderPage title="Eliminar — gente de mar" />
           </ProtectedRoute>
         }
       />

@@ -87,6 +87,10 @@ export function buildRegistrationSubdoc(p, existing) {
       p.vesselType === "Deportivo"
         ? String(p.recreationalDocType || "").trim()
         : "",
+    recreationalCategory:
+      p.vesselType === "Deportivo"
+        ? String(p.recreationalCategory || "").trim()
+        : "",
     identification: {
       imoNumber:
         p.vesselType === "Deportivo" ? null : emptyToNull(p.imoNumber),
@@ -174,9 +178,19 @@ export function vesselDocToFormPayload(doc) {
     n == null || !Number.isInteger(n) ? "" : String(n);
   const str = (v) => (v == null ? "" : String(v));
 
+  const docType = str(doc.recreationalDocType);
+  const vt = str(doc.vesselType);
+  let recreationalCategory = str(doc.recreationalCategory);
+  if (vt !== "Deportivo") {
+    recreationalCategory = "";
+  } else if (docType === "Certificado de Construcción" && !recreationalCategory) {
+    recreationalCategory = "500 metros";
+  }
+
   return {
     vesselType: str(doc.vesselType),
-    recreationalDocType: str(doc.recreationalDocType),
+    recreationalDocType: docType,
+    recreationalCategory,
     name: str(gi.name),
     imoNumber:
       id.imoNumber != null && id.imoNumber !== "" ? str(id.imoNumber) : "",
@@ -229,6 +243,10 @@ export function normalizeVesselInitialPayload(raw) {
     typeof raw.recreationalDocType === "string"
       ? raw.recreationalDocType.trim()
       : "";
+  let recreationalCategory =
+    typeof raw.recreationalCategory === "string"
+      ? raw.recreationalCategory.trim()
+      : "";
   const name = typeof raw.name === "string" ? raw.name : "";
   const imoNumber = typeof raw.imoNumber === "string" ? raw.imoNumber : "";
   const nationalRegistryNumber =
@@ -273,9 +291,23 @@ export function normalizeVesselInitialPayload(raw) {
   const master = typeof raw.master === "string" ? raw.master : "";
   const crewCapacity = parseFiniteNumber(raw.crewCapacity);
 
+  if (vesselType === "Deportivo" && recreationalDocType === "Extranjero") {
+    if (recreationalCategory.length > 500) {
+      recreationalCategory = recreationalCategory.slice(0, 500);
+    }
+  } else if (
+    vesselType === "Deportivo" &&
+    recreationalDocType === "Certificado de Construcción"
+  ) {
+    recreationalCategory = "500 metros";
+  } else if (vesselType !== "Deportivo") {
+    recreationalCategory = "";
+  }
+
   return {
     vesselType,
     recreationalDocType,
+    recreationalCategory,
     name,
     imoNumber,
     nationalRegistryNumber,
@@ -446,4 +478,69 @@ export async function addExtraCertificatePresetKey(vesselIdParam, key) {
   );
 
   return findVesselByIdentifier(vesselIdParam);
+}
+
+const SIN_TIPO_MERCANTIL = "Sin tipo indicado";
+
+function shipTypeCountsToSortedRows(map) {
+  return [...map.entries()]
+    .map(([shipType, count]) => ({ shipType, count }))
+    .sort(
+      (a, b) =>
+        b.count - a.count || String(a.shipType).localeCompare(String(b.shipType), "es")
+    );
+}
+
+/**
+ * Totales y desglose por `generalInfo.shipType` para el panel de estadísticas (menú buques).
+ * @returns {Promise<{
+ *   total: number,
+ *   ultramar: number,
+ *   cabotaje: number,
+ *   deportivo: number,
+ *   otherVesselType: number,
+ *   mercantileByShipType: { shipType: string, count: number }[],
+ *   sportByShipType: { shipType: string, count: number }[]
+ * }>}
+ */
+export async function getVesselStatsForDashboard() {
+  const docs = await VesselMongoose.find(
+    {},
+    { vesselType: 1, generalInfo: 1 }
+  ).lean();
+
+  let ultramar = 0;
+  let cabotaje = 0;
+  let deportivo = 0;
+  let otherVesselType = 0;
+  const mercMap = new Map();
+  const sportMap = new Map();
+
+  for (const d of docs) {
+    const vt = String(d.vesselType ?? "").trim();
+    const st = String(d.generalInfo?.shipType ?? "").trim();
+
+    if (vt === "Ultramar") ultramar += 1;
+    else if (vt === "Cabotaje") cabotaje += 1;
+    else if (vt === "Deportivo") deportivo += 1;
+    else otherVesselType += 1;
+
+    if (vt === "Ultramar" || vt === "Cabotaje") {
+      const key = st || SIN_TIPO_MERCANTIL;
+      mercMap.set(key, (mercMap.get(key) || 0) + 1);
+    } else if (vt === "Deportivo") {
+      const key = st || SIN_TIPO_MERCANTIL;
+      sportMap.set(key, (sportMap.get(key) || 0) + 1);
+    }
+  }
+
+  return {
+    total: docs.length,
+    ultramar,
+    cabotaje,
+    deportivo,
+    otherVesselType,
+    mercantileByShipType: shipTypeCountsToSortedRows(mercMap),
+    sportByShipType: shipTypeCountsToSortedRows(sportMap),
+  };
 }

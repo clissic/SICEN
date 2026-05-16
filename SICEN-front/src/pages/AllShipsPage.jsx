@@ -23,6 +23,7 @@ const DEPORTIVO_DOC_SEARCH_OPTIONS = [
     label: "Registro de Embarcaciones Deportivas",
   },
   { value: "Matrícula de Cabotaje", label: "Matrícula de Cabotaje" },
+  { value: "Extranjero", label: "Extranjero" },
 ];
 
 export function AllShipsPage() {
