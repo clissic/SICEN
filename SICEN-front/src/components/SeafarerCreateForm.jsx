@@ -1,9 +1,18 @@
 import { FLAG_STATE_OPTIONS } from "../constants/flagStates.js";
 import {
-  isNumericSeafarerDocumentType,
-  normalizeSeafarerDocumentNumber,
-  SEAFARER_DOCUMENT_TYPE_OPTIONS,
+  INITIAL_SEAFARER_CREATE_FORM,
+  normalizeSeafarerCcNumber,
+  normalizeSeafarerCcSeries,
+  normalizeSeafarerDni,
+  normalizeSeafarerPassport,
+  SEAFARER_BLOOD_GROUP_OPTIONS,
+  SEAFARER_BLOOD_RH_OPTIONS,
+  SEAFARER_EYE_COLOR_OPTIONS,
   SEAFARER_GENDER_OPTIONS,
+  SEAFARER_HAIR_COLOR_MULTICOLOR,
+  SEAFARER_HAIR_COLOR_OPTIONS,
+  SEAFARER_HAIR_COLORATION_OPTIONS,
+  SEAFARER_SKIN_COLOR_OPTIONS,
 } from "../constants/seafarerCreateForm.js";
 import { Link } from "react-router-dom";
 
@@ -19,24 +28,6 @@ export function SeafarerCreateForm({
   msg,
   err,
 }) {
-  const onDocumentTypeChange = (nextType) => {
-    set("documentType", nextType);
-    set(
-      "documentNumber",
-      normalizeSeafarerDocumentNumber(nextType, form.documentNumber),
-    );
-  };
-
-  const onDocumentNumberChange = (raw) => {
-    set(
-      "documentNumber",
-      normalizeSeafarerDocumentNumber(form.documentType, raw),
-    );
-  };
-
-  const numericDoc = isNumericSeafarerDocumentType(form.documentType);
-  const passportDoc = form.documentType === "Pasaporte";
-
   return (
     <>
       <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
@@ -46,11 +37,10 @@ export function SeafarerCreateForm({
         </Link>
       </div>
       <p className="text-muted small mb-3">
-        Los datos de{" "}
-        <strong>licencias</strong>, <strong>cursos</strong>,{" "}
-        <strong>embarques</strong>, <strong>sanciones</strong>,{" "}
-        <strong>observaciones</strong> y <strong>restricciones</strong> se cargan
-        en otras secciones del sistema.
+        Los datos de <strong>licencias</strong> (incluida la libreta de embarque),{" "}
+        <strong>títulos</strong>, <strong>cursos</strong>, <strong>embarques</strong>,{" "}
+        <strong>sanciones</strong>, <strong>observaciones</strong> y{" "}
+        <strong>restricciones</strong> se cargan en otras secciones del sistema.
       </p>
 
       {msg ? <div className="alert alert-success py-2">{msg}</div> : null}
@@ -59,41 +49,72 @@ export function SeafarerCreateForm({
       <form onSubmit={onSubmit}>
         <fieldset className="border rounded-3 px-3 pt-2 pb-3 mb-4">
           <legend className="float-none w-auto px-2 fs-6 fw-semibold text-body">
-            Documento
+            Documentos de identificación
           </legend>
           <div className="row g-3">
-            <div className="col-12 col-md-6">
-              <label className="form-label" htmlFor="sf-doc-type">
-                Tipo de documento <span className="text-danger">*</span>
-              </label>
-              <select
-                id="sf-doc-type"
-                className="form-select"
-                required
-                value={form.documentType}
-                onChange={(e) => onDocumentTypeChange(e.target.value)}
-              >
-                {SEAFARER_DOCUMENT_TYPE_OPTIONS.map((o) => (
-                  <option key={o.value || "empty"} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="col-12 col-md-6">
-              <label className="form-label" htmlFor="sf-doc-number">
-                Número de documento <span className="text-danger">*</span>
+            <div className="col-12 col-md-6 col-lg-4">
+              <label className="form-label" htmlFor="sf-dni">
+                DNI <span className="text-danger">*</span>
               </label>
               <input
-                id="sf-doc-number"
+                id="sf-dni"
                 className="form-control"
                 required
                 autoComplete="off"
-                inputMode={numericDoc ? "numeric" : "text"}
-                pattern={numericDoc ? "[0-9]*" : undefined}
-                style={passportDoc ? { textTransform: "uppercase" } : undefined}
-                value={form.documentNumber}
-                onChange={(e) => onDocumentNumberChange(e.target.value)}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={form.dni}
+                onChange={(e) =>
+                  set("dni", normalizeSeafarerDni(e.target.value))
+                }
+              />
+            </div>
+            <div className="col-12 col-md-6 col-lg-4">
+              <label className="form-label" htmlFor="sf-passport">
+                Pasaporte
+              </label>
+              <input
+                id="sf-passport"
+                className="form-control"
+                autoComplete="off"
+                style={{ textTransform: "uppercase" }}
+                value={form.passport}
+                onChange={(e) =>
+                  set("passport", normalizeSeafarerPassport(e.target.value))
+                }
+              />
+            </div>
+            <div className="col-12 col-md-6 col-lg-2">
+              <label className="form-label" htmlFor="sf-cc-series">
+                CC — Serie <span className="text-danger">*</span>
+              </label>
+              <input
+                id="sf-cc-series"
+                className="form-control"
+                required
+                autoComplete="off"
+                style={{ textTransform: "uppercase" }}
+                value={form.ccSeries}
+                onChange={(e) =>
+                  set("ccSeries", normalizeSeafarerCcSeries(e.target.value))
+                }
+              />
+            </div>
+            <div className="col-12 col-md-6 col-lg-2">
+              <label className="form-label" htmlFor="sf-cc-number">
+                CC — Número <span className="text-danger">*</span>
+              </label>
+              <input
+                id="sf-cc-number"
+                className="form-control"
+                required
+                autoComplete="off"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={form.ccNumber}
+                onChange={(e) =>
+                  set("ccNumber", normalizeSeafarerCcNumber(e.target.value))
+                }
               />
             </div>
           </div>
@@ -180,6 +201,168 @@ export function SeafarerCreateForm({
                 ))}
               </select>
             </div>
+            <div className="col-12 col-md-6 col-lg-3">
+              <label className="form-label" htmlFor="sf-blood-group">
+                Grupo sanguíneo <span className="text-danger">*</span>
+              </label>
+              <select
+                id="sf-blood-group"
+                className="form-select"
+                required
+                value={form.bloodGroup}
+                onChange={(e) => set("bloodGroup", e.target.value)}
+              >
+                {SEAFARER_BLOOD_GROUP_OPTIONS.map((o) => (
+                  <option key={o.value || "empty"} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-12 col-md-6 col-lg-3">
+              <label className="form-label" htmlFor="sf-blood-rh">
+                Factor Rh <span className="text-danger">*</span>
+              </label>
+              <select
+                id="sf-blood-rh"
+                className="form-select"
+                required
+                value={form.bloodRh}
+                onChange={(e) => set("bloodRh", e.target.value)}
+              >
+                {SEAFARER_BLOOD_RH_OPTIONS.map((o) => (
+                  <option key={o.value || "empty"} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset className="border rounded-3 px-3 pt-2 pb-3 mb-4">
+          <legend className="float-none w-auto px-2 fs-6 fw-semibold text-body">
+            Datos morfológicos
+          </legend>
+          <div className="row g-3">
+            <div className="col-12">
+              <div className="border rounded-3 px-3 pt-2 pb-3 bg-body-tertiary bg-opacity-25">
+                <h6 className="text-body-secondary small text-uppercase mb-3">
+                  Cabello
+                </h6>
+                <div className="row g-3">
+                  <div className="col-12 col-md-6 col-lg-4">
+                    <label className="form-label" htmlFor="sf-hair">
+                      Color de cabello
+                    </label>
+                    <select
+                      id="sf-hair"
+                      className="form-select"
+                      value={form.hairColor}
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        set("hairColor", next);
+                        if (next !== SEAFARER_HAIR_COLOR_MULTICOLOR) {
+                          set("hairColorDetail", "");
+                        }
+                      }}
+                    >
+                      {SEAFARER_HAIR_COLOR_OPTIONS.map((o) => (
+                        <option key={o.value || "hair-empty"} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {form.hairColor === SEAFARER_HAIR_COLOR_MULTICOLOR ? (
+                    <div className="col-12 col-md-6 col-lg-4">
+                      <label className="form-label" htmlFor="sf-hair-detail">
+                        Detalle (multicolor)
+                      </label>
+                      <input
+                        id="sf-hair-detail"
+                        type="text"
+                        className="form-control"
+                        placeholder="Ej. mechas rubias y base castaña"
+                        value={form.hairColorDetail}
+                        onChange={(e) =>
+                          set("hairColorDetail", e.target.value)
+                        }
+                      />
+                    </div>
+                  ) : null}
+                  <div className="col-12 col-md-6 col-lg-4">
+                    <label className="form-label" htmlFor="sf-hair-coloration">
+                      Coloración del cabello
+                    </label>
+                    <select
+                      id="sf-hair-coloration"
+                      className="form-select"
+                      value={form.hairColoration}
+                      onChange={(e) => set("hairColoration", e.target.value)}
+                    >
+                      {SEAFARER_HAIR_COLORATION_OPTIONS.map((o) => (
+                        <option
+                          key={o.value || "coloration-empty"}
+                          value={o.value}
+                        >
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="col-12 col-md-6 col-lg-3">
+              <label className="form-label" htmlFor="sf-eyes">
+                Color de ojos
+              </label>
+              <select
+                id="sf-eyes"
+                className="form-select"
+                value={form.eyeColor}
+                onChange={(e) => set("eyeColor", e.target.value)}
+              >
+                {SEAFARER_EYE_COLOR_OPTIONS.map((o) => (
+                  <option key={o.value || "eye-empty"} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-12 col-md-6 col-lg-3">
+              <label className="form-label" htmlFor="sf-skin">
+                Color de cutis
+              </label>
+              <select
+                id="sf-skin"
+                className="form-select"
+                value={form.skinColor}
+                onChange={(e) => set("skinColor", e.target.value)}
+              >
+                {SEAFARER_SKIN_COLOR_OPTIONS.map((o) => (
+                  <option key={o.value || "skin-empty"} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-12 col-md-6 col-lg-3">
+              <label className="form-label" htmlFor="sf-height">
+                Altura (cm)
+              </label>
+              <input
+                id="sf-height"
+                type="number"
+                className="form-control"
+                min={1}
+                max={300}
+                step={1}
+                value={form.heightCm}
+                onChange={(e) => set("heightCm", e.target.value)}
+              />
+            </div>
           </div>
         </fieldset>
 
@@ -189,47 +372,6 @@ export function SeafarerCreateForm({
           </legend>
           <div className="row g-3">
             <div className="col-12">
-              <h6 className="text-body-secondary small text-uppercase mb-2">
-                Libreta de embarque
-              </h6>
-            </div>
-            <div className="col-12 col-md-4">
-              <label className="form-label small" htmlFor="sf-sb-num">
-                Número
-              </label>
-              <input
-                id="sf-sb-num"
-                className="form-control"
-                autoComplete="off"
-                value={form.seamanBookNumber}
-                onChange={(e) => set("seamanBookNumber", e.target.value)}
-              />
-            </div>
-            <div className="col-12 col-md-4">
-              <label className="form-label small" htmlFor="sf-sb-exp">
-                Vencimiento
-              </label>
-              <input
-                id="sf-sb-exp"
-                type="date"
-                className="form-control"
-                value={form.seamanBookExpiration}
-                onChange={(e) => set("seamanBookExpiration", e.target.value)}
-              />
-            </div>
-            <div className="col-12 col-md-4">
-              <label className="form-label small" htmlFor="sf-sb-st">
-                Estado
-              </label>
-              <input
-                id="sf-sb-st"
-                className="form-control"
-                placeholder="Ej. En trámite"
-                value={form.seamanBookStatus}
-                onChange={(e) => set("seamanBookStatus", e.target.value)}
-              />
-            </div>
-            <div className="col-12 mt-2">
               <h6 className="text-body-secondary small text-uppercase mb-2">
                 Carné de salud
               </h6>

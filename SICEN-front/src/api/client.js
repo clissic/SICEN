@@ -285,12 +285,21 @@ export function createSeafarer(payload) {
   });
 }
 
-/** Busca gente de mar por tipo y número de documento (JWT). */
-export function findSeafarerByDocument(documentType, documentNumber) {
+/** Busca gente de mar por DNI, pasaporte o CC (JWT). */
+export function findSeafarerByDocument(
+  documentType,
+  documentNumber,
+  ccSeries = "",
+  ccNumber = "",
+) {
   const q = new URLSearchParams({
     documentType: String(documentType ?? "").trim(),
     documentNumber: String(documentNumber ?? "").trim(),
   });
+  if (String(documentType ?? "").trim() === "CC") {
+    q.set("ccSeries", String(ccSeries ?? "").trim());
+    q.set("ccNumber", String(ccNumber ?? "").trim());
+  }
   return apiFetch(`/api/seafarers/by-document?${q}`);
 }
 

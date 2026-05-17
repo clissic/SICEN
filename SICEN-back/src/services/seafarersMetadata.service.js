@@ -58,6 +58,7 @@ export async function aggregateSeafarerCourses({ page, pageSize, q }) {
       $project: {
         seafarerId: "$_id",
         document: 1,
+        identificationDocuments: 1,
         firstName: "$personalData.firstName",
         lastName: "$personalData.lastName",
         c: "$courses",
@@ -68,6 +69,14 @@ export async function aggregateSeafarerCourses({ page, pageSize, q }) {
         searchText: {
           $concat: [
             { $toString: "$seafarerId" },
+            " ",
+            { $ifNull: ["$identificationDocuments.dni", ""] },
+            " ",
+            { $ifNull: ["$identificationDocuments.passport", ""] },
+            " ",
+            { $ifNull: ["$identificationDocuments.civicCredential.series", ""] },
+            " ",
+            { $ifNull: ["$identificationDocuments.civicCredential.number", ""] },
             " ",
             { $ifNull: ["$document.type", ""] },
             " ",
@@ -117,6 +126,7 @@ export async function aggregateSeafarerCourses({ page, pageSize, q }) {
               _id: 0,
               seafarerId: 1,
               document: 1,
+              identificationDocuments: 1,
               personName: {
                 $trim: {
                   input: {
@@ -161,6 +171,7 @@ export async function aggregateSeafarerSanctions({ page, pageSize, q }) {
       $project: {
         seafarerId: "$_id",
         document: 1,
+        identificationDocuments: 1,
         firstName: "$personalData.firstName",
         lastName: "$personalData.lastName",
         s: "$sanctions",
@@ -171,6 +182,14 @@ export async function aggregateSeafarerSanctions({ page, pageSize, q }) {
         searchText: {
           $concat: [
             { $toString: "$seafarerId" },
+            " ",
+            { $ifNull: ["$identificationDocuments.dni", ""] },
+            " ",
+            { $ifNull: ["$identificationDocuments.passport", ""] },
+            " ",
+            { $ifNull: ["$identificationDocuments.civicCredential.series", ""] },
+            " ",
+            { $ifNull: ["$identificationDocuments.civicCredential.number", ""] },
             " ",
             { $ifNull: ["$document.type", ""] },
             " ",
@@ -228,6 +247,7 @@ export async function aggregateSeafarerSanctions({ page, pageSize, q }) {
               _id: 0,
               seafarerId: 1,
               document: 1,
+              identificationDocuments: 1,
               personName: {
                 $trim: {
                   input: {

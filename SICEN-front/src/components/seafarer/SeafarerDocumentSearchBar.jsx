@@ -1,20 +1,28 @@
 import {
-  isNumericSeafarerDocumentType,
+  isCcDocumentSearchType,
+  normalizeSeafarerCcNumber,
+  normalizeSeafarerCcSeries,
+  normalizeSeafarerDni,
   normalizeSeafarerDocumentNumber,
-  SEAFARER_DOCUMENT_TYPE_OPTIONS,
+  normalizeSeafarerPassport,
+  SEAFARER_DOCUMENT_SEARCH_OPTIONS,
 } from "../../constants/seafarerCreateForm.js";
 
 export function SeafarerDocumentSearchBar({
   documentType,
   documentNumber,
+  ccSeries,
+  ccNumber,
   onDocumentTypeChange,
   onDocumentNumberChange,
+  onCcSeriesChange,
+  onCcNumberChange,
   onSearch,
   searching,
   searchErr,
 }) {
-  const numericDoc = isNumericSeafarerDocumentType(documentType);
-  const passportDoc = documentType === "Pasaporte";
+  const isCc = isCcDocumentSearchType(documentType);
+  const isPassport = documentType === "Pasaporte";
 
   return (
     <div className="card shadow-sm mb-4">
@@ -31,42 +39,90 @@ export function SeafarerDocumentSearchBar({
               value={documentType}
               onChange={(e) => onDocumentTypeChange(e.target.value)}
             >
-              {SEAFARER_DOCUMENT_TYPE_OPTIONS.map((o) => (
+              {SEAFARER_DOCUMENT_SEARCH_OPTIONS.map((o) => (
                 <option key={o.value || "empty"} value={o.value}>
                   {o.label}
                 </option>
               ))}
             </select>
           </div>
-          <div className="col-12 col-md-4">
-            <label className="form-label" htmlFor="sf-search-doc-number">
-              Número de documento
-            </label>
-            <input
-              id="sf-search-doc-number"
-              className="form-control"
-              autoComplete="off"
-              inputMode={numericDoc ? "numeric" : "text"}
-              pattern={numericDoc ? "[0-9]*" : undefined}
-              style={passportDoc ? { textTransform: "uppercase" } : undefined}
-              value={documentNumber}
-              onChange={(e) =>
-                onDocumentNumberChange(
-                  normalizeSeafarerDocumentNumber(
-                    documentType,
-                    e.target.value,
-                  ),
-                )
-              }
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  onSearch();
-                }
-              }}
-            />
-          </div>
-          <div className="col-12 col-md-4">
+          {isCc ? (
+            <>
+              <div className="col-12 col-md-3">
+                <label className="form-label" htmlFor="sf-search-cc-series">
+                  CC — Serie
+                </label>
+                <input
+                  id="sf-search-cc-series"
+                  className="form-control"
+                  autoComplete="off"
+                  style={{ textTransform: "uppercase" }}
+                  value={ccSeries}
+                  onChange={(e) =>
+                    onCcSeriesChange(normalizeSeafarerCcSeries(e.target.value))
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      onSearch();
+                    }
+                  }}
+                />
+              </div>
+              <div className="col-12 col-md-3">
+                <label className="form-label" htmlFor="sf-search-cc-number">
+                  CC — Número
+                </label>
+                <input
+                  id="sf-search-cc-number"
+                  className="form-control"
+                  autoComplete="off"
+                  inputMode="numeric"
+                  value={ccNumber}
+                  onChange={(e) =>
+                    onCcNumberChange(normalizeSeafarerCcNumber(e.target.value))
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      onSearch();
+                    }
+                  }}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="col-12 col-md-4">
+              <label className="form-label" htmlFor="sf-search-doc-number">
+                {documentType === "DNI" ? "DNI" : "Número de pasaporte"}
+              </label>
+              <input
+                id="sf-search-doc-number"
+                className="form-control"
+                autoComplete="off"
+                inputMode={documentType === "DNI" ? "numeric" : "text"}
+                style={isPassport ? { textTransform: "uppercase" } : undefined}
+                value={documentNumber}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const next =
+                    documentType === "DNI"
+                      ? normalizeSeafarerDni(raw)
+                      : documentType === "Pasaporte"
+                        ? normalizeSeafarerPassport(raw)
+                        : normalizeSeafarerDocumentNumber(documentType, raw);
+                  onDocumentNumberChange(next);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    onSearch();
+                  }
+                }}
+              />
+            </div>
+          )}
+          <div className="col-12 col-md-2">
             <button
               type="button"
               className="btn btn-primary w-100"
@@ -84,3 +140,4 @@ export function SeafarerDocumentSearchBar({
     </div>
   );
 }
+

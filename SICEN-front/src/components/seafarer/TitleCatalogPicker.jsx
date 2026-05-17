@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { titlesCatalogList } from "../../api/client.js";
+import { formatTitleCatalogLabel } from "../../constants/titleCatalogForm.js";
 
 /** Identificador estable del documento del catálogo `titles` (respuesta API). */
 export function titleCatalogEntryId(doc) {
@@ -13,15 +14,7 @@ export function titleCatalogEntryId(doc) {
   return String(raw).trim();
 }
 
-/** @param {object} doc */
-export function formatTitleCatalogLabel(doc) {
-  const code = String(doc?.code ?? "").trim();
-  const es = String(doc?.name?.es ?? "").trim();
-  const en = String(doc?.name?.en ?? "").trim();
-  const name = es || en;
-  if (code && name) return `${code} — ${name}`;
-  return name || code || "—";
-}
+export { formatTitleCatalogLabel } from "../../constants/titleCatalogForm.js";
 
 /**
  * Buscador + lista de títulos del catálogo `titles`.
@@ -104,7 +97,7 @@ export function TitleCatalogPicker({
         type="search"
         className="form-control form-control-sm"
         autoComplete="off"
-        placeholder="Buscar por código o nombre…"
+        placeholder="Buscar por código, nombre o aplicación…"
         disabled={disabled}
         value={query}
         onChange={(e) => {

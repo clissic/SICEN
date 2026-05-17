@@ -21,9 +21,12 @@ import {
   sanctionFormToEntry,
 } from "../../constants/seafarerConsult.js";
 import {
-  isNumericSeafarerDocumentType,
+  formatSeafarerIdentification,
+  isCcDocumentSearchType,
+  normalizeSeafarerCcNumber,
+  normalizeSeafarerCcSeries,
   normalizeSeafarerDocumentNumber,
-  SEAFARER_DOCUMENT_TYPE_OPTIONS,
+  SEAFARER_DOCUMENT_SEARCH_OPTIONS,
 } from "../../constants/seafarerCreateForm.js";
 import {
   INITIAL_TITLE_CATALOG_FORM,
@@ -57,6 +60,8 @@ export function SeafarerMetadataAddModal({
 }) {
   const [documentType, setDocumentType] = useState("");
   const [documentNumber, setDocumentNumber] = useState("");
+  const [ccSeries, setCcSeries] = useState("");
+  const [ccNumber, setCcNumber] = useState("");
   const [finding, setFinding] = useState(false);
   const [findErr, setFindErr] = useState("");
   const [person, setPerson] = useState(null);
@@ -79,6 +84,8 @@ export function SeafarerMetadataAddModal({
     if (!show) return;
     setDocumentType("");
     setDocumentNumber("");
+    setCcSeries("");
+    setCcNumber("");
     setFinding(false);
     setFindErr("");
     setPerson(null);
@@ -109,6 +116,10 @@ export function SeafarerMetadataAddModal({
   function onDocTypeChange(next) {
     setDocumentType(next);
     setDocumentNumber((n) => normalizeSeafarerDocumentNumber(next, n));
+    if (next !== "CC") {
+      setCcSeries("");
+      setCcNumber("");
+    }
   }
 
   async function handleFindPerson() {
@@ -118,13 +129,31 @@ export function SeafarerMetadataAddModal({
       setFindErr("Seleccione el tipo de documento.");
       return;
     }
-    if (!String(documentNumber).trim()) {
-      setFindErr("Indique el número de documento.");
+    if (isCcDocumentSearchType(documentType)) {
+      if (!String(ccSeries).trim()) {
+        setFindErr("Indique la serie de la credencial cívica.");
+        return;
+      }
+      if (!String(ccNumber).trim()) {
+        setFindErr("Indique el número de la credencial cívica.");
+        return;
+      }
+    } else if (!String(documentNumber).trim()) {
+      setFindErr(
+        documentType === "DNI"
+          ? "Indique el DNI."
+          : "Indique el número de pasaporte.",
+      );
       return;
     }
     setFinding(true);
     try {
-      const data = await findSeafarerByDocument(documentType, documentNumber);
+      const data = await findSeafarerByDocument(
+        documentType,
+        documentNumber,
+        ccSeries,
+        ccNumber,
+      );
       setPerson(data?.seafarer ?? null);
       if (!data?.seafarer) setFindErr("No se encontró la persona.");
     } catch (e) {
@@ -249,8 +278,8 @@ export function SeafarerMetadataAddModal({
         ? "Agregar curso o capacitación"
         : "Agregar sanción";
 
-  const numericDoc = isNumericSeafarerDocumentType(documentType);
-  const passportDoc = documentType === "Pasaporte";
+  const isCcSearch = isCcDocumentSearchType(documentType);
+  const isPassportSearch = documentType === "Pasaporte";
 
   function setTit(k, v) {
     setTitleCatalogForm((f) => ({ ...f, [k]: v }));
@@ -312,39 +341,72 @@ export function SeafarerMetadataAddModal({
           {!isCatalogLicence ? (
             <>
               <div className="row g-2 mb-3">
-                <div className="col-md-4">
+                <div className="col-md-3">
                   <label className="form-label">Tipo de documento</label>
                   <select
                     className="form-select form-select-sm"
                     value={documentType}
                     onChange={(e) => onDocTypeChange(e.target.value)}
                   >
-                    {SEAFARER_DOCUMENT_TYPE_OPTIONS.map((o) => (
+                    {SEAFARER_DOCUMENT_SEARCH_OPTIONS.map((o) => (
                       <option key={o.value || "e"} value={o.value}>
                         {o.label}
                       </option>
                     ))}
                   </select>
                 </div>
-                <div className="col-md-4">
-                  <label className="form-label">Número</label>
-                  <input
-                    className="form-control form-control-sm"
-                    autoComplete="off"
-                    inputMode={numericDoc ? "numeric" : "text"}
-                    style={passportDoc ? { textTransform: "uppercase" } : undefined}
-                    value={documentNumber}
-                    onChange={(e) =>
-                      setDocumentNumber(
-                        normalizeSeafarerDocumentNumber(
-                          documentType,
-                          e.target.value,
-                        ),
-                      )
-                    }
-                  />
-                </div>
-                <div className="col-md-4 d-flex align-items-end">
+                {isCcSearch ? (
+                  <>
+                    <div className="col-md-2">
+                      <label className="form-label">CC — Serie</label>
+                      <input
+                        className="form-control form-control-sm"
+                        autoComplete="off"
+                        style={{ textTransform: "uppercase" }}
+                        value={ccSeries}
+                        onChange={(e) =>
+                          setCcSeries(normalizeSeafarerCcSeries(e.target.value))
+                        }
+                      />
+                    </div>
+                    <div className="col-md-2">
+                      <label className="form-label">CC — Número</label>
+                      <input
+                        className="form-control form-control-sm"
+                        autoComplete="off"
+                        inputMode="numeric"
+                        value={ccNumber}
+                        onChange={(e) =>
+                          setCcNumber(normalizeSeafarerCcNumber(e.target.value))
+                        }
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="col-md-4">
+                    <label className="form-label">
+                      {documentType === "DNI" ? "DNI" : "Número de pasaporte"}
+                    </label>
+                    <input
+                      className="form-control form-control-sm"
+                      autoComplete="off"
+                      inputMode={documentType === "DNI" ? "numeric" : "text"}
+                      style={
+                        isPassportSearch ? { textTransform: "uppercase" } : undefined
+                      }
+                      value={documentNumber}
+                      onChange={(e) =>
+                        setDocumentNumber(
+                          normalizeSeafarerDocumentNumber(
+                            documentType,
+                            e.target.value,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                )}
+                <div className="col-md-3 d-flex align-items-end">
                   <button
                     type="button"
                     className="btn btn-outline-primary btn-sm w-100"
@@ -363,8 +425,7 @@ export function SeafarerMetadataAddModal({
                   <strong>Persona:</strong>{" "}
                   {String(person.personalData?.firstName ?? "").trim()}{" "}
                   {String(person.personalData?.lastName ?? "").trim()} —{" "}
-                  {String(person.document?.type ?? "")}{" "}
-                  {String(person.document?.number ?? "")}
+                  {formatSeafarerIdentification(person)}
                 </div>
               ) : null}
             </>

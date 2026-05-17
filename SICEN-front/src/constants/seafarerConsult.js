@@ -1,3 +1,4 @@
+import { formatTitleCatalogLabel } from "./titleCatalogForm.js";
 import { seafarerDateToInputValue } from "../utils/seafarerDisplay.js";
 
 export const SEAFARER_LICENSE_BUCKET_LABELS = {
@@ -6,12 +7,38 @@ export const SEAFARER_LICENSE_BUCKET_LABELS = {
   special: "Especial",
 };
 
-export const SEAFARER_HELD_TITLE_STATUS_OPTIONS = [
+/** Opciones del desplegable (Vencido se asigna automáticamente por fecha). */
+export const SEAFARER_HELD_TITLE_USER_STATUS_OPTIONS = [
   { value: "ACTIVO", label: "Activo" },
-  { value: "VENCIDO", label: "Vencido" },
   { value: "SUSPENDIDO", label: "Suspendido" },
   { value: "REVOCADO", label: "Revocado" },
 ];
+
+/** @deprecated Usar SEAFARER_HELD_TITLE_USER_STATUS_OPTIONS en formularios. */
+export const SEAFARER_HELD_TITLE_STATUS_OPTIONS =
+  SEAFARER_HELD_TITLE_USER_STATUS_OPTIONS;
+
+const HELD_CREDENTIAL_STATUS_LABELS = {
+  ACTIVO: "Activo",
+  VENCIDO: "Vencido",
+  SUSPENDIDO: "Suspendido",
+  REVOCADO: "Revocado",
+};
+
+export function displayHeldCredentialStatus(value) {
+  const v = String(value ?? "")
+    .trim()
+    .toUpperCase();
+  return HELD_CREDENTIAL_STATUS_LABELS[v] ?? (v || "—");
+}
+
+function heldCredentialStatusForForm(stored) {
+  const v = String(stored ?? "")
+    .trim()
+    .toUpperCase();
+  if (v === "SUSPENDIDO" || v === "REVOCADO") return v;
+  return "ACTIVO";
+}
 
 export const INITIAL_SEAFARER_HELD_LICENSE_FORM = {
   licenseId: "",
@@ -58,7 +85,7 @@ export function heldLicenseDisplayRowToForm(row) {
     number: String(row.number ?? "").trim(),
     issuedDate: seafarerDateToInputValue(row.issuedDate),
     expirationDate: seafarerDateToInputValue(row.expirationDate),
-    status: String(row.status ?? "ACTIVO").trim() || "ACTIVO",
+    status: heldCredentialStatusForForm(row.status),
     _pickerLabel: [code, name].filter(Boolean).join(" — "),
   };
 }
@@ -70,7 +97,7 @@ export const INITIAL_SEAFARER_HELD_TITLE_FORM = {
   issuedDate: "",
   expirationDate: "",
   status: "ACTIVO",
-  /** Solo en edición: si es true, el backend suma 1 a renewalsCount al guardar. */
+  /** Si es true, el backend suma 1 a renewalsCount al guardar (alta o edición). */
   isRenewal: false,
 };
 
@@ -92,8 +119,6 @@ export function heldTitleDisplayRowToForm(row) {
   if (!row || typeof row !== "object") {
     return { ...INITIAL_SEAFARER_HELD_TITLE_FORM };
   }
-  const code = String(row.code ?? "").trim();
-  const name = String(row.name ?? "").trim();
   return {
     ...INITIAL_SEAFARER_HELD_TITLE_FORM,
     titleId: String(row.titleId ?? "").trim(),
@@ -101,9 +126,13 @@ export function heldTitleDisplayRowToForm(row) {
     issuingInstitution: String(row.issuingInstitution ?? "").trim(),
     issuedDate: seafarerDateToInputValue(row.issuedDate),
     expirationDate: seafarerDateToInputValue(row.expirationDate),
-    status: String(row.status ?? "ACTIVO").trim() || "ACTIVO",
+    status: heldCredentialStatusForForm(row.status),
     isRenewal: false,
-    _pickerLabel: [code, name].filter(Boolean).join(" — "),
+    _pickerLabel: formatTitleCatalogLabel({
+      code: row.code,
+      name: { es: row.name, en: "" },
+      application: row.catalogApplication,
+    }),
   };
 }
 
@@ -228,6 +257,8 @@ export function buildHeldTitleDisplayRows(seafarer) {
         cat?.name?.es || cat?.name?.en
           ? String(cat.name.es || cat.name.en || "").trim()
           : "",
+      catalogApplication:
+        cat?.application != null ? String(cat.application) : "",
       number: t.number != null ? String(t.number) : "",
       issuedDate: t.issuedDate,
       expirationDate: t.expirationDate,

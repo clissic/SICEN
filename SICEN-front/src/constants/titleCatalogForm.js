@@ -8,6 +8,7 @@ export const TITLE_CATALOG_DEPARTMENTS = Object.freeze([
   "PROTECCIÓN",
   "MÉDICO",
   "TANQUEROS",
+  "GASEROS",
   "PASAJEROS",
 ]);
 
@@ -39,6 +40,21 @@ export const INITIAL_TITLE_CATALOG_FORM = {
   validityYears: "5",
   active: true,
 };
+
+/** Etiqueta para buscador / selección: código, nombre y aplicación. */
+export function formatTitleCatalogLabel(doc) {
+  const code = String(doc?.code ?? "").trim();
+  const es = String(doc?.name?.es ?? "").trim();
+  const en = String(doc?.name?.en ?? "").trim();
+  const name = es || en;
+  const application = String(doc?.application ?? "").trim();
+  const parts = [];
+  if (code && name) parts.push(`${code} — ${name}`);
+  else if (code) parts.push(code);
+  else if (name) parts.push(name);
+  if (application) parts.push(application);
+  return parts.length ? parts.join(" — ") : "—";
+}
 
 /**
  * @param {object|null|undefined} row

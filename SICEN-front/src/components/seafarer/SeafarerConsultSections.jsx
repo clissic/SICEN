@@ -14,7 +14,8 @@ import {
   INITIAL_SEAFARER_SANCTION_FORM,
   observationFormToEntry,
   sanctionFormToEntry,
-  SEAFARER_HELD_TITLE_STATUS_OPTIONS,
+  displayHeldCredentialStatus,
+  SEAFARER_HELD_TITLE_USER_STATUS_OPTIONS,
 } from "../../constants/seafarerConsult.js";
 import { getHeldLicenseCategorySelectOptions } from "../../constants/seafarerLicenseCategories.js";
 import { certificateExpiryUrgency } from "../../utils/dateDdMmYyyy.js";
@@ -27,6 +28,7 @@ import {
   LicenceCatalogPicker,
   licenceCatalogEntryId,
 } from "./LicenceCatalogPicker.jsx";
+import { formatTitleCatalogLabel } from "../../constants/titleCatalogForm.js";
 import {
   TitleCatalogPicker,
   titleCatalogEntryId,
@@ -264,7 +266,7 @@ export function SeafarerHeldTitlesSection({
       return;
     }
     const payload = heldTitleFormToEntry(form);
-    if (editingHeldEntryId && form.isRenewal) {
+    if (form.isRenewal) {
       payload.isRenewal = true;
     }
     let ok;
@@ -325,7 +327,7 @@ export function SeafarerHeldTitlesSection({
                     soonLabel="Título próximo a vencer"
                   />
                   <td>{displaySeafarerText(r.issuingInstitution)}</td>
-                  <td>{displaySeafarerText(r.status)}</td>
+                  <td>{displayHeldCredentialStatus(r.status)}</td>
                   <td className="text-end">
                     {r.renewalsCount == null
                       ? "—"
@@ -404,15 +406,11 @@ export function SeafarerHeldTitlesSection({
                 }
                 onSelect={(doc) => {
                   setDateErr("");
-                  const es = String(doc?.name?.es ?? "").trim();
-                  const en = String(doc?.name?.en ?? "").trim();
-                  const code = String(doc?.code ?? "").trim();
-                  const name = es || en;
                   const tid = titleCatalogEntryId(doc);
                   setForm((f) => ({
                     ...f,
                     titleId: tid,
-                    _pickerLabel: [code, name].filter(Boolean).join(" — "),
+                    _pickerLabel: formatTitleCatalogLabel(doc),
                   }));
                 }}
                 onClear={() => {
@@ -468,33 +466,35 @@ export function SeafarerHeldTitlesSection({
                 value={form.status}
                 onChange={(e) => set("status", e.target.value)}
               >
-                {SEAFARER_HELD_TITLE_STATUS_OPTIONS.map((o) => (
+                {SEAFARER_HELD_TITLE_USER_STATUS_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
                   </option>
                 ))}
               </select>
+              <p className="form-text small mb-0 mt-1">
+                Si la fecha de vencimiento ya pasó, el sistema guardará el estado
+                como Vencido.
+              </p>
             </Field>
-            {editingHeldEntryId ? (
-              <div className="col-12">
-                <div className="form-check mt-1">
-                  <input
-                    id="held-tit-renewal"
-                    type="checkbox"
-                    className="form-check-input"
-                    checked={Boolean(form.isRenewal)}
-                    disabled={adding}
-                    onChange={(e) => set("isRenewal", e.target.checked)}
-                  />
-                  <label
-                    className="form-check-label small"
-                    htmlFor="held-tit-renewal"
-                  >
-                    Renovación
-                  </label>
-                </div>
+            <div className="col-12">
+              <div className="form-check mt-1">
+                <input
+                  id="held-tit-renewal"
+                  type="checkbox"
+                  className="form-check-input"
+                  checked={Boolean(form.isRenewal)}
+                  disabled={adding}
+                  onChange={(e) => set("isRenewal", e.target.checked)}
+                />
+                <label
+                  className="form-check-label small"
+                  htmlFor="held-tit-renewal"
+                >
+                  Renovación
+                </label>
               </div>
-            ) : null}
+            </div>
           </div>
           {dateErr ? (
             <div className="alert alert-warning py-2 small mt-3 mb-0">{dateErr}</div>
@@ -659,7 +659,7 @@ export function SeafarerLicenseTableSection({
       return;
     }
     const payload = heldLicenseFormToEntry(form);
-    if (editingHeldEntryId && form.isRenewal) {
+    if (form.isRenewal) {
       payload.isRenewal = true;
     }
     let ok;
@@ -720,7 +720,7 @@ export function SeafarerLicenseTableSection({
                     expiredLabel="Licencia vencida"
                     soonLabel="Licencia próxima a vencer"
                   />
-                  <td>{displaySeafarerText(r.status)}</td>
+                  <td>{displayHeldCredentialStatus(r.status)}</td>
                   <td className="text-end">
                     {r.renewalsCount == null
                       ? "—"
@@ -900,33 +900,35 @@ export function SeafarerLicenseTableSection({
                 value={form.status}
                 onChange={(e) => setField("status", e.target.value)}
               >
-                {SEAFARER_HELD_TITLE_STATUS_OPTIONS.map((o) => (
+                {SEAFARER_HELD_TITLE_USER_STATUS_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
                   </option>
                 ))}
               </select>
+              <p className="form-text small mb-0 mt-1">
+                Si la fecha de vencimiento ya pasó, el sistema guardará el estado
+                como Vencido.
+              </p>
             </Field>
-            {editingHeldEntryId ? (
-              <div className="col-12">
-                <div className="form-check mt-1">
-                  <input
-                    id="held-lic-renewal"
-                    type="checkbox"
-                    className="form-check-input"
-                    checked={Boolean(form.isRenewal)}
-                    disabled={adding}
-                    onChange={(e) => setField("isRenewal", e.target.checked)}
-                  />
-                  <label
-                    className="form-check-label small"
-                    htmlFor="held-lic-renewal"
-                  >
-                    Renovación
-                  </label>
-                </div>
+            <div className="col-12">
+              <div className="form-check mt-1">
+                <input
+                  id="held-lic-renewal"
+                  type="checkbox"
+                  className="form-check-input"
+                  checked={Boolean(form.isRenewal)}
+                  disabled={adding}
+                  onChange={(e) => setField("isRenewal", e.target.checked)}
+                />
+                <label
+                  className="form-check-label small"
+                  htmlFor="held-lic-renewal"
+                >
+                  Renovación
+                </label>
               </div>
-            ) : null}
+            </div>
           </div>
           {dateErr ? (
             <div className="alert alert-warning py-2 small mt-3 mb-0">{dateErr}</div>

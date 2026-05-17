@@ -107,24 +107,15 @@ export async function createTitle(body, user) {
   }
   const now = new Date();
   const label = seafarerAuditLabelFromUser(user);
-  try {
-    const created = await TitleMongoose.create({
-      ...normalized,
-      metadata: {
-        createdAt: now,
-        updatedAt: now,
-        lastModifiedBy: label,
-      },
-    });
-    return created.toObject ? created.toObject() : created;
-  } catch (e) {
-    if (e?.code === 11000) {
-      const x = new Error("Ya existe un título con ese código.");
-      x.statusCode = 409;
-      throw x;
-    }
-    throw e;
-  }
+  const created = await TitleMongoose.create({
+    ...normalized,
+    metadata: {
+      createdAt: now,
+      updatedAt: now,
+      lastModifiedBy: label,
+    },
+  });
+  return created.toObject ? created.toObject() : created;
 }
 
 /**
@@ -143,35 +134,26 @@ export async function updateTitleById(id, body, user) {
   }
   const now = new Date();
   const label = seafarerAuditLabelFromUser(user);
-  try {
-    const updated = await TitleMongoose.findByIdAndUpdate(
-      oid,
-      {
-        $set: {
-          ...normalized,
-          "metadata.updatedAt": now,
-          "metadata.lastModifiedBy": label,
-        },
+  const updated = await TitleMongoose.findByIdAndUpdate(
+    oid,
+    {
+      $set: {
+        ...normalized,
+        "metadata.updatedAt": now,
+        "metadata.lastModifiedBy": label,
       },
-      { new: true, runValidators: true },
-    )
-      .lean()
-      .exec();
+    },
+    { new: true, runValidators: true },
+  )
+    .lean()
+    .exec();
 
-    if (!updated) {
-      const e = new Error("No se encontró el título en el catálogo.");
-      e.statusCode = 404;
-      throw e;
-    }
-    return updated;
-  } catch (e) {
-    if (e?.code === 11000) {
-      const x = new Error("Ya existe un título con ese código.");
-      x.statusCode = 409;
-      throw x;
-    }
+  if (!updated) {
+    const e = new Error("No se encontró el título en el catálogo.");
+    e.statusCode = 404;
     throw e;
   }
+  return updated;
 }
 
 /** @param {string} id */

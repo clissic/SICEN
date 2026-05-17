@@ -50,9 +50,13 @@ export const seafarersController = {
       const documentType = req.query.documentType ?? req.query.type ?? "";
       const documentNumber =
         req.query.documentNumber ?? req.query.number ?? "";
+      const ccSeries = req.query.ccSeries ?? "";
+      const ccNumber = req.query.ccNumber ?? "";
       const seafarer = await findSeafarerByDocument(
         documentType,
         documentNumber,
+        ccSeries,
+        ccNumber,
       );
       return res.json({ ok: true, seafarer });
     } catch (e) {

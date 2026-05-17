@@ -12,6 +12,7 @@ import {
 import { SeafarerMetadataAddModal } from "../components/seafarer/SeafarerMetadataAddModal.jsx";
 import { SeafarerMetadataListBlock } from "../components/seafarer/SeafarerMetadataListBlock.jsx";
 import { Layout } from "../components/Layout.jsx";
+import { formatSeafarerIdentification } from "../constants/seafarerCreateForm.js";
 import { formatDateForTableDisplay } from "../utils/dateDdMmYyyy.js";
 
 const fetchTitlesCatalogPage = (page, q) =>
@@ -302,7 +303,7 @@ export function SeafarerMetadataPage() {
             <tr key={`${row.seafarerId}-${row.code}-${i}`}>
               <td>{showText(row.personName)}</td>
               <td>
-                {showText(row.document?.type)} {showText(row.document?.number)}
+                {formatSeafarerIdentification(row)}
               </td>
               <td>{showText(row.code)}</td>
               <td>{showText(row.name)}</td>
@@ -350,7 +351,7 @@ export function SeafarerMetadataPage() {
             <tr key={`${row.seafarerId}-san-${i}`}>
               <td>{showText(row.personName)}</td>
               <td>
-                {showText(row.document?.type)} {showText(row.document?.number)}
+                {formatSeafarerIdentification(row)}
               </td>
               <td>{showText(row.code)}</td>
               <td>{showText(row.type)}</td>

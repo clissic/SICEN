@@ -1,5 +1,6 @@
 import { Schema, model } from "mongoose";
 
+/** @deprecated Legado: un solo tipo/número. Preferir `identificationDocuments`. */
 const documentSchema = new Schema(
   {
     type: { type: String, default: "", trim: true },
@@ -8,22 +9,67 @@ const documentSchema = new Schema(
   { _id: false }
 );
 
+const civicCredentialSchema = new Schema(
+  {
+    series: { type: String, default: "", trim: true },
+    number: { type: String, default: "", trim: true },
+  },
+  { _id: false }
+);
+
+const identificationDocumentsSchema = new Schema(
+  {
+    dni: { type: String, default: "", trim: true },
+    passport: { type: String, default: "", trim: true },
+    civicCredential: { type: civicCredentialSchema, default: () => ({}) },
+  },
+  { _id: false }
+);
+
+const morphologicalDataSchema = new Schema(
+  {
+    hairColor: { type: String, default: "", trim: true },
+    /** Detalle cuando `hairColor` es MULTICOLOR. */
+    hairColorDetail: { type: String, default: "", trim: true },
+    /** Natural | Artificial (valores almacenados: NATURAL, ARTIFICIAL). */
+    hairColoration: { type: String, default: "", trim: true },
+    eyeColor: { type: String, default: "", trim: true },
+    skinColor: { type: String, default: "", trim: true },
+    heightCm: { type: Number, default: null, min: 0 },
+  },
+  { _id: false }
+);
+
+const bloodTypeSchema = new Schema(
+  {
+    group: {
+      type: String,
+      enum: ["", "A", "B", "AB", "O"],
+      default: "",
+    },
+    rhFactor: {
+      type: String,
+      enum: ["", "+", "-"],
+      default: "",
+    },
+  },
+  { _id: false }
+);
+
+export const SEAFARER_GENDER_VALUES = ["Masculino", "Femenino"];
+
 const personalDataSchema = new Schema(
   {
     firstName: { type: String, default: "", trim: true },
     lastName: { type: String, default: "", trim: true },
     birthDate: { type: Date, default: null },
     nationality: { type: String, default: "", trim: true },
-    gender: { type: String, default: "", trim: true },
-  },
-  { _id: false }
-);
-
-const seamanBookSchema = new Schema(
-  {
-    number: { type: String, default: "", trim: true },
-    expirationDate: { type: Date, default: null },
-    status: { type: String, default: "", trim: true },
+    gender: {
+      type: String,
+      enum: ["", ...SEAFARER_GENDER_VALUES],
+      default: "",
+    },
+    bloodType: { type: bloodTypeSchema, default: () => ({}) },
   },
   { _id: false }
 );
@@ -38,7 +84,6 @@ const datedStatusSchema = new Schema(
 
 const maritimeFitnessSchema = new Schema(
   {
-    seamanBook: { type: seamanBookSchema, default: () => ({}) },
     medicalCertificate: { type: datedStatusSchema, default: () => ({}) },
     vaccinationCard: { type: datedStatusSchema, default: () => ({}) },
   },
@@ -271,7 +316,16 @@ const metadataSchema = new Schema(
 
 const schema = new Schema(
   {
+    /** @deprecated Usar `identificationDocuments`. */
     document: { type: documentSchema, default: () => ({}) },
+    identificationDocuments: {
+      type: identificationDocumentsSchema,
+      default: () => ({}),
+    },
+    morphologicalData: {
+      type: morphologicalDataSchema,
+      default: () => ({}),
+    },
     personalData: { type: personalDataSchema, default: () => ({}) },
     maritimeFitness: { type: maritimeFitnessSchema, default: () => ({}) },
     contact: { type: contactSchema, default: () => ({}) },
@@ -358,7 +412,9 @@ export function normalizeSeafarerHeldLicenseEntry(raw) {
     return Number.isNaN(d.getTime()) ? null : d;
   };
   let st = str(o.status).toUpperCase();
-  if (!TITLE_STATUS_SET.has(st)) st = "ACTIVO";
+  if (st === "VENCIDO" || st !== "ACTIVO" && st !== "SUSPENDIDO" && st !== "REVOCADO") {
+    st = "ACTIVO";
+  }
   const licenseIdRaw = o.licenseId;
   const licenseId =
     licenseIdRaw != null
@@ -390,7 +446,9 @@ export function normalizeSeafarerHeldTitleEntry(raw) {
     return Number.isNaN(d.getTime()) ? null : d;
   };
   let st = str(o.status).toUpperCase();
-  if (!TITLE_STATUS_SET.has(st)) st = "ACTIVO";
+  if (st === "VENCIDO" || st !== "ACTIVO" && st !== "SUSPENDIDO" && st !== "REVOCADO") {
+    st = "ACTIVO";
+  }
   const titleIdRaw = o.titleId;
   const titleId =
     titleIdRaw != null

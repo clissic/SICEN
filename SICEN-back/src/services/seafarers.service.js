@@ -9,7 +9,24 @@ import {
 import { LicenceMongoose } from "../DAO/models/mongoose/licences.mongoose.js";
 import { TitleMongoose } from "../DAO/models/mongoose/titles.mongoose.js";
 import mongoose from "mongoose";
-import { normalizeSeafarerDocumentNumber } from "../utils/seafarerDocument.js";
+import {
+  normalizeSeafarerCcNumber,
+  normalizeSeafarerCcSeries,
+  normalizeSeafarerDni,
+  normalizeSeafarerPassport,
+} from "../utils/seafarerDocument.js";
+import { SEAFARER_GENDER_VALUES } from "../DAO/models/mongoose/seafarers.mongoose.js";
+import {
+  normalizeSeafarerMorphEyeColor,
+  normalizeSeafarerMorphHairColor,
+  normalizeSeafarerMorphHairColoration,
+  normalizeSeafarerMorphHairColorDetail,
+  normalizeSeafarerMorphSkinColor,
+} from "../constants/seafarerMorphological.js";
+import {
+  resolveHeldCredentialStatus,
+  syncHeldCredentialsExpiryOnDoc,
+} from "../utils/heldCredentialStatus.js";
 
 function str(v) {
   return v == null ? "" : String(v).trim();
@@ -37,17 +54,54 @@ export function seafarerAuditLabelFromUser(user) {
  * Normaliza el cuerpo HTTP del alta (solo campos que puede enviar el cliente).
  * @param {object} raw
  */
+function normalizeBloodGroup(raw) {
+  const g = str(raw).toUpperCase();
+  if (g === "A" || g === "B" || g === "AB" || g === "O") return g;
+  return "";
+}
+
+function normalizeRhFactor(raw) {
+  const r = str(raw);
+  if (r === "+" || r === "-") return r;
+  return "";
+}
+
+function normalizeGender(raw) {
+  const g = str(raw);
+  return SEAFARER_GENDER_VALUES.includes(g) ? g : "";
+}
+
+function parseHeightCm(raw) {
+  if (raw == null || raw === "") return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return Math.round(n);
+}
+
 export function normalizeSeafarerCreateBody(raw) {
   const b = raw && typeof raw === "object" ? raw : {};
-  const doc = b.document && typeof b.document === "object" ? b.document : {};
+  const idDocs =
+    b.identificationDocuments && typeof b.identificationDocuments === "object"
+      ? b.identificationDocuments
+      : b.document && typeof b.document === "object"
+        ? b.document
+        : {};
+  const ccRaw =
+    idDocs.civicCredential && typeof idDocs.civicCredential === "object"
+      ? idDocs.civicCredential
+      : {};
   const pd =
     b.personalData && typeof b.personalData === "object" ? b.personalData : {};
+  const bt =
+    pd.bloodType && typeof pd.bloodType === "object" ? pd.bloodType : {};
+  const morph =
+    b.morphologicalData && typeof b.morphologicalData === "object"
+      ? b.morphologicalData
+      : {};
   const mf =
     b.maritimeFitness && typeof b.maritimeFitness === "object"
       ? b.maritimeFitness
       : {};
-  const sb =
-    mf.seamanBook && typeof mf.seamanBook === "object" ? mf.seamanBook : {};
   const mc =
     mf.medicalCertificate && typeof mf.medicalCertificate === "object"
       ? mf.medicalCertificate
@@ -58,27 +112,51 @@ export function normalizeSeafarerCreateBody(raw) {
       : {};
   const ct = b.contact && typeof b.contact === "object" ? b.contact : {};
 
-  const docType = str(doc.type);
-  const docNumber = normalizeSeafarerDocumentNumber(docType, str(doc.number));
+  const dni = normalizeSeafarerDni(
+    idDocs.dni != null ? idDocs.dni : idDocs.type === "DNI" ? idDocs.number : "",
+  );
+  const passport = normalizeSeafarerPassport(
+    idDocs.passport != null
+      ? idDocs.passport
+      : idDocs.type === "Pasaporte"
+        ? idDocs.number
+        : "",
+  );
+  const ccSeries = normalizeSeafarerCcSeries(ccRaw.series);
+  const ccNumber = normalizeSeafarerCcNumber(ccRaw.number);
 
   return {
-    document: {
-      type: docType,
-      number: docNumber,
+    identificationDocuments: {
+      dni,
+      passport,
+      civicCredential: {
+        series: ccSeries,
+        number: ccNumber,
+      },
+    },
+    morphologicalData: {
+      hairColor: normalizeSeafarerMorphHairColor(morph.hairColor),
+      hairColorDetail: normalizeSeafarerMorphHairColorDetail(
+        morph.hairColor,
+        morph.hairColorDetail,
+      ),
+      hairColoration: normalizeSeafarerMorphHairColoration(morph.hairColoration),
+      eyeColor: normalizeSeafarerMorphEyeColor(morph.eyeColor),
+      skinColor: normalizeSeafarerMorphSkinColor(morph.skinColor),
+      heightCm: parseHeightCm(morph.heightCm),
     },
     personalData: {
       firstName: str(pd.firstName),
       lastName: str(pd.lastName),
       birthDate: dateOrNull(pd.birthDate),
       nationality: str(pd.nationality),
-      gender: str(pd.gender),
+      gender: normalizeGender(pd.gender),
+      bloodType: {
+        group: normalizeBloodGroup(bt.group),
+        rhFactor: normalizeRhFactor(bt.rhFactor),
+      },
     },
     maritimeFitness: {
-      seamanBook: {
-        number: str(sb.number),
-        expirationDate: dateOrNull(sb.expirationDate),
-        status: str(sb.status),
-      },
       medicalCertificate: {
         expirationDate: dateOrNull(mc.expirationDate),
         status: str(mc.status),
@@ -103,13 +181,25 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * @returns {string|null} mensaje de error o null si OK
  */
 export function validateSeafarerCreateInput(p) {
-  if (!p.document.type) return "Indique el tipo de documento.";
-  if (!p.document.number) return "Indique el número de documento.";
+  const id = p.identificationDocuments;
+  if (!id.dni) return "Indique el DNI.";
+  if (!id.civicCredential.series) return "Indique la serie de la credencial cívica.";
+  if (!id.civicCredential.number) {
+    return "Indique el número de la credencial cívica.";
+  }
   if (!p.personalData.firstName) return "Indique el nombre.";
   if (!p.personalData.lastName) return "Indique el apellido.";
   if (!p.personalData.birthDate) return "Indique la fecha de nacimiento.";
   if (!p.personalData.nationality) return "Indique la nacionalidad.";
-  if (!p.personalData.gender) return "Indique el género.";
+  if (!p.personalData.gender) return "Seleccione el género (masculino o femenino).";
+  if (!p.personalData.bloodType.group) return "Seleccione el grupo sanguíneo.";
+  if (!p.personalData.bloodType.rhFactor) return "Seleccione el factor Rh.";
+  if (
+    p.morphologicalData.heightCm != null &&
+    p.morphologicalData.heightCm <= 0
+  ) {
+    return "La altura debe ser un número mayor que cero (en centímetros).";
+  }
   if (!p.contact.email) return "Indique un correo electrónico.";
   if (!EMAIL_RE.test(p.contact.email)) return "El correo electrónico no es válido.";
   if (!p.contact.phone) return "Indique un teléfono de contacto.";
@@ -124,7 +214,8 @@ export function validateSeafarerCreateInput(p) {
 export function buildSeafarerCreateDocument(normalized, user) {
   const label = seafarerAuditLabelFromUser(user);
   return {
-    document: normalized.document,
+    identificationDocuments: normalized.identificationDocuments,
+    morphologicalData: normalized.morphologicalData,
     personalData: normalized.personalData,
     maritimeFitness: normalized.maritimeFitness,
     contact: normalized.contact,
@@ -167,18 +258,35 @@ export async function createSeafarer(body, user) {
     e.statusCode = 400;
     throw e;
   }
-  const existing = await SeafarerMongoose.findOne({
-    "document.type": normalized.document.type,
-    "document.number": normalized.document.number,
-  })
-    .lean()
-    .exec();
-  if (existing) {
-    const e = new Error(
-      "Ya existe un registro de gente de mar con ese documento.",
-    );
-    e.statusCode = 409;
-    throw e;
+  const id = normalized.identificationDocuments;
+  const dupOr = [];
+  if (id.dni) {
+    dupOr.push({ "identificationDocuments.dni": id.dni });
+    dupOr.push({ "document.type": "DNI", "document.number": id.dni });
+    dupOr.push({
+      "document.type": "Cédula de identidad",
+      "document.number": id.dni,
+    });
+  }
+  if (id.passport) {
+    dupOr.push({ "identificationDocuments.passport": id.passport });
+    dupOr.push({ "document.type": "Pasaporte", "document.number": id.passport });
+  }
+  if (id.civicCredential.series && id.civicCredential.number) {
+    dupOr.push({
+      "identificationDocuments.civicCredential.series": id.civicCredential.series,
+      "identificationDocuments.civicCredential.number": id.civicCredential.number,
+    });
+  }
+  if (dupOr.length) {
+    const existing = await SeafarerMongoose.findOne({ $or: dupOr }).lean().exec();
+    if (existing) {
+      const e = new Error(
+        "Ya existe un registro de gente de mar con ese DNI, pasaporte o credencial cívica.",
+      );
+      e.statusCode = 409;
+      throw e;
+    }
   }
   const docPayload = buildSeafarerCreateDocument(normalized, user);
   const created = await SeafarerMongoose.create(docPayload);
@@ -195,7 +303,7 @@ function httpError(message, statusCode = 400) {
 const SEAFARER_CONSULT_POPULATE = [
   {
     path: "titles.titleId",
-    select: "code name stcwRegulation department level active",
+    select: "code name application stcwRegulation department level active",
   },
   {
     path: "heldLicenses.licenseId",
@@ -204,26 +312,66 @@ const SEAFARER_CONSULT_POPULATE = [
 ];
 
 /**
- * @param {string} documentType
- * @param {string} documentNumber
+ * @param {string} documentType — DNI | Pasaporte | CC
+ * @param {string} documentNumber — DNI o pasaporte
+ * @param {string} [ccSeries]
+ * @param {string} [ccNumber]
  */
-export async function findSeafarerByDocument(documentType, documentNumber) {
+export async function findSeafarerByDocument(
+  documentType,
+  documentNumber,
+  ccSeries = "",
+  ccNumber = "",
+) {
   const type = str(documentType);
-  const number = normalizeSeafarerDocumentNumber(type, documentNumber);
   if (!type) throw httpError("Indique el tipo de documento.");
-  if (!number) throw httpError("Indique el número de documento.");
+  if (type !== "DNI" && type !== "Pasaporte" && type !== "CC") {
+    throw httpError("Tipo de documento no válido. Use DNI, Pasaporte o CC.");
+  }
 
-  const doc = await SeafarerMongoose.findOne({
-    "document.type": type,
-    "document.number": number,
-  })
+  let filter;
+  if (type === "DNI") {
+    const n = normalizeSeafarerDni(documentNumber);
+    if (!n) throw httpError("Indique el DNI.");
+    filter = {
+      $or: [
+        { "identificationDocuments.dni": n },
+        { "document.type": "DNI", "document.number": n },
+        { "document.type": "Cédula de identidad", "document.number": n },
+      ],
+    };
+  } else if (type === "Pasaporte") {
+    const n = normalizeSeafarerPassport(documentNumber);
+    if (!n) throw httpError("Indique el número de pasaporte.");
+    filter = {
+      $or: [
+        { "identificationDocuments.passport": n },
+        { "document.type": "Pasaporte", "document.number": n },
+      ],
+    };
+  } else {
+    const series = normalizeSeafarerCcSeries(ccSeries);
+    const number = normalizeSeafarerCcNumber(ccNumber);
+    if (!series) throw httpError("Indique la serie de la credencial cívica.");
+    if (!number) throw httpError("Indique el número de la credencial cívica.");
+    filter = {
+      "identificationDocuments.civicCredential.series": series,
+      "identificationDocuments.civicCredential.number": number,
+    };
+  }
+
+  const doc = await SeafarerMongoose.findOne(filter)
     .populate(SEAFARER_CONSULT_POPULATE)
     .exec();
 
   if (!doc) {
     throw httpError("No se encontró ningún registro con ese documento.", 404);
   }
-  return doc.toObject ? doc.toObject() : doc;
+  await persistSeafarerExpirySync(doc);
+  const refreshed = await SeafarerMongoose.findOne(filter)
+    .populate(SEAFARER_CONSULT_POPULATE)
+    .exec();
+  return refreshed.toObject ? refreshed.toObject() : refreshed;
 }
 
 async function loadSeafarerDocById(id) {
@@ -236,6 +384,12 @@ async function loadSeafarerDocById(id) {
   return doc;
 }
 
+async function persistSeafarerExpirySync(doc) {
+  if (!syncHeldCredentialsExpiryOnDoc(doc)) return false;
+  await doc.save();
+  return true;
+}
+
 async function seafarerToConsultObject(docId) {
   const refreshed = await SeafarerMongoose.findById(docId)
     .populate(SEAFARER_CONSULT_POPULATE)
@@ -243,7 +397,11 @@ async function seafarerToConsultObject(docId) {
   if (!refreshed) {
     throw httpError("Registro de gente de mar no encontrado.", 404);
   }
-  return refreshed.toObject ? refreshed.toObject() : refreshed;
+  await persistSeafarerExpirySync(refreshed);
+  const out = await SeafarerMongoose.findById(docId)
+    .populate(SEAFARER_CONSULT_POPULATE)
+    .exec();
+  return out.toObject ? out.toObject() : out;
 }
 
 function touchSeafarerMetadata(doc, user) {
@@ -286,8 +444,12 @@ export async function addSeafarerLicense(id, bucket, entry, user) {
  * @param {object|null} user
  */
 export async function addSeafarerTitle(id, entry, user) {
-  const normalized = normalizeSeafarerHeldTitleEntry(
-    entry && typeof entry === "object" ? entry : {},
+  const rawEntry = entry && typeof entry === "object" ? entry : {};
+  const isRenewal = Boolean(rawEntry.isRenewal);
+  const normalized = normalizeSeafarerHeldTitleEntry(rawEntry);
+  normalized.status = resolveHeldCredentialStatus(
+    normalized.status,
+    normalized.expirationDate,
   );
   if (!normalized.titleId) {
     throw httpError("Seleccione un título del catálogo.", 400);
@@ -313,6 +475,10 @@ export async function addSeafarerTitle(id, entry, user) {
   }
   const doc = await loadSeafarerDocById(id);
   doc.addHeldTitle(normalized);
+  if (isRenewal) {
+    const sub = doc.titles[doc.titles.length - 1];
+    if (sub) sub.set("renewalsCount", 1);
+  }
   touchSeafarerMetadata(doc, user);
   await doc.save();
   return seafarerToConsultObject(doc._id);
@@ -333,6 +499,10 @@ export async function updateSeafarerHeldTitle(
   const rawEntry = entry && typeof entry === "object" ? entry : {};
   const isRenewal = Boolean(rawEntry.isRenewal);
   const normalized = normalizeSeafarerHeldTitleEntry(rawEntry);
+  normalized.status = resolveHeldCredentialStatus(
+    normalized.status,
+    normalized.expirationDate,
+  );
   if (!normalized.titleId) {
     throw httpError("Seleccione un título del catálogo.", 400);
   }
@@ -420,8 +590,12 @@ async function assertLicenceCatalogEntryForHeld(licenseObjectId) {
  * @param {object|null} user
  */
 export async function addSeafarerHeldLicense(id, entry, user) {
-  const normalized = normalizeSeafarerHeldLicenseEntry(
-    entry && typeof entry === "object" ? entry : {},
+  const rawEntry = entry && typeof entry === "object" ? entry : {};
+  const isRenewal = Boolean(rawEntry.isRenewal);
+  const normalized = normalizeSeafarerHeldLicenseEntry(rawEntry);
+  normalized.status = resolveHeldCredentialStatus(
+    normalized.status,
+    normalized.expirationDate,
   );
   if (!normalized.licenseId) {
     throw httpError("Seleccione una licencia del catálogo.", 400);
@@ -444,6 +618,10 @@ export async function addSeafarerHeldLicense(id, entry, user) {
   }
   const doc = await loadSeafarerDocById(id);
   doc.addHeldLicense(normalized);
+  if (isRenewal) {
+    const sub = doc.heldLicenses[doc.heldLicenses.length - 1];
+    if (sub) sub.set("renewalsCount", 1);
+  }
   touchSeafarerMetadata(doc, user);
   await doc.save();
   return seafarerToConsultObject(doc._id);
@@ -464,6 +642,10 @@ export async function updateSeafarerHeldLicense(
   const rawEntry = entry && typeof entry === "object" ? entry : {};
   const isRenewal = Boolean(rawEntry.isRenewal);
   const normalized = normalizeSeafarerHeldLicenseEntry(rawEntry);
+  normalized.status = resolveHeldCredentialStatus(
+    normalized.status,
+    normalized.expirationDate,
+  );
   if (!normalized.licenseId) {
     throw httpError("Seleccione una licencia del catálogo.", 400);
   }

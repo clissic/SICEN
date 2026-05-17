@@ -11,11 +11,12 @@ import { scrollPageToTop } from "../utils/scrollPageToTop.js";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function getClientErr(form) {
-  if (!String(form.documentType ?? "").trim()) {
-    return "Seleccione el tipo de documento.";
+  if (!String(form.dni ?? "").trim()) return "Indique el DNI.";
+  if (!String(form.ccSeries ?? "").trim()) {
+    return "Indique la serie de la credencial cívica.";
   }
-  if (!String(form.documentNumber ?? "").trim()) {
-    return "Indique el número de documento.";
+  if (!String(form.ccNumber ?? "").trim()) {
+    return "Indique el número de la credencial cívica.";
   }
   if (!String(form.firstName ?? "").trim()) return "Indique el nombre.";
   if (!String(form.lastName ?? "").trim()) return "Indique el apellido.";
@@ -26,6 +27,15 @@ function getClientErr(form) {
     return "Seleccione la nacionalidad.";
   }
   if (!String(form.gender ?? "").trim()) return "Seleccione el género.";
+  if (!String(form.bloodGroup ?? "").trim()) return "Seleccione el grupo sanguíneo.";
+  if (!String(form.bloodRh ?? "").trim()) return "Seleccione el factor Rh.";
+  const heightRaw = String(form.heightCm ?? "").trim();
+  if (heightRaw) {
+    const h = Number(heightRaw);
+    if (!Number.isFinite(h) || h <= 0) {
+      return "La altura debe ser un número mayor que cero (en centímetros).";
+    }
+  }
   if (!String(form.phone ?? "").trim()) return "Indique el teléfono.";
   if (!String(form.email ?? "").trim()) return "Indique el correo electrónico.";
   if (!EMAIL_RE.test(String(form.email).trim())) {

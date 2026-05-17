@@ -27,7 +27,10 @@ import {
   buildHeldTitleDisplayRows,
   buildLicenseConsultDisplayRows,
 } from "../constants/seafarerConsult.js";
-import { normalizeSeafarerDocumentNumber } from "../constants/seafarerCreateForm.js";
+import {
+  isCcDocumentSearchType,
+  normalizeSeafarerDocumentNumber,
+} from "../constants/seafarerCreateForm.js";
 import { scrollElementIntoViewById, scrollPageToTop } from "../utils/scrollPageToTop.js";
 
 const emptySectionState = () => ({
@@ -39,6 +42,8 @@ const emptySectionState = () => ({
 export function SeafarerConsultPage() {
   const [documentType, setDocumentType] = useState("");
   const [documentNumber, setDocumentNumber] = useState("");
+  const [ccSeries, setCcSeries] = useState("");
+  const [ccNumber, setCcNumber] = useState("");
   const [seafarer, setSeafarer] = useState(null);
   const [searching, setSearching] = useState(false);
   const [searchErr, setSearchErr] = useState("");
@@ -56,6 +61,10 @@ export function SeafarerConsultPage() {
     setDocumentNumber((n) =>
       normalizeSeafarerDocumentNumber(nextType, n),
     );
+    if (nextType !== "CC") {
+      setCcSeries("");
+      setCcNumber("");
+    }
   }
 
   function clearSectionMessages() {
@@ -74,15 +83,35 @@ export function SeafarerConsultPage() {
       scrollPageToTop();
       return;
     }
-    if (!String(documentNumber).trim()) {
-      setSearchErr("Indique el número de documento.");
+    if (isCcDocumentSearchType(documentType)) {
+      if (!String(ccSeries).trim()) {
+        setSearchErr("Indique la serie de la credencial cívica.");
+        scrollPageToTop();
+        return;
+      }
+      if (!String(ccNumber).trim()) {
+        setSearchErr("Indique el número de la credencial cívica.");
+        scrollPageToTop();
+        return;
+      }
+    } else if (!String(documentNumber).trim()) {
+      setSearchErr(
+        documentType === "DNI"
+          ? "Indique el DNI."
+          : "Indique el número de pasaporte.",
+      );
       scrollPageToTop();
       return;
     }
     setSearching(true);
     setSeafarer(null);
     try {
-      const data = await findSeafarerByDocument(documentType, documentNumber);
+      const data = await findSeafarerByDocument(
+        documentType,
+        documentNumber,
+        ccSeries,
+        ccNumber,
+      );
       setSeafarer(data?.seafarer ?? null);
       if (!data?.seafarer) {
         setSearchErr("No se encontró ningún registro con ese documento.");
@@ -367,8 +396,12 @@ export function SeafarerConsultPage() {
         <SeafarerDocumentSearchBar
           documentType={documentType}
           documentNumber={documentNumber}
+          ccSeries={ccSeries}
+          ccNumber={ccNumber}
           onDocumentTypeChange={onDocumentTypeChange}
           onDocumentNumberChange={setDocumentNumber}
+          onCcSeriesChange={setCcSeries}
+          onCcNumberChange={setCcNumber}
           onSearch={handleSearch}
           searching={searching}
           searchErr={searchErr}

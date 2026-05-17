@@ -10,6 +10,7 @@ export const TITLE_DEPARTMENTS = [
   "PROTECCIÓN",
   "MÉDICO",
   "TANQUEROS",
+  "GASEROS",
   "PASAJEROS",
 ];
 
@@ -46,7 +47,6 @@ const schema = new Schema(
     code: {
       type: String,
       required: true,
-      unique: true,
       uppercase: true,
       trim: true,
     },
@@ -73,3 +73,21 @@ const schema = new Schema(
 );
 
 export const TitleMongoose = model("Title", schema, "titles");
+
+/**
+ * Quita el índice único legacy en `code` (STCW admite códigos repetidos entre titulaciones).
+ * Idempotente: no falla si el índice ya no existe.
+ */
+export async function ensureTitleCodeAllowsDuplicates() {
+  try {
+    await TitleMongoose.collection.dropIndex("code_1");
+  } catch (e) {
+    const code = e?.code;
+    const msg = String(e?.message ?? "");
+    const missing =
+      code === 27 ||
+      code === "IndexNotFound" ||
+      /index not found/i.test(msg);
+    if (!missing) throw e;
+  }
+}

@@ -1,5 +1,10 @@
 import "../../styles/seafarer-basic-data-table.css";
 import {
+  displaySeafarerHairColor,
+  displaySeafarerHairColoration,
+  formatSeafarerIdentification,
+} from "../../constants/seafarerCreateForm.js";
+import {
   displaySeafarerDate,
   displaySeafarerGeneralStatus,
   displaySeafarerText,
@@ -14,16 +19,28 @@ function Row({ label, value }) {
   );
 }
 
+function displayBloodType(bloodType) {
+  if (!bloodType || typeof bloodType !== "object") return "—";
+  const g = String(bloodType.group ?? "").trim();
+  const rh = String(bloodType.rhFactor ?? "").trim();
+  if (!g && !rh) return "—";
+  return `${g || "—"}${rh || ""}`;
+}
+
 export function SeafarerBasicDataTable({ seafarer }) {
   if (!seafarer) return null;
 
-  const doc = seafarer.document ?? {};
   const pd = seafarer.personalData ?? {};
+  const morph = seafarer.morphologicalData ?? {};
   const mf = seafarer.maritimeFitness ?? {};
-  const sb = mf.seamanBook ?? {};
   const mc = mf.medicalCertificate ?? {};
   const vc = mf.vaccinationCard ?? {};
   const ct = seafarer.contact ?? {};
+
+  const height =
+    morph.heightCm != null && Number.isFinite(Number(morph.heightCm))
+      ? `${Math.round(Number(morph.heightCm))} cm`
+      : "—";
 
   return (
     <div className="card shadow-sm mb-4">
@@ -33,8 +50,8 @@ export function SeafarerBasicDataTable({ seafarer }) {
           <table className="table table-sm table-bordered mb-0 align-middle seafarer-basic-data-table">
             <tbody>
               <Row
-                label="Documento"
-                value={`${displaySeafarerText(doc.type)} — ${displaySeafarerText(doc.number)}`}
+                label="Identificación"
+                value={formatSeafarerIdentification(seafarer)}
               />
               <Row
                 label="Nombre y apellido"
@@ -50,13 +67,30 @@ export function SeafarerBasicDataTable({ seafarer }) {
               />
               <Row label="Género" value={displaySeafarerText(pd.gender)} />
               <Row
+                label="Tipo de sangre"
+                value={displayBloodType(pd.bloodType)}
+              />
+              <Row
                 label="Estado general"
                 value={displaySeafarerGeneralStatus(seafarer.generalStatus)}
               />
               <Row
-                label="Libreta de embarque"
-                value={`${displaySeafarerText(sb.number)} · Vto. ${displaySeafarerDate(sb.expirationDate)} · ${displaySeafarerText(sb.status)}`}
+                label="Color de cabello"
+                value={displaySeafarerHairColor(morph)}
               />
+              <Row
+                label="Coloración"
+                value={displaySeafarerHairColoration(morph.hairColoration)}
+              />
+              <Row
+                label="Color de ojos"
+                value={displaySeafarerText(morph.eyeColor)}
+              />
+              <Row
+                label="Color de cutis"
+                value={displaySeafarerText(morph.skinColor)}
+              />
+              <Row label="Altura" value={height} />
               <Row
                 label="Carné de salud"
                 value={`Vto. ${displaySeafarerDate(mc.expirationDate)} · ${displaySeafarerText(mc.status)}`}
