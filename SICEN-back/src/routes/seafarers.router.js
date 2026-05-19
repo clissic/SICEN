@@ -1,10 +1,12 @@
-import express from "express";
+﻿import express from "express";
 import { seafarersController } from "../controllers/seafarers.controller.js";
 import { checkLogin } from "../middlewares/auth.js";
+import { guarded } from "../middlewares/authChains.js";
 
 export const seafarersRouter = express.Router();
 
-seafarersRouter.get("/by-document", checkLogin, seafarersController.findByDocument);
+seafarersRouter.get("/stats", ...guarded, seafarersController.getStats);
+seafarersRouter.get("/by-document", ...guarded, seafarersController.findByDocument);
 seafarersRouter.get(
   "/metadata/courses",
   checkLogin,
@@ -15,50 +17,50 @@ seafarersRouter.get(
   checkLogin,
   seafarersController.metadataSanctions,
 );
-seafarersRouter.post("/", checkLogin, seafarersController.create);
+seafarersRouter.post("/", ...guarded, seafarersController.create);
 seafarersRouter.patch(
   "/:id/titles/:entryId",
-  checkLogin,
+  ...guarded,
   seafarersController.updateHeldTitle,
 );
 seafarersRouter.delete(
   "/:id/titles/:entryId",
-  checkLogin,
+  ...guarded,
   seafarersController.removeHeldTitle,
 );
 seafarersRouter.post(
   "/:id/titles",
-  checkLogin,
+  ...guarded,
   seafarersController.addTitle,
 );
 seafarersRouter.patch(
   "/:id/held-licenses/:entryId",
-  checkLogin,
+  ...guarded,
   seafarersController.updateHeldLicense,
 );
 seafarersRouter.delete(
   "/:id/held-licenses/:entryId",
-  checkLogin,
+  ...guarded,
   seafarersController.removeHeldLicense,
 );
 seafarersRouter.post(
   "/:id/held-licenses",
-  checkLogin,
+  ...guarded,
   seafarersController.addHeldLicense,
 );
 seafarersRouter.post(
   "/:id/licenses",
-  checkLogin,
+  ...guarded,
   seafarersController.addLicense,
 );
-seafarersRouter.post("/:id/courses", checkLogin, seafarersController.addCourse);
+seafarersRouter.post("/:id/courses", ...guarded, seafarersController.addCourse);
 seafarersRouter.post(
   "/:id/sanctions",
-  checkLogin,
+  ...guarded,
   seafarersController.addSanction,
 );
 seafarersRouter.post(
   "/:id/observations",
-  checkLogin,
+  ...guarded,
   seafarersController.addObservation,
 );

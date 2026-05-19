@@ -281,7 +281,7 @@ export function SeafarerHeldTitlesSection({
     }
   }
 
-  const titleCols = 9;
+  const titleCols = 8;
 
   return (
     <SectionCard
@@ -305,9 +305,8 @@ export function SeafarerHeldTitlesSection({
               <th>Número</th>
               <th>Emisión</th>
               <th>Vencimiento</th>
-              <th>Instituto emisor</th>
+              <th>Aplicación</th>
               <th>Estado</th>
-              <th className="text-end">Renovaciones</th>
               <th className="text-center">Acciones</th>
             </tr>
           </thead>
@@ -326,13 +325,8 @@ export function SeafarerHeldTitlesSection({
                     expiredLabel="Título vencido"
                     soonLabel="Título próximo a vencer"
                   />
-                  <td>{displaySeafarerText(r.issuingInstitution)}</td>
+                  <td>{displaySeafarerText(r.catalogApplication)}</td>
                   <td>{displayHeldCredentialStatus(r.status)}</td>
-                  <td className="text-end">
-                    {r.renewalsCount == null
-                      ? "—"
-                      : String(r.renewalsCount)}
-                  </td>
                   <td className="text-center text-nowrap">
                     {r.source === "held" && r.heldEntryId ? (
                       <>

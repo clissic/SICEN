@@ -9,8 +9,11 @@ export function vesselBarColorAt(index, isDark) {
   return usersBarColorAt(index, isDark);
 }
 
-/** Barras horizontales: mismas escalas que usuarios, texto de tooltip para buques. */
-export function horizontalVesselShipTypesBarOptions(isDark = false) {
+/** Barras horizontales: mismas escalas que usuarios; tooltip configurable. */
+export function horizontalVesselShipTypesBarOptions(
+  isDark = false,
+  { tooltipSingular = "buque", tooltipPlural = "buques" } = {},
+) {
   const base = horizontalUsersBarOptions(isDark);
   return {
     ...base,
@@ -21,7 +24,8 @@ export function horizontalVesselShipTypesBarOptions(isDark = false) {
         callbacks: {
           label: (ctx) => {
             const v = ctx.parsed.x;
-            return ` ${v} buque${v === 1 ? "" : "s"}`;
+            const word = v === 1 ? tooltipSingular : tooltipPlural;
+            return ` ${v} ${word}`;
           },
         },
       },

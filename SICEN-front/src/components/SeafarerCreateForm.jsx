@@ -31,9 +31,9 @@ export function SeafarerCreateForm({
   return (
     <>
       <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-        <h3 className="m-0">Registrar gente de mar</h3>
+        <h3 className="m-0">Registrar gente de mar / nautas deportivos</h3>
         <Link className="btn btn-outline-secondary btn-sm" to="/base-gente-mar">
-          Gestión de gente de mar
+          Gestión de gente de mar / nautas deportivos
         </Link>
       </div>
       <p className="text-muted small mb-3">

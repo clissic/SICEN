@@ -1,10 +1,24 @@
 import { randomUUID } from "crypto";
 import { isValidObjectId } from "mongoose";
-import { VesselMongoose } from "../DAO/models/mongoose/vessels.mongoose.js";
+import {
+  ensureVesselFinesShape,
+  VesselMongoose,
+} from "../DAO/models/mongoose/vessels.mongoose.js";
 import {
   buildAutoridadSummary,
   normalizeCertificatePayload,
 } from "../constants/vesselCertificates.js";
+import {
+  classifySportVesselGrossTonnage,
+  classifyVesselGrossTonnage,
+  sportTonnageCountsToRows,
+  tonnageCountsToRows,
+} from "../constants/vesselTonnageBuckets.js";
+import {
+  isPescaArtesanalShipType,
+  isPesqueroShipType,
+  SPORT_RECREATIONAL_DOC_TYPES,
+} from "../constants/vesselStatsClassification.js";
 
 function escapeRegex(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -393,6 +407,64 @@ export async function findVesselByIdentifier(vesselIdParam) {
 }
 
 /**
+ * @returns {Promise<import("mongoose").Document|null>}
+ */
+export async function findVesselDocumentByIdentifier(vesselIdParam) {
+  const raw = String(vesselIdParam ?? "").trim();
+  if (!raw) return null;
+  const byBusinessId = await VesselMongoose.findOne({ id: raw }).exec();
+  if (byBusinessId) return byBusinessId;
+  if (isValidObjectId(raw)) {
+    const byMongo = await VesselMongoose.findById(raw).exec();
+    if (byMongo) return byMongo;
+  }
+  return null;
+}
+
+/**
+ * Agrega el `_id` de una multa (`shipFines`) al buque.
+ * @param {import("mongoose").Types.ObjectId} vesselMongoId
+ * @param {import("mongoose").Types.ObjectId} fineMongoId
+ */
+export async function linkShipFineToVessel(vesselMongoId, fineMongoId) {
+  if (!vesselMongoId || !fineMongoId) return;
+  await VesselMongoose.updateOne(
+    { _id: vesselMongoId },
+    { $addToSet: { fines: fineMongoId } },
+  ).exec();
+}
+
+/**
+ * @param {import("mongoose").Types.ObjectId} vesselMongoId
+ * @param {import("mongoose").Types.ObjectId} fineMongoId
+ */
+export async function unlinkShipFineFromVessel(vesselMongoId, fineMongoId) {
+  if (!vesselMongoId || !fineMongoId) return;
+  await VesselMongoose.updateOne(
+    { _id: vesselMongoId },
+    { $pull: { fines: fineMongoId } },
+  ).exec();
+}
+
+/**
+ * Buque con multas pobladas desde `shipFines`.
+ * @param {string} vesselIdParam
+ */
+export async function findVesselByIdentifierWithFines(vesselIdParam) {
+  const raw = String(vesselIdParam ?? "").trim();
+  if (!raw) return null;
+  const byBusinessId = await VesselMongoose.findOne({ id: raw })
+    .populate("fines")
+    .lean()
+    .exec();
+  if (byBusinessId) return byBusinessId;
+  if (isValidObjectId(raw)) {
+    return VesselMongoose.findById(raw).populate("fines").lean().exec();
+  }
+  return null;
+}
+
+/**
  * Elimina el documento del buque por `id` de negocio o `_id` MongoDB.
  * @param {string} vesselIdParam
  * @returns {Promise<boolean>} true si se eliminó un documento
@@ -495,10 +567,23 @@ function shipTypeCountsToSortedRows(map) {
  * Totales y desglose por `generalInfo.shipType` para el panel de estadísticas (menú buques).
  * @returns {Promise<{
  *   total: number,
+ *   commercialTotal: number,
  *   ultramar: number,
  *   cabotaje: number,
- *   deportivo: number,
+ *   pesqueros: number,
+ *   pescaArtesanal: number,
+ *   sportTotal: number,
+ *   sportCertificadoConstruccion: number,
+ *   sportRegistroEmbarcacionesDeportivas: number,
+ *   sportMatriculaCabotaje: number,
+ *   sportExtranjero: number,
+ *   sportOtherDocType: number,
  *   otherVesselType: number,
+ *   byTonnage: { label: string, count: number }[],
+ *   withoutTonnage: number,
+ *   overTonnageRange: number,
+ *   sportByTonnage: { label: string, count: number }[],
+ *   sportWithoutTonnage: number,
  *   mercantileByShipType: { shipType: string, count: number }[],
  *   sportByShipType: { shipType: string, count: number }[]
  * }>}
@@ -506,40 +591,93 @@ function shipTypeCountsToSortedRows(map) {
 export async function getVesselStatsForDashboard() {
   const docs = await VesselMongoose.find(
     {},
-    { vesselType: 1, generalInfo: 1 }
+    { vesselType: 1, generalInfo: 1, recreationalDocType: 1 },
   ).lean();
 
   let ultramar = 0;
   let cabotaje = 0;
-  let deportivo = 0;
+  let pesqueros = 0;
+  let pescaArtesanal = 0;
+  let sportTotal = 0;
+  let sportCertificadoConstruccion = 0;
+  let sportRegistroEmbarcacionesDeportivas = 0;
+  let sportMatriculaCabotaje = 0;
+  let sportExtranjero = 0;
+  let sportOtherDocType = 0;
   let otherVesselType = 0;
+  let withoutTonnage = 0;
+  let overTonnageRange = 0;
+  let sportWithoutTonnage = 0;
   const mercMap = new Map();
   const sportMap = new Map();
+  const tonnageMap = new Map();
+  const sportTonnageMap = new Map();
 
   for (const d of docs) {
     const vt = String(d.vesselType ?? "").trim();
     const st = String(d.generalInfo?.shipType ?? "").trim();
-
-    if (vt === "Ultramar") ultramar += 1;
-    else if (vt === "Cabotaje") cabotaje += 1;
-    else if (vt === "Deportivo") deportivo += 1;
-    else otherVesselType += 1;
+    const grossTonnage = d.generalInfo?.grossTonnage;
 
     if (vt === "Ultramar" || vt === "Cabotaje") {
+      if (isPescaArtesanalShipType(st)) pescaArtesanal += 1;
+      else if (isPesqueroShipType(st)) pesqueros += 1;
+      else if (vt === "Ultramar") ultramar += 1;
+      else cabotaje += 1;
+    } else if (vt === "Deportivo") {
+      sportTotal += 1;
+      const doc = String(d.recreationalDocType ?? "").trim();
+      if (doc === "Certificado de Construcción") sportCertificadoConstruccion += 1;
+      else if (doc === "Registro de Embarcaciones Deportivas") {
+        sportRegistroEmbarcacionesDeportivas += 1;
+      } else if (doc === "Matrícula de Cabotaje") sportMatriculaCabotaje += 1;
+      else if (doc === "Extranjero") sportExtranjero += 1;
+      else if (doc) sportOtherDocType += 1;
+    } else otherVesselType += 1;
+
+    if (vt === "Ultramar" || vt === "Cabotaje") {
+      const tonnageBucket = classifyVesselGrossTonnage(grossTonnage);
+      if (tonnageBucket === null) withoutTonnage += 1;
+      else if (tonnageBucket === "over_range") overTonnageRange += 1;
+      else tonnageMap.set(tonnageBucket, (tonnageMap.get(tonnageBucket) || 0) + 1);
+
       const key = st || SIN_TIPO_MERCANTIL;
       mercMap.set(key, (mercMap.get(key) || 0) + 1);
     } else if (vt === "Deportivo") {
+      const sportBucket = classifySportVesselGrossTonnage(grossTonnage);
+      if (sportBucket === null) sportWithoutTonnage += 1;
+      else
+        sportTonnageMap.set(
+          sportBucket,
+          (sportTonnageMap.get(sportBucket) || 0) + 1,
+        );
+
       const key = st || SIN_TIPO_MERCANTIL;
       sportMap.set(key, (sportMap.get(key) || 0) + 1);
     }
   }
 
+  const commercialTotal = ultramar + cabotaje + pesqueros + pescaArtesanal;
+
   return {
     total: docs.length,
+    commercialTotal,
     ultramar,
     cabotaje,
-    deportivo,
+    pesqueros,
+    pescaArtesanal,
+    sportTotal,
+    sportCertificadoConstruccion,
+    sportRegistroEmbarcacionesDeportivas,
+    sportMatriculaCabotaje,
+    sportExtranjero,
+    sportOtherDocType,
+    sportRecreationalDocTypes: SPORT_RECREATIONAL_DOC_TYPES,
     otherVesselType,
+    byTonnage: tonnageCountsToRows(tonnageMap),
+    withoutTonnage,
+    overTonnageRange,
+    sportByTonnage: sportTonnageCountsToRows(sportTonnageMap),
+    sportWithoutTonnage,
     mercantileByShipType: shipTypeCountsToSortedRows(mercMap),
     sportByShipType: shipTypeCountsToSortedRows(sportMap),
   };

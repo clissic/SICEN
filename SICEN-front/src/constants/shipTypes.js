@@ -80,6 +80,7 @@ Buque de suministro offshore — OSV (Offshore Supply Vessel / Buque de Suminist
 Granelero Panamax (Panamax Bulk Carrier)
 Buque PCC — Transportador puro de automóviles (Pure Car Carrier)
 Buque PCTC — Transportador puro de automóviles y camiones (Pure Car and Truck Carrier)
+Pesca artesanal
 Pesquero de arrastre (Trawler)
 Pesquero palangrero (Longliner)
 Petrolero / Tanquero (Oil Tanker)

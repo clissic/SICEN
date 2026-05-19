@@ -3,6 +3,8 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { useBootstrapTheme } from "../components/ThemeToggle.jsx";
 import { useUnitFromApi } from "../hooks/useUnitFromApi.js";
+import { UserStateBadges } from "../components/UserStateBadges.jsx";
+import { MainMenuLink } from "../components/MainMenuLink.jsx";
 
 const ICON_TILE = { fontSize: "0.95rem", marginTop: "0.15rem" };
 
@@ -71,8 +73,9 @@ export function HomePage() {
                 <hr />
 
                 <div className="d-flex flex-wrap gap-2 justify-content-center justify-content-xl-start">
+                  <p className="mb-0">Rol:</p> 
                   <span className="badge text-bg-secondary">
-                    Rol: {user?.role ?? "—"}
+                    {user?.role ?? "—"}
                   </span>
                 </div>
 
@@ -114,11 +117,9 @@ export function HomePage() {
                     </Link>
                   </div>
                   <div className="col d-flex align-items-stretch">
-                    <button
-                      type="button"
+                    <Link
                       className={`${sidebarMenuBtnClass} flex-grow-1 d-flex flex-column align-items-stretch h-100 py-2 px-1 lh-sm`}
-                      disabled
-                      title="Próximamente"
+                      to="/manual-usuario"
                     >
                       <div className="d-flex flex-column align-items-center justify-content-center flex-grow-1 gap-1 text-center">
                         <i className="bi bi-book fs-5" aria-hidden="true" />
@@ -131,9 +132,11 @@ export function HomePage() {
                         style={{ width: "2rem" }}
                         aria-hidden="true"
                       />
-                    </button>
+                    </Link>
                   </div>
                 </div>
+
+                <UserStateBadges states={user?.states} />
               </div>
             </div>
           </div>
@@ -180,7 +183,7 @@ export function HomePage() {
               </div>
 
               <div className="col">
-                <Link className="text-decoration-none" to="/estado-rector-puertos">
+                <MainMenuLink className="text-decoration-none" to="/estado-rector-puertos">
                   <div className="card h-100 shadow-sm">
                     <img
                       src="/img/erpMenu.jpg"
@@ -206,11 +209,11 @@ export function HomePage() {
                       </div>
                     </div>
                   </div>
-                </Link>
+                </MainMenuLink>
               </div>
 
               <div className="col">
-                <Link className="text-decoration-none" to="/mi-unidad">
+                <MainMenuLink className="text-decoration-none" to="/mi-unidad">
                   <div className="card h-100 shadow-sm">
                     <img
                       src={miUnidadMenuImgSrc}
@@ -264,14 +267,14 @@ export function HomePage() {
                       </div>
                     </div>
                   </div>
-                </Link>
+                </MainMenuLink>
               </div>
             </div>
 
             <h4 className={SECTION_TITLE_CLASS}>Áreas de Gestión</h4>
             <div className="row row-cols-1 row-cols-md-2 row-cols-lg-1 row-cols-xl-3 g-3 mb-5">
               <div className="col">
-                <Link className="text-decoration-none" to="/base-buques">
+                <MainMenuLink className="text-decoration-none" to="/base-buques">
                   <div className="card h-100 shadow-sm">
                     <img
                       src="/img/shipdb.jpg"
@@ -288,7 +291,7 @@ export function HomePage() {
                         />
                         <div className="min-w-0">
                           <div className="fw-semibold text-body">
-                            GESTIÓN DE BUQUES
+                            GESTIÓN DE BUQUES MERCANTES Y DEPORTIVOS
                           </div>
                           <div className="text-muted small">
                             Base de datos de buques deportivos y mercantes.
@@ -297,11 +300,11 @@ export function HomePage() {
                       </div>
                     </div>
                   </div>
-                </Link>
+                </MainMenuLink>
               </div>
 
               <div className="col">
-                <Link className="text-decoration-none" to="/base-gente-mar">
+                <MainMenuLink className="text-decoration-none" to="/base-gente-mar">
                   <div className="card h-100 shadow-sm">
                     <img
                       src="/img/ppldb.jpg"
@@ -318,20 +321,20 @@ export function HomePage() {
                         />
                         <div className="min-w-0">
                           <div className="fw-semibold text-body">
-                            GESTIÓN DE GENTE DE MAR
+                            GESTIÓN DE GENTE DE MAR Y NAUTAS
                           </div>
                           <div className="text-muted small">
-                            Base de datos de gente de mar.
+                            Base de datos de gente de mar y nautas.
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </Link>
+                </MainMenuLink>
               </div>
 
               <div className="col">
-                <Link className="text-decoration-none" to="/multas">
+                <MainMenuLink className="text-decoration-none" to="/multas">
                   <div className="card h-100 shadow-sm">
                     <img
                       src="/img/finesMenu.jpg"
@@ -357,11 +360,11 @@ export function HomePage() {
                       </div>
                     </div>
                   </div>
-                </Link>
+                </MainMenuLink>
               </div>
 
               <div className="col">
-                <Link className="text-decoration-none" to="/gestion-unidades">
+                <MainMenuLink className="text-decoration-none" to="/gestion-unidades">
                   <div className="card h-100 shadow-sm">
                     <img
                       src="/img/unitManagement.jpg"
@@ -387,12 +390,12 @@ export function HomePage() {
                       </div>
                     </div>
                   </div>
-                </Link>
+                </MainMenuLink>
               </div>
 
               <div className="col">
                 {isAdmin ? (
-                  <Link className="text-decoration-none" to="/usuarios">
+                  <MainMenuLink className="text-decoration-none" to="/usuarios">
                     <div className="card h-100 shadow-sm">
                       <img
                         src="/img/users.jpg"
@@ -418,7 +421,7 @@ export function HomePage() {
                         </div>
                       </div>
                     </div>
-                  </Link>
+                  </MainMenuLink>
                 ) : (
                   <div className="card h-100 shadow-sm opacity-50">
                     <img
@@ -438,7 +441,7 @@ export function HomePage() {
                           <div className="fw-semibold text-body">
                             GESTIÓN DE USUARIOS
                           </div>
-                          <div className="text-muted small">(Solo administradores)</div>
+                          <div className="text-muted small">Acceso solo para administradores.</div>
                         </div>
                       </div>
                     </div>
@@ -450,7 +453,7 @@ export function HomePage() {
             <h4 className={SECTION_TITLE_CLASS}>Ayudas al navegante</h4>
             <div className="row row-cols-1 row-cols-md-2 row-cols-lg-1 row-cols-xl-3 g-3">
               <div className="col">
-                <Link className="text-decoration-none" to="/herramientas">
+                <MainMenuLink className="text-decoration-none" to="/herramientas">
                   <div className="card h-100 shadow-sm">
                     <img
                       src="/img/extSys.jpg"
@@ -477,7 +480,7 @@ export function HomePage() {
                       </div>
                     </div>
                   </div>
-                </Link>
+                </MainMenuLink>
               </div>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { buildDefaultUserStates } from "../../constants/userStates.js";
 import { isValidPassword } from "../../utils/Bcrypt.js";
 import { UserMongoose } from "./mongoose/users.mongoose.js";
 
@@ -15,6 +16,7 @@ class UsersModel {
         email: true,
         role: true,
         fines: true,
+        states: true,
       }
     );
     return users;
@@ -67,7 +69,7 @@ class UsersModel {
     return user;
   }
 
-  async create({ avatar, first_name, last_name, rank, unit, email, password, role, fines }) {
+  async create({ avatar, first_name, last_name, rank, unit, email, password, role, fines, states }) {
     const userCreated = await UserMongoose.create({
       avatar,
       first_name,
@@ -77,7 +79,11 @@ class UsersModel {
       email,
       password,
       role,
-      fines,
+      fines: fines ?? [],
+      states:
+        Array.isArray(states) && states.length > 0
+          ? states
+          : buildDefaultUserStates(),
     });
     return userCreated;
   }
@@ -93,25 +99,29 @@ class UsersModel {
     password,
     role,
     fines,
-    last_modified_by
+    states,
+    userTutorial,
+    last_modified_by,
   }) {
-    const userUpdated = await UserMongoose.updateOne(
-      {
-        _id: _id,
-      },
-      {
-        avatar,
-        first_name,
-        last_name,
-        rank,
-        unit,
-        email,
-        password,
-        role,
-        fines,
-        last_modified_by
-      }
-    );
+    const update = {
+      avatar,
+      first_name,
+      last_name,
+      rank,
+      unit,
+      email,
+      password,
+      role,
+      fines,
+      last_modified_by,
+    };
+    if (states !== undefined) {
+      update.states = states;
+    }
+    if (userTutorial !== undefined) {
+      update.userTutorial = userTutorial;
+    }
+    const userUpdated = await UserMongoose.updateOne({ _id: _id }, update);
     return userUpdated;
   }
 

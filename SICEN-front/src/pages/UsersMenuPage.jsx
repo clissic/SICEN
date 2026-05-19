@@ -5,7 +5,11 @@ import { Layout } from "../components/Layout.jsx";
 import { UsersRankBarChart } from "../components/UsersRankBarChart.jsx";
 import { UsersUnitBarChart } from "../components/UsersUnitBarChart.jsx";
 import { summarizeUsersByHierarchy, summarizeUsersByRank } from "../constants/ranks.js";
-import { summarizeUsersByRole, summarizeUsersByUnit } from "../constants/userAggregates.js";
+import {
+  summarizeUsersByRole,
+  summarizeUsersBySpecialization,
+  summarizeUsersByUnit,
+} from "../constants/userAggregates.js";
 
 const STAT_NUMBER_STYLE = { fontSize: "5rem", lineHeight: 1 };
 
@@ -39,6 +43,7 @@ export function UsersMenuPage() {
           hierarchy: summarizeUsersByHierarchy(users),
           byUnit: summarizeUsersByUnit(users),
           byRole: summarizeUsersByRole(users),
+          bySpecialization: summarizeUsersBySpecialization(users),
         });
       })
       .catch((e) => {
@@ -267,6 +272,63 @@ export function UsersMenuPage() {
                         stats.byRole.map((row) => (
                           <tr key={row.key}>
                             <td>{row.label}</td>
+                            <td
+                              className="text-end fw-semibold text-body align-middle"
+                              style={ROLE_TABLE_NUMBER_STYLE}
+                            >
+                              {row.count}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={2} className="text-muted text-center py-3">
+                            No hay datos.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="row g-3 mt-1">
+          <div className="col-12">
+            <div className="card shadow-sm">
+              <div className="card-header fw-semibold py-2 small border-bottom">
+                Usuarios por especialización
+              </div>
+              <div className="card-body p-0">
+                <div className="table-responsive">
+                  <table className="table table-sm table-striped mb-0">
+                    <thead>
+                      <tr>
+                        <th scope="col">Especialización</th>
+                        <th scope="col" className="text-end">
+                          Cantidad
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {statsLoading ? (
+                        <tr>
+                          <td colSpan={2} className="text-muted text-center py-3">
+                            Cargando…
+                          </td>
+                        </tr>
+                      ) : statsErr ? (
+                        <tr>
+                          <td colSpan={2} className="text-muted text-center py-3">
+                            —
+                          </td>
+                        </tr>
+                      ) : stats?.bySpecialization?.length ? (
+                        stats.bySpecialization.map((row) => (
+                          <tr key={row.code}>
+                            <td>{row.name}</td>
                             <td
                               className="text-end fw-semibold text-body align-middle"
                               style={ROLE_TABLE_NUMBER_STYLE}

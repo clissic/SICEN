@@ -44,6 +44,8 @@ import { UpdateUserPage } from "./pages/UpdateUserPage.jsx";
 import { DeleteUserPage } from "./pages/DeleteUserPage.jsx";
 import { NotFoundPage } from "./pages/NotFoundPage.jsx";
 import { EstadoRectorPuertosPage } from "./pages/EstadoRectorPuertosPage.jsx";
+import { ManualUsuarioPage } from "./pages/ManualUsuarioPage.jsx";
+import { UserTutorialRequiredPage } from "./pages/UserTutorialRequiredPage.jsx";
 
 function Landing() {
   const { user, loading } = useAuth();
@@ -78,6 +80,22 @@ export default function App() {
         element={
           <ProtectedRoute>
             <HomePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manual-usuario"
+        element={
+          <ProtectedRoute>
+            <ManualUsuarioPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tutorial-requerido"
+        element={
+          <ProtectedRoute>
+            <UserTutorialRequiredPage />
           </ProtectedRoute>
         }
       />

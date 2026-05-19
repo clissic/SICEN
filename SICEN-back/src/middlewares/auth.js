@@ -105,6 +105,26 @@ export function checkSelfOrAdmin(req, res, next) {
 
 const FINE_MODIFY_ROLES = new Set(["admin", "superAdmin", "contable"]);
 
+/**
+ * Debe ejecutarse después de `checkLogin` (y de middlewares de rol si aplican).
+ * Bloquea el acceso si `userTutorial` no es true.
+ */
+export function checkUserTutorial(req, res, next) {
+  const user = req.user;
+  if (!user) {
+    return res.status(401).json({ ok: false, msg: "Debe iniciar sesión." });
+  }
+  if (user.userTutorial === true) {
+    return next();
+  }
+  return res.status(403).json({
+    ok: false,
+    code: "USER_TUTORIAL_REQUIRED",
+    msg:
+      'Para utilizar el sistema debe completar el curso "Manual usuario", disponible en las opciones del menú ubicado debajo de sus datos personales.',
+  });
+}
+
 export function checkAdminOrContable(req, res, next) {
   const user = req.user;
   if (!user) {

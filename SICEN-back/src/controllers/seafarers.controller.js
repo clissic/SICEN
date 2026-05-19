@@ -10,6 +10,7 @@ import {
   deleteSeafarerHeldLicense,
   deleteSeafarerHeldTitle,
   findSeafarerByDocument,
+  getSeafarerStatsForDashboard,
   updateSeafarerHeldLicense,
   updateSeafarerHeldTitle,
 } from "../services/seafarers.service.js";
@@ -28,6 +29,19 @@ function handleError(res, e, fallbackMsg) {
 }
 
 export const seafarersController = {
+  async getStats(req, res) {
+    try {
+      const stats = await getSeafarerStatsForDashboard();
+      return res.status(200).json({ ok: true, stats });
+    } catch (e) {
+      logger.error("seafarers.getStats: " + (e?.message || e));
+      return res.status(500).json({
+        ok: false,
+        msg: "No se pudieron obtener las estadísticas de gente de mar.",
+      });
+    }
+  },
+
   async create(req, res) {
     try {
       const seafarer = await createSeafarer(req.body || {}, req.user);

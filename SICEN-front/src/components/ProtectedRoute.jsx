@@ -1,5 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { pathRequiresUserTutorial } from "../constants/userTutorialRoutes.js";
+import { hasCompletedUserTutorial } from "../utils/userTutorial.js";
 import { useBootstrapTheme } from "./ThemeToggle.jsx";
 
 export function ProtectedRoute({ children, admin }) {
@@ -60,6 +62,15 @@ export function ProtectedRoute({ children, admin }) {
   }
   if (admin && user.role !== "admin" && user.role !== "superAdmin") {
     return <Navigate to="/home" replace />;
+  }
+  if (
+    !admin &&
+    !hasCompletedUserTutorial(user) &&
+    pathRequiresUserTutorial(loc.pathname)
+  ) {
+    return (
+      <Navigate to="/tutorial-requerido" replace state={{ from: loc }} />
+    );
   }
   return children;
 }

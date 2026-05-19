@@ -4,6 +4,7 @@ import { createHash, isValidPassword } from "../utils/Bcrypt.js";
 import { logger } from "../utils/logger.js";
 import { signAccessToken } from "../utils/jwt.util.js";
 import { toPublicUser } from "../middlewares/auth.js";
+import { mergeUserStatesFromDocument } from "../constants/userStates.js";
 
 function publicShape(user) {
   if (!user) return null;
@@ -18,6 +19,8 @@ function publicShape(user) {
     unit: u.unit ?? "",
     role: u.role,
     fines: u.fines ?? [],
+    states: mergeUserStatesFromDocument(u.states),
+    userTutorial: u.userTutorial === true,
   };
 }
 
@@ -27,7 +30,14 @@ class SessionsController {
     if (!user) {
       return res.status(200).json({ ok: true, user: null });
     }
-    return res.status(200).json({ ok: true, user });
+    return res.status(200).json({
+      ok: true,
+      user: {
+        ...user,
+        states: mergeUserStatesFromDocument(user.states),
+        userTutorial: user.userTutorial === true,
+      },
+    });
   }
 
   async signup(req, res) {

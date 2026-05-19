@@ -1,22 +1,22 @@
 import express from "express";
 import { unitFilesController } from "../controllers/unitFiles.controller.js";
-import { checkAdmin, checkLogin } from "../middlewares/auth.js";
-import { requireRegisteredUnit } from "../middlewares/jwtUnitRegistered.middleware.js";
+import {
+  unitFilesAdminGuarded,
+  unitFilesReadGuarded,
+} from "../middlewares/authChains.js";
 import { procedimientosUploadSingle } from "../middlewares/procedimientosUpload.middleware.js";
 
 export const unitFilesRouter = express.Router();
 
 unitFilesRouter.get(
   "/procedimientos-div-i",
-  checkLogin,
-  requireRegisteredUnit,
-  unitFilesController.listProcedimientosDivI
+  ...unitFilesReadGuarded,
+  unitFilesController.listProcedimientosDivI,
 );
 unitFilesRouter.get(
   "/procedimientos-div-ii",
-  checkLogin,
-  requireRegisteredUnit,
-  unitFilesController.listProcedimientosDivII
+  ...unitFilesReadGuarded,
+  unitFilesController.listProcedimientosDivII,
 );
 
 function wrapUpload(multerMw, handler) {
@@ -36,36 +36,28 @@ function wrapUpload(multerMw, handler) {
 
 unitFilesRouter.post(
   "/procedimientos-div-i/upload",
-  checkLogin,
-  requireRegisteredUnit,
-  checkAdmin,
+  ...unitFilesAdminGuarded,
   wrapUpload(
     procedimientosUploadSingle("DIV-I"),
-    unitFilesController.uploadProcedimientosDivI
-  )
+    unitFilesController.uploadProcedimientosDivI,
+  ),
 );
 unitFilesRouter.post(
   "/procedimientos-div-ii/upload",
-  checkLogin,
-  requireRegisteredUnit,
-  checkAdmin,
+  ...unitFilesAdminGuarded,
   wrapUpload(
     procedimientosUploadSingle("DIV-II"),
-    unitFilesController.uploadProcedimientosDivII
-  )
+    unitFilesController.uploadProcedimientosDivII,
+  ),
 );
 
 unitFilesRouter.delete(
   "/procedimientos-div-i/file",
-  checkLogin,
-  requireRegisteredUnit,
-  checkAdmin,
-  unitFilesController.deleteProcedimientosDivI
+  ...unitFilesAdminGuarded,
+  unitFilesController.deleteProcedimientosDivI,
 );
 unitFilesRouter.delete(
   "/procedimientos-div-ii/file",
-  checkLogin,
-  requireRegisteredUnit,
-  checkAdmin,
-  unitFilesController.deleteProcedimientosDivII
+  ...unitFilesAdminGuarded,
+  unitFilesController.deleteProcedimientosDivII,
 );

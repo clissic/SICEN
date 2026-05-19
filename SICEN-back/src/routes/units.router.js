@@ -1,6 +1,6 @@
 import express from "express";
 import { unitsController } from "../controllers/units.controller.js";
-import { checkLogin, checkAdmin } from "../middlewares/auth.js";
+import { adminGuarded, loginOnly } from "../middlewares/authChains.js";
 import { unitShieldUpload } from "../middlewares/unitCreateUpload.middleware.js";
 
 export const unitsRouter = express.Router();
@@ -20,27 +20,20 @@ function wrapUpload(multerMw, handler) {
   };
 }
 
-unitsRouter.get("/", checkLogin, unitsController.list);
+unitsRouter.get("/", ...loginOnly, unitsController.list);
 
 unitsRouter.post(
   "/",
-  checkLogin,
-  checkAdmin,
+  ...adminGuarded,
   wrapUpload(unitShieldUpload, unitsController.create)
 );
 
-unitsRouter.get("/:acronym", checkLogin, unitsController.getOne);
+unitsRouter.get("/:acronym", ...loginOnly, unitsController.getOne);
 
 unitsRouter.put(
   "/:acronym",
-  checkLogin,
-  checkAdmin,
+  ...adminGuarded,
   wrapUpload(unitShieldUpload, unitsController.update)
 );
 
-unitsRouter.delete(
-  "/:acronym",
-  checkLogin,
-  checkAdmin,
-  unitsController.remove
-);
+unitsRouter.delete("/:acronym", ...adminGuarded, unitsController.remove);

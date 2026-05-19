@@ -76,9 +76,14 @@ export async function apiFetch(path, options = {}) {
     const err = new Error(data?.msg || data?.message || res.statusText);
     err.status = res.status;
     err.data = data;
+    if (data?.code) err.code = data.code;
     throw err;
   }
   return data;
+}
+
+export function completeUserTutorial() {
+  return apiFetch("/api/users/complete-user-tutorial", { method: "POST" });
 }
 
 export function getMe() {
@@ -283,6 +288,11 @@ export function createSeafarer(payload) {
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+/** Estadísticas agregadas de gente de mar para el menú de gestión (JWT). */
+export function seafarersStats() {
+  return apiFetch("/api/seafarers/stats");
 }
 
 /** Busca gente de mar por DNI, pasaporte o CC (JWT). */
@@ -572,6 +582,14 @@ export function userUpdate(id, body, avatarFile) {
       if (body[key] !== undefined && body[key] !== null) {
         fd.append(key, String(body[key]));
       }
+    }
+    if (body.states !== undefined && body.states !== null) {
+      fd.append(
+        "states",
+        typeof body.states === "string"
+          ? body.states
+          : JSON.stringify(body.states),
+      );
     }
     fd.append("avatar", avatarFile);
     return apiFetch(`/api/users/updateUser/${id}`, {

@@ -5,6 +5,11 @@ import { Layout } from "../components/Layout.jsx";
 import { UserAvatarFileInput } from "../components/UserAvatarFileInput.jsx";
 import { UserUnitSelect } from "../components/UserUnitSelect.jsx";
 import { ADMIN_EDIT_ROLES, normalizeRoleForSelect } from "../constants/userRoles.js";
+import {
+  mergeUserStatesForForm,
+  userStatesForApi,
+} from "../constants/userStates.js";
+import { scrollElementIntoViewById } from "../utils/scrollPageToTop.js";
 
 export function UpdateUserPage() {
   const [id, setId] = useState("");
@@ -16,6 +21,18 @@ export function UpdateUserPage() {
 
   function set(k, v) {
     setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  function setStateActive(name, isActive) {
+    setForm((f) => {
+      if (!f) return f;
+      return {
+        ...f,
+        states: (f.states ?? []).map((s) =>
+          s.name === name ? { ...s, isActive } : s,
+        ),
+      };
+    });
   }
 
   async function loadUser(e) {
@@ -41,6 +58,7 @@ export function UpdateUserPage() {
         role: normalizeRoleForSelect(r),
         originalRole: r,
         avatar: u.avatar ?? "",
+        states: mergeUserStatesForForm(u.states),
       });
     } catch (ex) {
       setErr(ex.message);
@@ -53,8 +71,16 @@ export function UpdateUserPage() {
     setMsg("");
     setSaving(true);
     try {
-      const { originalRole, avatar: _avatarDrop, ...rest } = form;
-      const payload = { ...rest };
+      const {
+        originalRole,
+        avatar: _avatarDrop,
+        states,
+        ...rest
+      } = form;
+      const payload = {
+        ...rest,
+        states: userStatesForApi(states),
+      };
       if (originalRole === "superAdmin") {
         payload.role = "superAdmin";
       }
@@ -65,8 +91,10 @@ export function UpdateUserPage() {
       }
       setAvatarFile(null);
       setMsg(data.msg || "Actualizado");
+      scrollElementIntoViewById("update-user-feedback");
     } catch (ex) {
       setErr(ex.message);
+      scrollElementIntoViewById("update-user-feedback");
     } finally {
       setSaving(false);
     }
@@ -108,8 +136,18 @@ export function UpdateUserPage() {
           </div>
         </div>
 
-        {err ? <div className="alert alert-danger py-2">{err}</div> : null}
-        {msg ? <div className="alert alert-success py-2">{msg}</div> : null}
+        <div id="update-user-feedback" aria-live="polite">
+          {err ? (
+            <div className="alert alert-danger py-2 mb-0" role="alert">
+              {err}
+            </div>
+          ) : null}
+          {msg ? (
+            <div className="alert alert-success py-2 mb-0" role="alert">
+              {msg}
+            </div>
+          ) : null}
+        </div>
 
         {form ? (
           <div className="card shadow-sm">
@@ -196,6 +234,31 @@ export function UpdateUserPage() {
                   id="edit-user-avatar"
                   onFileChange={setAvatarFile}
                 />
+                <div className="col-12">
+                  <div className="fw-semibold mb-2">Habilitaciones</div>
+                  <div className="d-flex flex-column gap-2">
+                    {(form.states ?? []).map((state) => (
+                      <div key={state.code ?? state.name} className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id={`user-state-${state.code}`}
+                          checked={!!state.isActive}
+                          onChange={(e) =>
+                            setStateActive(state.name, e.target.checked)
+                          }
+                        />
+                        <label
+                          className="form-check-label"
+                          htmlFor={`user-state-${state.code}`}
+                        >
+                          <span className="fw-semibold">{state.code}</span>
+                          <span className="text-muted"> — {state.name}</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <div className="col-12 d-grid">
                   <button
                     type="submit"

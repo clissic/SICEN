@@ -22,7 +22,15 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
  * Barras horizontales: cantidad de buques por etiqueta de tipo (`generalInfo.shipType`).
  * @param {{ label: string, count: number }[]} rows
  */
-export function VesselShipTypeBarChart({ rows, loading, error, emptyMessage }) {
+export function VesselShipTypeBarChart({
+  rows,
+  loading,
+  error,
+  emptyMessage,
+  datasetLabel = "Buques",
+  tooltipSingular = "buque",
+  tooltipPlural = "buques",
+}) {
   const bsTheme = useBootstrapTheme();
   const isDark = bsTheme === "dark";
   const list = Array.isArray(rows) ? rows : [];
@@ -34,7 +42,7 @@ export function VesselShipTypeBarChart({ rows, loading, error, emptyMessage }) {
       labels,
       datasets: [
         {
-          label: "Buques",
+          label: datasetLabel,
           data: counts,
           backgroundColor: labels.map((_, i) => vesselBarColorAt(i, isDark)),
           borderWidth: 0,
@@ -46,8 +54,12 @@ export function VesselShipTypeBarChart({ rows, loading, error, emptyMessage }) {
   );
 
   const options = useMemo(
-    () => horizontalVesselShipTypesBarOptions(isDark),
-    [isDark]
+    () =>
+      horizontalVesselShipTypesBarOptions(isDark, {
+        tooltipSingular,
+        tooltipPlural,
+      }),
+    [isDark, tooltipSingular, tooltipPlural],
   );
 
   if (error) {

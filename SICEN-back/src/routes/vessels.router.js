@@ -1,48 +1,47 @@
 import express from "express";
 import { vesselsController } from "../controllers/vessels.controller.js";
-import { checkLogin, checkAdmin } from "../middlewares/auth.js";
+import { adminGuarded, guarded } from "../middlewares/authChains.js";
 
 export const vesselsRouter = express.Router();
 
-vesselsRouter.get("/stats", checkLogin, vesselsController.getStats);
+vesselsRouter.get("/stats", ...guarded, vesselsController.getStats);
 
-vesselsRouter.get("/paginated", checkLogin, vesselsController.listPaginated);
+vesselsRouter.get("/paginated", ...guarded, vesselsController.listPaginated);
 
 vesselsRouter.get(
   "/by-business-id/:vesselId/for-edit",
-  checkLogin,
+  ...guarded,
   vesselsController.getVesselForEdit
 );
 
 vesselsRouter.get(
   "/by-business-id/:vesselId",
-  checkLogin,
+  ...guarded,
   vesselsController.getByBusinessId
 );
 
 vesselsRouter.put(
   "/by-business-id/:vesselId",
-  checkLogin,
+  ...guarded,
   vesselsController.updateVessel
 );
 
 vesselsRouter.delete(
   "/by-business-id/:vesselId",
-  checkLogin,
-  checkAdmin,
+  ...adminGuarded,
   vesselsController.deleteVessel
 );
 
 vesselsRouter.post(
   "/by-business-id/:vesselId/certificates",
-  checkLogin,
+  ...guarded,
   vesselsController.saveCertificate
 );
 
 vesselsRouter.post(
   "/by-business-id/:vesselId/extra-certificate-presets",
-  checkLogin,
+  ...guarded,
   vesselsController.addExtraCertificatePreset
 );
 
-vesselsRouter.post("/", checkLogin, vesselsController.createInitial);
+vesselsRouter.post("/", ...guarded, vesselsController.createInitial);

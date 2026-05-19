@@ -1,0 +1,112 @@
+.user-state-badges {
+  --user-state-badge-bg: var(--bs-secondary-bg);
+  --user-state-badge-border: var(--bs-border-color);
+  --user-state-badge-color: var(--bs-secondary-color);
+  --user-state-badge-icon-bg: color-mix(
+    in srgb,
+    var(--bs-secondary-bg),
+    var(--bs-body-color) 8%
+  );
+  --user-state-badge-icon-color: var(--bs-secondary-color);
+  --user-state-badge-icon-border: color-mix(
+    in srgb,
+    var(--bs-border-color),
+    var(--bs-body-bg) 35%
+  );
+}
+
+html[data-bs-theme="dark"] .user-state-badges {
+  --user-state-badge-bg: var(--bs-tertiary-bg);
+  --user-state-badge-border: color-mix(
+    in srgb,
+    var(--bs-border-color),
+    var(--bs-body-bg) 25%
+  );
+  --user-state-badge-color: color-mix(
+    in srgb,
+    var(--bs-secondary-color),
+    var(--bs-body-color) 18%
+  );
+  --user-state-badge-icon-bg: color-mix(
+    in srgb,
+    var(--bs-tertiary-bg),
+    var(--bs-body-color) 12%
+  );
+  --user-state-badge-icon-color: color-mix(
+    in srgb,
+    var(--bs-secondary-color),
+    var(--bs-body-color) 22%
+  );
+  --user-state-badge-icon-border: color-mix(
+    in srgb,
+    var(--bs-border-color),
+    var(--bs-body-bg) 40%
+  );
+}
+
+.user-state-badges__title {
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.user-state-badges-accordion .accordion-item {
+  background: transparent;
+}
+
+.user-state-badges-accordion__toggle {
+  padding: 0.25rem 2rem 0.25rem 0;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--bs-secondary-color) !important;
+}
+
+.user-state-badges-accordion__toggle:not(.collapsed) {
+  color: var(--bs-secondary-color) !important;
+}
+
+.user-state-badges-accordion__toggle::after {
+  width: 0.9rem;
+  height: 0.9rem;
+  background-size: 0.9rem;
+}
+
+.user-state-badges-accordion__body {
+  padding: 0 0 0.25rem;
+}
+
+.user-state-badge {
+  padding: 0.4rem 0.5rem;
+  min-height: 2rem;
+  background-color: var(--user-state-badge-bg);
+  border: 1px solid var(--user-state-badge-border);
+  color: var(--user-state-badge-color);
+}
+
+.user-state-badge__text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25;
+  font-size: 0.65625rem; /* ~25 % menos que .small (0.875rem) */
+}
+
+.user-state-badge__icon {
+  font-size: 0.7rem;
+  margin-top: 0;
+  width: 1.45rem;
+  height: 1.45rem;
+  padding: 0.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--user-state-badge-icon-border);
+  border-radius: var(--bs-border-radius-sm, 0.25rem);
+  background-color: var(--user-state-badge-icon-bg);
+  color: var(--user-state-badge-icon-color);
+}
+
+@media (max-width: 991.98px) {
+  .user-state-badge__text {
+    font-size: 1rem;
+  }
+}

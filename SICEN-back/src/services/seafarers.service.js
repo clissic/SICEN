@@ -27,6 +27,11 @@ import {
   resolveHeldCredentialStatus,
   syncHeldCredentialsExpiryOnDoc,
 } from "../utils/heldCredentialStatus.js";
+import {
+  normalizeSportBrevetCategory,
+  sportBrevetCountsToRows,
+  SPORT_BREVET_KEYS,
+} from "../constants/seafarerSportBrevet.js";
 
 function str(v) {
   return v == null ? "" : String(v).trim();
@@ -765,4 +770,109 @@ export async function addSeafarerObservation(id, entry, user) {
   touchSeafarerMetadata(doc, user);
   await doc.save();
   return doc.toObject ? doc.toObject() : doc;
+}
+
+const SIN_NACIONALIDAD = "Sin nacionalidad indicada";
+const SIN_GENERO = "Sin género indicado";
+
+function labelCountsToSortedRows(map, labelKey) {
+  return [...map.entries()]
+    .map(([label, count]) => ({ [labelKey]: label, count }))
+    .sort(
+      (a, b) =>
+        b.count - a.count ||
+        String(a[labelKey]).localeCompare(String(b[labelKey]), "es"),
+    );
+}
+
+/**
+ * Totales y desglose para el panel de estadísticas (menú gente de mar).
+ * @returns {Promise<{
+ *   total: number,
+ *   active: number,
+ *   disqualified: number,
+ *   deceased: number,
+ *   inactiveOther: number,
+ *   byNationality: { nationality: string, count: number }[],
+ *   byGender: { gender: string, count: number }[],
+ *   bySportBrevet: { category: string, label: string, count: number }[]
+ * }>}
+ */
+export async function getSeafarerStatsForDashboard() {
+  const uyBdLicences = await LicenceMongoose.find(
+    { code: "UY_BD", kind: "license" },
+    { _id: 1 },
+  ).lean();
+  const uyBdLicenseIds = new Set(
+    uyBdLicences.map((l) => String(l._id)),
+  );
+
+  const docs = await SeafarerMongoose.find(
+    {},
+    { personalData: 1, generalStatus: 1, heldLicenses: 1 },
+  ).lean();
+
+  let active = 0;
+  let disqualified = 0;
+  let deceased = 0;
+  let inactiveOther = 0;
+  const natMap = new Map();
+  const genderMap = new Map();
+  const brevetPersonIds = {
+    A: new Set(),
+    B: new Set(),
+    C: new Set(),
+    D: new Set(),
+  };
+
+  for (const d of docs) {
+    const gs = d.generalStatus && typeof d.generalStatus === "object" ? d.generalStatus : {};
+    const isDeceased = !!gs.deceased;
+    const isDisqualified = !!gs.disqualified;
+    const isActive = gs.active !== false;
+
+    if (isDeceased) deceased += 1;
+    else if (isDisqualified) disqualified += 1;
+    else if (isActive) active += 1;
+    else inactiveOther += 1;
+
+    const nat = str(d.personalData?.nationality) || SIN_NACIONALIDAD;
+    natMap.set(nat, (natMap.get(nat) || 0) + 1);
+
+    const g = str(d.personalData?.gender);
+    const genderKey = SEAFARER_GENDER_VALUES.includes(g) ? g : SIN_GENERO;
+    genderMap.set(genderKey, (genderMap.get(genderKey) || 0) + 1);
+
+    const personId = String(d._id);
+    const held = Array.isArray(d.heldLicenses) ? d.heldLicenses : [];
+    const brevetCatsOnPerson = new Set();
+    for (const hl of held) {
+      const licenseIdRaw = hl?.licenseId;
+      const licenseId =
+        licenseIdRaw != null && typeof licenseIdRaw === "object"
+          ? String(licenseIdRaw._id ?? "")
+          : String(licenseIdRaw ?? "");
+      if (!licenseId || !uyBdLicenseIds.has(licenseId)) continue;
+      const cat = normalizeSportBrevetCategory(hl?.category);
+      if (cat && SPORT_BREVET_KEYS.has(cat)) brevetCatsOnPerson.add(cat);
+    }
+    for (const cat of brevetCatsOnPerson) {
+      brevetPersonIds[cat].add(personId);
+    }
+  }
+
+  const brevetCountsByKey = Object.fromEntries(
+    [...SPORT_BREVET_KEYS].map((k) => [k, brevetPersonIds[k].size]),
+  );
+
+  return {
+    total: docs.length,
+    active,
+    disqualified,
+    deceased,
+    inactiveOther,
+    byNationality: labelCountsToSortedRows(natMap, "nationality"),
+    byGender: labelCountsToSortedRows(genderMap, "gender"),
+    bySportBrevet: sportBrevetCountsToRows(brevetCountsByKey),
+  };
 }

@@ -51,7 +51,11 @@ export function AuthProvider({ children }) {
     api.clearUserUnitCache();
     const data = await api.login(email, password);
     await syncUnitCacheWithUser(data.user, true);
-    setUser(data.user);
+    setUser(
+      data.user
+        ? { ...data.user, userTutorial: data.user.userTutorial === true }
+        : data.user,
+    );
     return data;
   }, []);
 

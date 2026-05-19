@@ -6,6 +6,10 @@ import { logger } from "../utils/logger.js";
 import UserDTO from "./DTO/users.dto.js";
 import { isValidUserUnitAsync } from "../constants/userUnits.js";
 import {
+  mergeUserStatesFromDocument,
+  normalizeUserStatesPayload,
+} from "../constants/userStates.js";
+import {
   deleteStoredAvatarFile,
   finalizeAvatarFilename,
 } from "../utils/avatarFiles.js";
@@ -583,6 +587,21 @@ class UsersController {
     const updatedUser = { ...req.query, ...req.body };
     delete updatedUser.avatar;
 
+    if (updatedUser.states !== undefined && updatedUser.states !== null) {
+      if (typeof updatedUser.states === "string") {
+        try {
+          updatedUser.states = JSON.parse(updatedUser.states);
+        } catch {
+          discardUploadedAvatar();
+          return res.status(400).json({
+            ok: false,
+            msg: "El formato de habilitaciones (states) no es válido.",
+          });
+        }
+      }
+      updatedUser.states = normalizeUserStatesPayload(updatedUser.states);
+    }
+
     updatedUser._id = id;
     updatedUser.last_modified_by = user.email;
 
@@ -751,6 +770,51 @@ class UsersController {
       return res.status(500).json({
         ok: false,
         msg: `El usuario con ID: ${id} no pudo ser eliminado por un error del servidor.`,
+      });
+    }
+  }
+
+  async completeUserTutorial(req, res) {
+    try {
+      const user = req.user;
+      if (!user?._id) {
+        return res.status(401).json({ ok: false, msg: "Debe iniciar sesión." });
+      }
+      if (user.userTutorial === true) {
+        const found = await userService.findById(user._id);
+        const u = userWithoutPassword(found);
+        return res.status(200).json({
+          ok: true,
+          msg: "El curso Manual usuario ya estaba completado.",
+          user: {
+            ...u,
+            states: mergeUserStatesFromDocument(u?.states),
+            userTutorial: true,
+          },
+        });
+      }
+      await userService.updateOne({
+        _id: user._id,
+        userTutorial: true,
+        last_modified_by: user.email,
+      });
+      const updated = await userService.findById(user._id);
+      const u = userWithoutPassword(updated);
+      logger.info(`${user.email} completó el tutorial Manual usuario.`);
+      return res.status(200).json({
+        ok: true,
+        msg: 'Curso "Manual usuario" completado. Ya puede utilizar el sistema.',
+        user: {
+          ...u,
+          states: mergeUserStatesFromDocument(u?.states),
+          userTutorial: true,
+        },
+      });
+    } catch (error) {
+      logger.error("Error en users.controller.completeUserTutorial: " + error);
+      return res.status(500).json({
+        ok: false,
+        msg: "No se pudo registrar la finalización del curso.",
       });
     }
   }

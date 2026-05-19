@@ -1,52 +1,46 @@
 import express from "express";
 import { carFinesController } from "../controllers/carFines.controller.js";
-import { checkLogin, checkAdmin, checkAdminOrContable } from "../middlewares/auth.js";
+import {
+  adminGuarded,
+  contableGuarded,
+  guarded,
+} from "../middlewares/authChains.js";
 
 export const carFinesRouter = express.Router();
 
-carFinesRouter.get("/getAll", checkLogin, checkAdmin, carFinesController.getAll);
-carFinesRouter.get("/paginated", checkLogin, carFinesController.paginateList);
-carFinesRouter.get("/mine", checkLogin, carFinesController.mine);
+carFinesRouter.get("/getAll", ...adminGuarded, carFinesController.getAll);
+carFinesRouter.get("/paginated", ...guarded, carFinesController.paginateList);
+carFinesRouter.get("/mine", ...guarded, carFinesController.mine);
 
-carFinesRouter.post("/create", checkLogin, carFinesController.create);
-carFinesRouter.post("/createAndRender", checkLogin, carFinesController.createAndRender);
+carFinesRouter.post("/create", ...guarded, carFinesController.create);
+carFinesRouter.post("/createAndRender", ...guarded, carFinesController.createAndRender);
 
 carFinesRouter.get(
   "/findBy/number/update",
-  checkLogin,
-  checkAdminOrContable,
-  carFinesController.findByNumberAndRenderForUpdate
+  ...contableGuarded,
+  carFinesController.findByNumberAndRenderForUpdate,
 );
 carFinesRouter.get(
   "/update/:fine_number",
-  checkLogin,
-  checkAdminOrContable,
-  carFinesController.findByNumberAndUpdate
+  ...contableGuarded,
+  carFinesController.findByNumberAndUpdate,
 );
 carFinesRouter.put(
   "/update/:fine_number",
-  checkLogin,
-  checkAdminOrContable,
-  carFinesController.findByNumberAndUpdate
+  ...contableGuarded,
+  carFinesController.findByNumberAndUpdate,
 );
 
 carFinesRouter.get(
   "/findBy/number/delete",
-  checkLogin,
-  checkAdmin,
-  carFinesController.findByNumberAndRenderForDelete
+  ...adminGuarded,
+  carFinesController.findByNumberAndRenderForDelete,
 );
 carFinesRouter.get(
   "/delete/:fine_number",
-  checkLogin,
-  checkAdmin,
-  carFinesController.findByNumberAndDelete
+  ...adminGuarded,
+  carFinesController.findByNumberAndDelete,
 );
 
-carFinesRouter.delete(
-  "/:id",
-  checkLogin,
-  checkAdmin,
-  carFinesController.deleteOne
-);
-carFinesRouter.get("/:id", checkLogin, carFinesController.findById);
+carFinesRouter.delete("/:id", ...adminGuarded, carFinesController.deleteOne);
+carFinesRouter.get("/:id", ...guarded, carFinesController.findById);

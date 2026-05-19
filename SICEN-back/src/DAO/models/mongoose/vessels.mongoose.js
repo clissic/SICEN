@@ -132,9 +132,24 @@ const schema = new Schema(
       operationalStatus: { type: String, default: "", trim: true },
       remarks: { type: String, default: null },
     },
+
+    /** Referencias a documentos en la colección `shipFines`. */
+    fines: {
+      type: [{ type: Schema.Types.ObjectId, ref: "shipFines" }],
+      default: [],
+    },
   },
   { timestamps: true }
 );
+
+/**
+ * @param {import("mongoose").Document} doc
+ */
+export function ensureVesselFinesShape(doc) {
+  if (!Array.isArray(doc.fines)) {
+    doc.set("fines", []);
+  }
+}
 
 schema.plugin(mongoosePaginate);
 

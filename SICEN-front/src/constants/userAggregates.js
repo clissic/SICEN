@@ -2,6 +2,8 @@
  * Conteos derivados del listado de usuarios (GET /api/users).
  */
 
+import { USER_STATE_OPTIONS } from "./userStates.js";
+
 /**
  * Filas ordenadas: sigla de unidad (mayúsculas); usuarios sin unidad como "(Sin unidad)", al final.
  * @returns {{ unit: string, count: number }[]}
@@ -51,4 +53,37 @@ export function summarizeUsersByRole(users) {
     base.push({ key: "other", label: "Otro rol", count: nOther });
   }
   return base;
+}
+
+/**
+ * Usuarios con cada especialización activa (`states[].isActive === true`).
+ * @returns {{ code: string, name: string, count: number }[]}
+ */
+export function summarizeUsersBySpecialization(users) {
+  const counts = new Map(
+    USER_STATE_OPTIONS.map((opt) => [opt.name, 0]),
+  );
+
+  if (Array.isArray(users)) {
+    for (const u of users) {
+      const byName = new Map();
+      if (Array.isArray(u?.states)) {
+        for (const item of u.states) {
+          const name = String(item?.name ?? "").trim();
+          if (name) byName.set(name, !!item.isActive);
+        }
+      }
+      for (const opt of USER_STATE_OPTIONS) {
+        if (byName.get(opt.name) === true) {
+          counts.set(opt.name, (counts.get(opt.name) || 0) + 1);
+        }
+      }
+    }
+  }
+
+  return USER_STATE_OPTIONS.map((opt) => ({
+    code: opt.code,
+    name: opt.name,
+    count: counts.get(opt.name) || 0,
+  }));
 }

@@ -1,5 +1,14 @@
 import { Schema, model } from "mongoose";
 import mongoosePaginate from "mongoose-paginate-v2";
+import { buildDefaultUserStates } from "../../../constants/userStates.js";
+
+const userStateSchema = new Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    isActive: { type: Boolean, default: false },
+  },
+  { _id: false },
+);
 
 const schema = new Schema({
   avatar: { type: String, default: "/img/avatar.png" },
@@ -18,6 +27,11 @@ const schema = new Schema({
     default: "user",
   },
   fines: { type: Array, default: [] },
+  states: {
+    type: [userStateSchema],
+    default: buildDefaultUserStates,
+  },
+  userTutorial: { type: Boolean, default: false },
   last_modified_by: { type: String, default: "S/M" },
 });
 

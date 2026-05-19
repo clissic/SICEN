@@ -83,9 +83,32 @@ export function BuquesMenuPage() {
       : "No hay tipos de buque mercante para mostrar.";
 
   const sportEmptyMsg =
-    (stats?.deportivo ?? 0) === 0
+    (stats?.sportTotal ?? 0) === 0
       ? "No hay buques deportivos registrados."
       : "No hay tipos de embarcación deportiva para mostrar.";
+
+  const commercialCounters = [
+    { label: "Ultramar", value: stats?.ultramar },
+    { label: "Cabotaje", value: stats?.cabotaje },
+    { label: "Pesqueros", value: stats?.pesqueros },
+    { label: "Pesca artesanal", value: stats?.pescaArtesanal },
+  ];
+
+  const sportDocCounters = [
+    {
+      label: "Certificados de Construcción",
+      value: stats?.sportCertificadoConstruccion,
+    },
+    {
+      label: "Registro de Embarcaciones Deportivas",
+      value: stats?.sportRegistroEmbarcacionesDeportivas,
+    },
+    {
+      label: "Certificados de Cabotaje",
+      value: stats?.sportMatriculaCabotaje,
+    },
+    { label: "Extranjeras", value: stats?.sportExtranjero },
+  ];
 
   return (
     <Layout>
@@ -212,19 +235,19 @@ export function BuquesMenuPage() {
         ) : null}
 
         <div className="row g-3 align-items-stretch">
-          <div className="col-12 col-lg-6">
+          <div className="col-12 col-lg-6 d-flex flex-column gap-3">
             <div className="row g-3 align-items-stretch">
               <div className="col-12 col-md-6 d-flex">
                 <div className="card shadow-sm w-100">
                   <div className="card-body text-center py-4 d-flex flex-column justify-content-center">
-                    <div className="fw-semibold text-body mb-3">Buques registrados</div>
+                    <div className="fw-semibold text-body mb-3">Buques comerciales registrados</div>
                     <div className="fw-semibold text-body" style={STAT_REGISTERED_NUMBER_STYLE}>
-                      {statValue(stats?.total)}
+                      {statValue(stats?.commercialTotal)}
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="col-12 col-md-6 d-flex flex-column gap-3 h-100">
+              <div className="col-12 col-md-6 d-flex flex-column gap-3">
                 <div className="card shadow-sm flex-fill d-flex flex-column min-h-0">
                   <div className="card-body py-2 py-md-3 px-3 flex-grow-1 d-flex align-items-center justify-content-between gap-3">
                     <div className="fw-semibold text-body small text-start mb-0">
@@ -254,30 +277,95 @@ export function BuquesMenuPage() {
                 <div className="card shadow-sm flex-fill d-flex flex-column min-h-0">
                   <div className="card-body py-2 py-md-3 px-3 flex-grow-1 d-flex align-items-center justify-content-between gap-3">
                     <div className="fw-semibold text-body small text-start mb-0">
-                      Deportivo
+                      Pesqueros
                     </div>
                     <div
                       className="fw-semibold text-body text-end flex-shrink-0"
                       style={STAT_STACK_NUMBER_STYLE}
                     >
-                      {statValue(stats?.deportivo)}
+                      {statValue(stats?.pesqueros)}
+                    </div>
+                  </div>
+                </div>
+                <div className="card shadow-sm flex-fill d-flex flex-column min-h-0">
+                  <div className="card-body py-2 py-md-3 px-3 flex-grow-1 d-flex align-items-center justify-content-between gap-3">
+                    <div className="fw-semibold text-body small text-start mb-0">
+                      Pesca artesanal
+                    </div>
+                    <div
+                      className="fw-semibold text-body text-end flex-shrink-0"
+                      style={STAT_STACK_NUMBER_STYLE}
+                    >
+                      {statValue(stats?.pescaArtesanal)}
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+            <div className="row g-3 align-items-stretch">
+              <div className="col-12 col-md-6 d-flex">
+                <div className="card shadow-sm w-100">
+                  <div className="card-body text-center py-4 d-flex flex-column justify-content-center">
+                    <div className="fw-semibold text-body mb-3">
+                      Buques deportivos registrados
+                    </div>
+                    <div
+                      className="fw-semibold text-body"
+                      style={STAT_REGISTERED_NUMBER_STYLE}
+                    >
+                      {statValue(stats?.sportTotal)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="col-12 col-md-6 d-flex flex-column gap-3">
+                {sportDocCounters.map((item) => (
+                  <div
+                    key={item.label}
+                    className="card shadow-sm flex-fill d-flex flex-column min-h-0"
+                  >
+                    <div className="card-body py-2 py-md-3 px-3 flex-grow-1 d-flex align-items-center justify-content-between gap-2">
+                      <div className="fw-semibold text-body small text-start mb-0">
+                        {item.label}
+                      </div>
+                      <div
+                        className="fw-semibold text-body text-end flex-shrink-0"
+                        style={STAT_STACK_NUMBER_STYLE}
+                      >
+                        {statValue(item.value)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {(stats?.sportOtherDocType ?? 0) > 0 ? (
+                  <div className="card shadow-sm flex-fill d-flex flex-column min-h-0">
+                    <div className="card-body py-2 py-md-3 px-3 flex-grow-1 d-flex align-items-center justify-content-between gap-3">
+                      <div className="fw-semibold text-muted small text-start mb-0">
+                        Otra documentación
+                      </div>
+                      <div
+                        className="fw-semibold text-muted text-end flex-shrink-0"
+                        style={STAT_STACK_NUMBER_STYLE}
+                      >
+                        {statValue(stats.sportOtherDocType)}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
           </div>
-          <div className="col-12 col-lg-6">
-            <div className="card shadow-sm h-100">
+          <div className="col-12 col-lg-6 d-flex flex-column gap-3">
+            <div className="card shadow-sm">
               <div className="card-header fw-semibold py-2 small border-bottom">
-                Buques por categoría
+                Buques por tonelaje (Ultramar y Cabotaje)
               </div>
               <div className="card-body p-0">
                 <div className="table-responsive">
                   <table className="table table-sm table-striped mb-0">
                     <thead>
                       <tr>
-                        <th scope="col">Categoría</th>
+                        <th scope="col">Rango TRB</th>
                         <th scope="col" className="text-end">
                           Cantidad
                         </th>
@@ -298,41 +386,100 @@ export function BuquesMenuPage() {
                         </tr>
                       ) : (
                         <>
-                          <tr>
-                            <td>Ultramar</td>
-                            <td
-                              className="text-end fw-semibold text-body align-middle"
-                              style={ROLE_TABLE_NUMBER_STYLE}
-                            >
-                              {stats?.ultramar ?? 0}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td>Cabotaje</td>
-                            <td
-                              className="text-end fw-semibold text-body align-middle"
-                              style={ROLE_TABLE_NUMBER_STYLE}
-                            >
-                              {stats?.cabotaje ?? 0}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td>Deportivo</td>
-                            <td
-                              className="text-end fw-semibold text-body align-middle"
-                              style={ROLE_TABLE_NUMBER_STYLE}
-                            >
-                              {stats?.deportivo ?? 0}
-                            </td>
-                          </tr>
-                          {(stats?.otherVesselType ?? 0) > 0 ? (
+                          {(Array.isArray(stats?.byTonnage) ? stats.byTonnage : []).map(
+                            (row) => (
+                              <tr key={row.label}>
+                                <td>{row.label}</td>
+                                <td
+                                  className="text-end fw-semibold text-body align-middle"
+                                  style={ROLE_TABLE_NUMBER_STYLE}
+                                >
+                                  {row.count ?? 0}
+                                </td>
+                              </tr>
+                            ),
+                          )}
+                          {(stats?.withoutTonnage ?? 0) > 0 ? (
                             <tr>
-                              <td className="text-muted">Otro tipo</td>
+                              <td className="text-muted">Sin TRB indicado</td>
                               <td
                                 className="text-end fw-semibold text-muted align-middle"
                                 style={ROLE_TABLE_NUMBER_STYLE}
                               >
-                                {stats.otherVesselType}
+                                {stats.withoutTonnage}
+                              </td>
+                            </tr>
+                          ) : null}
+                          {(stats?.overTonnageRange ?? 0) > 0 ? (
+                            <tr>
+                              <td className="text-muted">Más de 50 000 TRB</td>
+                              <td
+                                className="text-end fw-semibold text-muted align-middle"
+                                style={ROLE_TABLE_NUMBER_STYLE}
+                              >
+                                {stats.overTonnageRange}
+                              </td>
+                            </tr>
+                          ) : null}
+                        </>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div className="card shadow-sm">
+              <div className="card-header fw-semibold py-2 small border-bottom">
+                Buques por tonelaje (Deportivos)
+              </div>
+              <div className="card-body p-0">
+                <div className="table-responsive">
+                  <table className="table table-sm table-striped mb-0">
+                    <thead>
+                      <tr>
+                        <th scope="col">Rango TRB</th>
+                        <th scope="col" className="text-end">
+                          Cantidad
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {statsLoading ? (
+                        <tr>
+                          <td colSpan={2} className="text-muted text-center py-3">
+                            Cargando…
+                          </td>
+                        </tr>
+                      ) : statsErr ? (
+                        <tr>
+                          <td colSpan={2} className="text-muted text-center py-3">
+                            —
+                          </td>
+                        </tr>
+                      ) : (
+                        <>
+                          {(Array.isArray(stats?.sportByTonnage)
+                            ? stats.sportByTonnage
+                            : []
+                          ).map((row) => (
+                            <tr key={row.label}>
+                              <td>{row.label}</td>
+                              <td
+                                className="text-end fw-semibold text-body align-middle"
+                                style={ROLE_TABLE_NUMBER_STYLE}
+                              >
+                                {row.count ?? 0}
+                              </td>
+                            </tr>
+                          ))}
+                          {(stats?.sportWithoutTonnage ?? 0) > 0 ? (
+                            <tr>
+                              <td className="text-muted">Sin TRB indicado</td>
+                              <td
+                                className="text-end fw-semibold text-muted align-middle"
+                                style={ROLE_TABLE_NUMBER_STYLE}
+                              >
+                                {stats.sportWithoutTonnage}
                               </td>
                             </tr>
                           ) : null}
