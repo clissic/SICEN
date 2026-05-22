@@ -362,11 +362,14 @@ class UsersController {
 
   async sendNewAccEmail(req, res) {
     try {
-      const { first_name, last_name, rank, email, newAccBody } = req.body;
+      const { first_name, last_name, rank, unit, position, email, newAccBody } =
+        req.body;
       const emailSent = await userService.sendNewAccEmail({
         first_name,
         last_name,
         rank,
+        unit,
+        position,
         email,
         newAccBody,
       });

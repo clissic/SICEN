@@ -129,12 +129,35 @@ class UserService {
     }
   }
 
-  async sendNewAccEmail({ first_name, last_name, rank, email, newAccBody }) {
+  async sendNewAccEmail({
+    first_name,
+    last_name,
+    rank,
+    unit,
+    position,
+    email,
+    newAccBody,
+  }) {
     try {
       const S = sicenEmailBodyStyles;
+      const unitText = unit != null ? String(unit).trim() : "";
+      const positionText = position != null ? String(position).trim() : "";
+      const metaParts = [];
+      if (unitText) {
+        metaParts.push(`Unidad: <strong>${escapeHtml(unitText)}</strong>`);
+      }
+      if (positionText) {
+        metaParts.push(
+          `Cargo: <strong>${escapeHtml(positionText)}</strong>`
+        );
+      }
+      const metaHtml = metaParts.length
+        ? `<p style="${S.metaLine}">${metaParts.join(" · ")}</p>`
+        : "";
       const bodyHtml = `
 <p style="${S.paragraph}"><strong>Solicitante</strong></p>
 <p style="${S.leadStrong}"><strong>${escapeHtml(rank)} ${escapeHtml(first_name)} ${escapeHtml(last_name)}</strong></p>
+${metaHtml}
 <p style="${S.labelUppercase}">Correo indicado</p>
 <p style="${S.metaLine}"><a href="mailto:${encodeURIComponent(String(email).trim())}" style="${S.link}">${escapeHtml(email)}</a></p>
 <p style="${S.sectionHeading}">Justificación</p>

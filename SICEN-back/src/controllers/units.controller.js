@@ -72,6 +72,21 @@ export const unitsController = {
     }
   },
 
+  async listPublic(req, res) {
+    try {
+      const units = await UnitMongoose.find()
+        .select("acronym name")
+        .sort({ acronym: 1 })
+        .lean();
+      return res.json({ ok: true, units });
+    } catch (e) {
+      return res.status(500).json({
+        ok: false,
+        msg: e?.message || "Error al listar unidades.",
+      });
+    }
+  },
+
   async create(req, res) {
     try {
       const siglaRaw = String(req.body.sigla ?? "").trim().toUpperCase();

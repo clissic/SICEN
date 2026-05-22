@@ -20,6 +20,8 @@ function wrapUpload(multerMw, handler) {
   };
 }
 
+unitsRouter.get("/public", unitsController.listPublic);
+
 unitsRouter.get("/", ...loginOnly, unitsController.list);
 
 unitsRouter.post(

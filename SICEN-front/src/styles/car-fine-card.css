@@ -1,0 +1,735 @@
+/* Tarjeta de multa vehicular (AllCarFinesPage) */
+
+.car-fine-card {
+  --car-fine-accent: var(--bs-secondary);
+  --car-fine-accent-bg: var(--bs-secondary-bg);
+  border: 1px solid var(--bs-border-color);
+  border-left: 5px solid var(--car-fine-accent);
+  background-color: var(--bs-body-bg);
+  transition: background-color 0.18s ease, border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.car-fine-card:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--car-fine-accent) 7%,
+    var(--bs-body-bg)
+  );
+}
+
+html[data-bs-theme="dark"] .car-fine-card:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--bs-body-color) 9%,
+    var(--bs-body-bg)
+  );
+}
+
+.car-fine-card--due {
+  --car-fine-accent: var(--bs-warning);
+  --car-fine-accent-bg: color-mix(
+    in srgb,
+    var(--bs-warning) 12%,
+    var(--bs-body-bg)
+  );
+}
+
+.car-fine-card--paid {
+  --car-fine-accent: var(--bs-success);
+  --car-fine-accent-bg: color-mix(
+    in srgb,
+    var(--bs-success) 12%,
+    var(--bs-body-bg)
+  );
+}
+
+.car-fine-card--cancelled {
+  --car-fine-accent: var(--bs-danger);
+  --car-fine-accent-bg: color-mix(
+    in srgb,
+    var(--bs-danger) 12%,
+    var(--bs-body-bg)
+  );
+}
+
+.car-fine-card--dismissed {
+  --car-fine-accent: var(--bs-info);
+  --car-fine-accent-bg: color-mix(
+    in srgb,
+    var(--bs-info) 12%,
+    var(--bs-body-bg)
+  );
+}
+
+.car-fine-card__header {
+  background: linear-gradient(
+    180deg,
+    var(--car-fine-accent-bg) 0%,
+    transparent 100%
+  );
+  border-bottom: 1px solid var(--bs-border-color);
+  padding: 0.85rem 1rem;
+}
+
+.car-fine-card__number {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--car-fine-accent);
+}
+
+.car-fine-card__number-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color);
+  line-height: 1;
+}
+
+.car-fine-card__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background-color: color-mix(
+    in srgb,
+    var(--car-fine-accent) 18%,
+    var(--bs-body-bg)
+  );
+  color: var(--car-fine-accent);
+  border: 1px solid
+    color-mix(in srgb, var(--car-fine-accent) 35%, transparent);
+}
+
+button.car-fine-card__status,
+.car-fine-card__status--btn {
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    transform 0.1s ease;
+}
+
+button.car-fine-card__status:hover,
+.car-fine-card__status--btn:hover,
+button.car-fine-card__status:focus-visible,
+.car-fine-card__status--btn:focus-visible {
+  background-color: color-mix(
+    in srgb,
+    var(--car-fine-accent) 30%,
+    var(--bs-body-bg)
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--car-fine-accent) 55%,
+    transparent
+  );
+  outline: none;
+}
+
+button.car-fine-card__status:active,
+.car-fine-card__status--btn:active {
+  transform: scale(0.97);
+}
+
+/* Botón "Editar" — apariencia tenue, al lado del badge de estado */
+.car-fine-card__edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background-color: transparent;
+  color: var(--bs-secondary-color);
+  border: 1px dashed var(--bs-border-color);
+  opacity: 0.75;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background-color 0.15s ease,
+    color 0.15s ease, border-color 0.15s ease;
+}
+
+.car-fine-card__edit-btn:hover,
+.car-fine-card__edit-btn:focus-visible {
+  opacity: 1;
+  background-color: var(--bs-tertiary-bg);
+  color: var(--bs-body-color);
+  border-color: var(--bs-secondary-color);
+  border-style: solid;
+  outline: none;
+}
+
+.car-fine-card__edit-btn:active {
+  transform: scale(0.97);
+}
+
+.car-fine-card__datetime {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--bs-secondary-color);
+  font-size: 0.85rem;
+}
+
+.car-fine-card__datetime i {
+  font-size: 0.95rem;
+}
+
+/* Placa estilo licencia */
+.car-fine-card__plate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.9rem;
+  border: 2px solid var(--bs-body-color);
+  border-radius: 0.5rem;
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono",
+    monospace;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  font-size: 1.35rem;
+  line-height: 1;
+  min-width: 8rem;
+  text-align: center;
+  text-transform: uppercase;
+  box-shadow: inset 0 0 0 2px var(--bs-body-bg),
+    inset 0 0 0 3px var(--bs-body-color);
+}
+
+.car-fine-card__plate--placeholder {
+  color: var(--bs-secondary-color);
+  border-color: var(--bs-border-color);
+  box-shadow: none;
+  letter-spacing: 0.05em;
+  font-size: 0.95rem;
+}
+
+/* Bloques de datos */
+.car-fine-card__field {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.4rem 0;
+  min-width: 0;
+}
+
+.car-fine-card__field-icon {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bs-tertiary-bg);
+  color: var(--bs-body-color);
+  font-size: 1rem;
+  border: 1px solid var(--bs-border-color);
+}
+
+.car-fine-card__field-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.car-fine-card__field-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--bs-secondary-color);
+  line-height: 1.1;
+}
+
+.car-fine-card__field-value {
+  font-size: 0.95rem;
+  color: var(--bs-body-color);
+  word-break: break-word;
+  line-height: 1.3;
+}
+
+.car-fine-card__field-value-strong {
+  font-weight: 600;
+}
+
+.car-fine-card__amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--car-fine-accent);
+  line-height: 1.1;
+}
+
+.car-fine-card__amount-extra {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--bs-secondary-color);
+  margin-left: 0.4rem;
+}
+
+.car-fine-card__amount-unit {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--bs-secondary-color);
+  margin-left: 0.2rem;
+  letter-spacing: 0.05em;
+}
+
+/* Galería de pruebas */
+.car-fine-card__proves {
+  border-top: 1px solid var(--bs-border-color);
+  padding-top: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.car-fine-card__proves-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+  color: var(--bs-secondary-color);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+.car-fine-card__proves-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding: 0 0.4rem;
+  background-color: var(--bs-tertiary-bg);
+  color: var(--bs-body-color);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.car-fine-card__proves-gallery {
+  display: grid;
+  grid-template-columns: repeat(var(--prove-count, 3), minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.car-fine-card__prove {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100px;
+  padding: 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid var(--bs-border-color);
+  background-color: var(--bs-tertiary-bg);
+  color: inherit;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+button.car-fine-card__prove {
+  font: inherit;
+  text-align: inherit;
+}
+
+.car-fine-card__prove:hover,
+.car-fine-card__prove:focus-visible {
+  box-shadow: 0 0.35rem 0.85rem rgba(0, 0, 0, 0.18);
+  outline: none;
+  border-color: var(--car-fine-accent);
+}
+
+.car-fine-card__prove img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.car-fine-card__prove-index {
+  position: absolute;
+  top: 0.35rem;
+  left: 0.35rem;
+  background-color: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.3rem;
+  line-height: 1.1;
+}
+
+.car-fine-card__prove-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0.35rem;
+  background: linear-gradient(
+    180deg,
+    transparent 60%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+  color: #fff;
+  font-size: 0.7rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.car-fine-card__prove:hover .car-fine-card__prove-overlay,
+.car-fine-card__prove:focus-visible .car-fine-card__prove-overlay {
+  opacity: 1;
+}
+
+/* Filtros (acordeón) — quita el tinte azul del título cuando está expandido */
+#car-fines-filters-accordion .accordion-button {
+  background-color: transparent;
+  color: var(--bs-body-color);
+  box-shadow: none;
+}
+
+#car-fines-filters-accordion .accordion-button:not(.collapsed) {
+  background-color: transparent;
+  color: var(--bs-body-color);
+  box-shadow: inset 0 -1px 0 var(--bs-border-color);
+}
+
+#car-fines-filters-accordion .accordion-button:focus {
+  box-shadow: none;
+  border-color: var(--bs-border-color);
+}
+
+/* Lightbox de pruebas */
+.car-fine-prove-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.88);
+  padding: 1.5rem;
+  animation: car-fine-prove-modal-fade 0.18s ease-out;
+}
+
+@keyframes car-fine-prove-modal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.car-fine-prove-modal__stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-width: min(96vw, 1400px);
+  max-height: 92vh;
+  width: 100%;
+  gap: 0.85rem;
+}
+
+.car-fine-prove-modal__image {
+  max-width: 100%;
+  max-height: calc(92vh - 4rem);
+  object-fit: contain;
+  border-radius: 0.5rem;
+  box-shadow: 0 0 2.5rem rgba(0, 0, 0, 0.7);
+  background-color: #111;
+}
+
+.car-fine-prove-modal__caption {
+  color: #f6f6f6;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.car-fine-prove-modal__close,
+.car-fine-prove-modal__nav {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  font-size: 1.15rem;
+  line-height: 1;
+  transition: background-color 0.15s ease;
+}
+
+.car-fine-prove-modal__close:hover,
+.car-fine-prove-modal__nav:hover,
+.car-fine-prove-modal__close:focus-visible,
+.car-fine-prove-modal__nav:focus-visible {
+  background-color: rgba(255, 255, 255, 0.22);
+  outline: none;
+}
+
+.car-fine-prove-modal__close {
+  top: 1rem;
+  right: 1rem;
+}
+
+.car-fine-prove-modal__nav {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.car-fine-prove-modal__nav--prev {
+  left: 0.5rem;
+}
+
+.car-fine-prove-modal__nav--next {
+  right: 0.5rem;
+}
+
+.car-fine-prove-modal__nav:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+@media (max-width: 575.98px) {
+  .car-fine-prove-modal {
+    padding: 0.75rem;
+  }
+  .car-fine-prove-modal__close,
+  .car-fine-prove-modal__nav {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+}
+
+/* Modal de cambio de estado de la multa */
+.car-fine-status-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1075;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.55);
+  padding: 1rem;
+  animation: car-fine-prove-modal-fade 0.15s ease-out;
+}
+
+.car-fine-status-modal__dialog {
+  width: 100%;
+  max-width: 520px;
+  max-height: calc(100vh - 2rem);
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  border: 1px solid var(--bs-border-color);
+}
+
+.car-fine-status-modal__dialog .card-body {
+  overflow-y: auto;
+}
+
+.car-fine-status-modal__dialog--wide {
+  max-width: 860px;
+}
+
+.car-fine-status-modal__options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.car-fine-status-modal__option {
+  --opt-accent: var(--bs-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  text-align: start;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.5rem;
+  border: 1.5px solid var(--bs-border-color);
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  width: 100%;
+}
+
+.car-fine-status-modal__option:hover:not(:disabled),
+.car-fine-status-modal__option:focus-visible:not(:disabled) {
+  background-color: color-mix(
+    in srgb,
+    var(--opt-accent) 10%,
+    var(--bs-body-bg)
+  );
+  border-color: color-mix(in srgb, var(--opt-accent) 45%, transparent);
+  outline: none;
+}
+
+.car-fine-status-modal__option.is-selected {
+  background-color: color-mix(
+    in srgb,
+    var(--opt-accent) 14%,
+    var(--bs-body-bg)
+  );
+  border-color: var(--opt-accent);
+}
+
+.car-fine-status-modal__option:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.car-fine-status-modal__option--due {
+  --opt-accent: var(--bs-warning);
+}
+.car-fine-status-modal__option--paid {
+  --opt-accent: var(--bs-success);
+}
+.car-fine-status-modal__option--cancelled {
+  --opt-accent: var(--bs-danger);
+}
+.car-fine-status-modal__option--dismissed {
+  --opt-accent: var(--bs-info);
+}
+
+.car-fine-status-modal__option-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 0.5rem;
+  background-color: color-mix(
+    in srgb,
+    var(--opt-accent) 18%,
+    var(--bs-body-bg)
+  );
+  color: var(--opt-accent);
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  border: 1px solid color-mix(in srgb, var(--opt-accent) 35%, transparent);
+}
+
+.car-fine-status-modal__option-body {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.car-fine-status-modal__option-label {
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.2;
+  color: var(--bs-body-color);
+}
+
+.car-fine-status-modal__option-description {
+  font-size: 0.8rem;
+  color: var(--bs-secondary-color);
+  line-height: 1.25;
+}
+
+.car-fine-status-modal__option-check {
+  font-size: 1.25rem;
+  color: var(--opt-accent);
+  flex-shrink: 0;
+}
+
+/* Sección de pruebas en el modal de edición de multa */
+.car-fine-editor-proves {
+  background-color: color-mix(
+    in srgb,
+    var(--bs-secondary-bg) 50%,
+    var(--bs-body-bg)
+  );
+  border-color: var(--bs-border-color) !important;
+}
+
+.car-fine-editor-prove {
+  position: relative;
+  padding: 0.75rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  background-color: var(--bs-body-bg);
+}
+
+.car-fine-editor-prove__badge {
+  position: absolute;
+  top: -0.55rem;
+  left: 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background-color: var(--bs-body-bg);
+  color: var(--bs-secondary-color);
+  padding: 0 0.4rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.25rem;
+  line-height: 1.1;
+}
+
+.car-fine-editor-prove__preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 140px;
+  border-radius: 0.4rem;
+  background-color: color-mix(
+    in srgb,
+    var(--bs-secondary-bg) 70%,
+    var(--bs-body-bg)
+  );
+  border: 1px dashed var(--bs-border-color);
+  overflow: hidden;
+}
+
+.car-fine-editor-prove__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0.4rem;
+}
+
+.car-fine-editor-prove__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  text-align: center;
+}
+
+.car-fine-editor-prove__hint {
+  word-break: break-word;
+}

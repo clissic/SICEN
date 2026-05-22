@@ -8,10 +8,23 @@ import env from "./config/env.config.js";
 import { logger } from "./utils/logger.js";
 import { connectMongo } from "./utils/db-connection.js";
 import { AVATARS_DIR, ensureAvatarsDirSync } from "./utils/avatarFiles.js";
+import {
+  CAR_FINE_PROVES_DIR,
+  ensureCarFineProvesDirSync,
+} from "./utils/carFineProveFiles.js";
+import {
+  SHIP_FINE_PROVES_DIR,
+  ensureShipFineProvesDirSync,
+} from "./utils/shipFineProveFiles.js";
+import {
+  PERSONAL_FINE_PROVES_DIR,
+  ensurePersonalFineProvesDirSync,
+} from "./utils/personalFineProveFiles.js";
 import { usersRouter } from "./routes/users.router.js";
 import { sessionsRouter } from "./routes/sessions.router.js";
 import { carFinesRouter } from "./routes/carFines.router.js";
 import { shipFinesRouter } from "./routes/shipFines.router.js";
+import { personalFinesRouter } from "./routes/personalFines.router.js";
 import { tokensRouter } from "./routes/tokens.router.js";
 import { unitFilesRouter } from "./routes/unitFiles.router.js";
 import { unitsRouter } from "./routes/units.router.js";
@@ -64,10 +77,23 @@ app.use(express.urlencoded({ extended: true }));
 ensureAvatarsDirSync();
 app.use("/uploads/avatars", express.static(AVATARS_DIR));
 
+ensureCarFineProvesDirSync();
+app.use("/uploads/carFineProves", express.static(CAR_FINE_PROVES_DIR));
+
+ensureShipFineProvesDirSync();
+app.use("/uploads/shipFineProves", express.static(SHIP_FINE_PROVES_DIR));
+
+ensurePersonalFineProvesDirSync();
+app.use(
+  "/uploads/personalFineProves",
+  express.static(PERSONAL_FINE_PROVES_DIR)
+);
+
 app.use("/api/users", usersRouter);
 app.use("/api/sessions", sessionsRouter);
 app.use("/api/carFines", carFinesRouter);
 app.use("/api/shipFines", shipFinesRouter);
+app.use("/api/personalFines", personalFinesRouter);
 app.use("/api/tokens", tokensRouter);
 app.use("/api/unit-files", unitFilesRouter);
 app.use("/api/units", unitsRouter);

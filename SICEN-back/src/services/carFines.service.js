@@ -1,4 +1,7 @@
-import { carFinesModel } from "../DAO/models/carFines.model.js";
+import {
+  carFinesModel,
+  getNextCarFineNumber,
+} from "../DAO/models/carFines.model.js";
 import { logger } from "../utils/logger.js";
 
 class CarFinesService {
@@ -26,7 +29,12 @@ class CarFinesService {
     }
   }
 
+  async getNextFineNumber() {
+    return getNextCarFineNumber();
+  }
+
   async create({
+    fine_number,
     fine_date,
     fine_time,
     fine_article,
@@ -44,29 +52,13 @@ class CarFinesService {
     last_modified_by,
   }) {
     try {
-      async function ordenarFecha(fecha) {
-        const date = new Date(fecha);
-        if (isNaN(date.getTime())) {
-          return "Fecha inválida";
-        }
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = String(date.getFullYear() % 100).padStart(2, '0');
-        const fechaFormateada = `${day}/${month}/${year}`;
-        return fechaFormateada;
-      }
-        const allFines = await carFinesModel.getAll()
-        async function getCarFineNumber() {
-            if (allFines.length === 0) {
-                return 1;
-            } else {
-                const lastFine = allFines[allFines.length - 1];
-                return lastFine.fine_number !== undefined ? lastFine.fine_number + 1 : 1;
-            }
-        }
+      const resolvedFineNumber =
+        Number.isFinite(Number(fine_number)) && Number(fine_number) > 0
+          ? Number(fine_number)
+          : await getNextCarFineNumber();
       const carFineCreated = await carFinesModel.create({
-        fine_number: await getCarFineNumber(),
-        fine_date: fine_date /* await ordenarFecha(fine_date) */,
+        fine_number: resolvedFineNumber,
+        fine_date,
         fine_time,
         fine_article,
         fine_amount,

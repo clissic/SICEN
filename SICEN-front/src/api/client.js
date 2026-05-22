@@ -140,6 +140,11 @@ export function listUnitsRegistered() {
   return apiFetch("/api/units");
 }
 
+/** Listado público mínimo (`{ acronym, name }`) para formularios sin sesión. */
+export function listUnitsRegisteredPublic() {
+  return apiFetch("/api/units/public");
+}
+
 /** Alta de unidad (admin). `formData`: nombre, sigla (4–6 caracteres), …; escudo opcional (sin archivo → URL PRENA.png). */
 export async function createUnit(formData) {
   const token = getAuthToken();
@@ -528,10 +533,18 @@ export function carFinesMine() {
   return apiFetch("/api/carFines/mine");
 }
 
-export function carFineCreateAndRender(body) {
+export function carFineCreateAndRender(fields, proveFiles = []) {
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(fields ?? {})) {
+    if (v == null) continue;
+    fd.append(k, String(v));
+  }
+  for (const f of proveFiles) {
+    if (f) fd.append("fine_proves", f, f.name);
+  }
   return apiFetch("/api/carFines/createAndRender", {
     method: "POST",
-    body: JSON.stringify(body),
+    body: fd,
   });
 }
 
@@ -548,6 +561,41 @@ export function carFineUpdate(fine_number, body) {
   });
 }
 
+/**
+ * Actualiza una multa enviando también cambios en las pruebas (multipart).
+ * `proveSlots`: array de 3 entradas `{ action, file? }` con `action` en
+ * `"keep" | "replace" | "remove"`. Cuando hay al menos un `replace` o `remove`,
+ * se manda como `multipart/form-data`; si no, cae al endpoint JSON normal.
+ */
+export function carFineUpdateWithProves(fine_number, fields, proveSlots) {
+  const slots = Array.isArray(proveSlots) ? proveSlots.slice(0, 3) : [];
+  while (slots.length < 3) slots.push({ action: "keep" });
+  const hasChanges = slots.some(
+    (s) => s?.action === "replace" || s?.action === "remove"
+  );
+  if (!hasChanges) {
+    return carFineUpdate(fine_number, fields);
+  }
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(fields ?? {})) {
+    if (v == null) continue;
+    fd.append(k, String(v));
+  }
+  slots.forEach((slot, idx) => {
+    const action = slot?.action === "replace" || slot?.action === "remove"
+      ? slot.action
+      : "keep";
+    fd.append(`prove_slot_${idx + 1}_action`, action);
+    if (action === "replace" && slot?.file) {
+      fd.append(`prove_slot_${idx + 1}`, slot.file, slot.file.name);
+    }
+  });
+  return apiFetch(`/api/carFines/update/${fine_number}`, {
+    method: "PUT",
+    body: fd,
+  });
+}
+
 export function carFineForDelete(fine_number) {
   return apiFetch(
     `/api/carFines/findBy/number/delete?fine_number=${encodeURIComponent(fine_number)}`
@@ -556,6 +604,154 @@ export function carFineForDelete(fine_number) {
 
 export function carFineDelete(fine_number) {
   return apiFetch(`/api/carFines/delete/${fine_number}`, { method: "GET" });
+}
+
+/* ============================== Multas de buques ============================== */
+
+export function shipFinesPaginated(params) {
+  const q = new URLSearchParams(params);
+  return apiFetch(`/api/shipFines/paginated?${q}`);
+}
+
+export function shipFineCreateAndRender(fields, proveFiles = []) {
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(fields ?? {})) {
+    if (v == null) continue;
+    fd.append(k, String(v));
+  }
+  for (const f of proveFiles) {
+    if (f) fd.append("fine_proves", f, f.name);
+  }
+  return apiFetch("/api/shipFines/createAndRender", {
+    method: "POST",
+    body: fd,
+  });
+}
+
+export function shipFineUpdate(fine_number, body) {
+  return apiFetch(`/api/shipFines/update/${fine_number}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * Variante multipart: igual lógica que `carFineUpdateWithProves` pero contra
+ * el endpoint de multas de buques.
+ */
+export function shipFineUpdateWithProves(fine_number, fields, proveSlots) {
+  const slots = Array.isArray(proveSlots) ? proveSlots.slice(0, 3) : [];
+  while (slots.length < 3) slots.push({ action: "keep" });
+  const hasChanges = slots.some(
+    (s) => s?.action === "replace" || s?.action === "remove"
+  );
+  if (!hasChanges) {
+    return shipFineUpdate(fine_number, fields);
+  }
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(fields ?? {})) {
+    if (v == null) continue;
+    fd.append(k, String(v));
+  }
+  slots.forEach((slot, idx) => {
+    const action =
+      slot?.action === "replace" || slot?.action === "remove"
+        ? slot.action
+        : "keep";
+    fd.append(`prove_slot_${idx + 1}_action`, action);
+    if (action === "replace" && slot?.file) {
+      fd.append(`prove_slot_${idx + 1}`, slot.file, slot.file.name);
+    }
+  });
+  return apiFetch(`/api/shipFines/update/${fine_number}`, {
+    method: "PUT",
+    body: fd,
+  });
+}
+
+export function shipFineForDelete(fine_number) {
+  return apiFetch(
+    `/api/shipFines/findBy/number/delete?fine_number=${encodeURIComponent(fine_number)}`
+  );
+}
+
+export function shipFineDelete(fine_number) {
+  return apiFetch(`/api/shipFines/delete/${fine_number}`, { method: "GET" });
+}
+
+/* ============================== Multas personales ============================== */
+
+export function personalFinesPaginated(params) {
+  const q = new URLSearchParams(params);
+  return apiFetch(`/api/personalFines/paginated?${q}`);
+}
+
+export function personalFineCreateAndRender(fields, proveFiles = []) {
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(fields ?? {})) {
+    if (v == null) continue;
+    fd.append(k, String(v));
+  }
+  for (const f of proveFiles) {
+    if (f) fd.append("fine_proves", f, f.name);
+  }
+  return apiFetch("/api/personalFines/createAndRender", {
+    method: "POST",
+    body: fd,
+  });
+}
+
+export function personalFineUpdate(fine_number, body) {
+  return apiFetch(`/api/personalFines/update/${fine_number}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * Variante multipart: igual lógica que `carFineUpdateWithProves` pero contra
+ * el endpoint de multas personales.
+ */
+export function personalFineUpdateWithProves(fine_number, fields, proveSlots) {
+  const slots = Array.isArray(proveSlots) ? proveSlots.slice(0, 3) : [];
+  while (slots.length < 3) slots.push({ action: "keep" });
+  const hasChanges = slots.some(
+    (s) => s?.action === "replace" || s?.action === "remove"
+  );
+  if (!hasChanges) {
+    return personalFineUpdate(fine_number, fields);
+  }
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(fields ?? {})) {
+    if (v == null) continue;
+    fd.append(k, String(v));
+  }
+  slots.forEach((slot, idx) => {
+    const action =
+      slot?.action === "replace" || slot?.action === "remove"
+        ? slot.action
+        : "keep";
+    fd.append(`prove_slot_${idx + 1}_action`, action);
+    if (action === "replace" && slot?.file) {
+      fd.append(`prove_slot_${idx + 1}`, slot.file, slot.file.name);
+    }
+  });
+  return apiFetch(`/api/personalFines/update/${fine_number}`, {
+    method: "PUT",
+    body: fd,
+  });
+}
+
+export function personalFineForDelete(fine_number) {
+  return apiFetch(
+    `/api/personalFines/findBy/number/delete?fine_number=${encodeURIComponent(fine_number)}`
+  );
+}
+
+export function personalFineDelete(fine_number) {
+  return apiFetch(`/api/personalFines/delete/${fine_number}`, {
+    method: "GET",
+  });
 }
 
 export function usersPaginated(params) {

@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { carFineCreateAndRender } from "../api/client.js";
+import { CarBrandCombobox } from "../components/CarBrandCombobox.jsx";
 import { Layout } from "../components/Layout.jsx";
+import { OTHER_CAR_BRAND } from "../constants/carBrands.js";
 import { FINE_ARTICLE_OPTIONS } from "../constants/fineArticles.js";
 import { preventNegativeNumberKeys } from "../utils/nonNegativeNumberInput.js";
+import { scrollElementIntoViewById } from "../utils/scrollPageToTop.js";
 
 const initial = {
   fine_date: "",
@@ -11,7 +14,6 @@ const initial = {
   fine_article: "",
   fine_amount: "",
   fine_extra_amount: "",
-  fine_proves: "",
   car_brand: "",
   car_model: "",
   car_reg_number: "",
@@ -21,31 +23,94 @@ const initial = {
   owner_dir: "",
 };
 
+const PROVE_MAX_BYTES = 5 * 1024 * 1024;
+const PROVE_SLOTS = [0, 1, 2];
+
+function isValidProveFile(f) {
+  if (!f) return true;
+  const name = (f.name || "").toLowerCase();
+  const okExt = name.endsWith(".jpg") || name.endsWith(".jpeg");
+  const okMime = f.type === "image/jpeg" || f.type === "image/pjpeg";
+  if (!okExt || !okMime) {
+    return "Solo se aceptan archivos JPEG (.jpg / .jpeg).";
+  }
+  if (f.size > PROVE_MAX_BYTES) {
+    return "Cada foto debe pesar 5 MB o menos.";
+  }
+  return true;
+}
+
 export function CarFineFormPage() {
   const [form, setForm] = useState(initial);
+  const [proves, setProves] = useState([null, null, null]);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   function set(k, v) {
     setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  function setProveAt(idx, file) {
+    if (file) {
+      const check = isValidProveFile(file);
+      if (check !== true) {
+        setErr(`Prueba ${idx + 1}: ${check}`);
+        return;
+      }
+    }
+    setErr("");
+    setProves((prev) => {
+      const next = [...prev];
+      next[idx] = file ?? null;
+      return next;
+    });
+  }
+
+  function resetForm() {
+    setForm(initial);
+    setProves([null, null, null]);
   }
 
   async function onSubmit(e) {
     e.preventDefault();
     setErr("");
     setMsg("");
+    const files = proves.filter(Boolean);
+    if (files.length === 0) {
+      setErr("Adjunte al menos una foto de prueba (.jpg, hasta 5 MB).");
+      scrollElementIntoViewById("car-fine-form-feedback");
+      return;
+    }
+    for (let i = 0; i < proves.length; i++) {
+      if (proves[i]) {
+        const check = isValidProveFile(proves[i]);
+        if (check !== true) {
+          setErr(`Prueba ${i + 1}: ${check}`);
+          scrollElementIntoViewById("car-fine-form-feedback");
+          return;
+        }
+      }
+    }
+    setSubmitting(true);
     try {
-      const data = await carFineCreateAndRender({
-        ...form,
-        fine_amount: Number(form.fine_amount),
-        fine_extra_amount: form.fine_extra_amount
-          ? Number(form.fine_extra_amount)
-          : 0,
-      });
+      const data = await carFineCreateAndRender(
+        {
+          ...form,
+          fine_amount: Number(form.fine_amount),
+          fine_extra_amount: form.fine_extra_amount
+            ? Number(form.fine_extra_amount)
+            : 0,
+        },
+        files
+      );
       setMsg(data.msg || "Multa creada");
-      setForm(initial);
+      resetForm();
     } catch (ex) {
       setErr(ex.message || "Error al crear");
+    } finally {
+      setSubmitting(false);
+      scrollElementIntoViewById("car-fine-form-feedback");
     }
   }
 
@@ -59,8 +124,14 @@ export function CarFineFormPage() {
           </Link>
         </div>
 
-        {msg ? <div className="alert alert-success py-2">{msg}</div> : null}
-        {err ? <div className="alert alert-danger py-2">{err}</div> : null}
+        <div id="car-fine-form-feedback" style={{ scrollMarginTop: "1rem" }}>
+          {msg ? (
+            <div className="alert alert-success py-2">{msg}</div>
+          ) : null}
+          {err ? (
+            <div className="alert alert-danger py-2">{err}</div>
+          ) : null}
+        </div>
 
         <div className="card shadow-sm">
           <div className="card-body p-4">
@@ -157,17 +228,53 @@ export function CarFineFormPage() {
                 />
               </div>
               <div className="col-12">
-                <label className="form-label" htmlFor="fine_proves">
-                  Pruebas*
-                </label>
-                <input
-                  className="form-control"
-                  type="text"
-                  id="fine_proves"
-                  required
-                  value={form.fine_proves}
-                  onChange={(e) => set("fine_proves", e.target.value)}
-                />
+                <label className="form-label d-block">Pruebas*</label>
+                <div className="text-muted small mb-2">
+                  Adjunte hasta 3 fotografías como evidencia. Formato JPG,
+                  máximo 5 MB por archivo.
+                </div>
+                <div className="row g-2">
+                  {PROVE_SLOTS.map((idx) => {
+                    const inputId = `fine_proves_${idx + 1}`;
+                    const file = proves[idx];
+                    return (
+                      <div className="col-12 col-md-4" key={inputId}>
+                        <label
+                          className="form-label small text-muted mb-1"
+                          htmlFor={inputId}
+                        >
+                          Prueba {idx + 1}
+                          {idx === 0 ? "*" : ""}
+                        </label>
+                        <input
+                          className="form-control"
+                          type="file"
+                          id={inputId}
+                          accept="image/jpeg,.jpg,.jpeg"
+                          required={idx === 0 && !file}
+                          onChange={(e) =>
+                            setProveAt(idx, e.target.files?.[0] ?? null)
+                          }
+                        />
+                        {file ? (
+                          <div className="d-flex align-items-center justify-content-between mt-1">
+                            <small className="text-muted text-truncate me-2">
+                              {file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB
+                            </small>
+                            <button
+                              type="button"
+                              className="btn btn-outline-secondary btn-sm py-0 px-2"
+                              onClick={() => setProveAt(idx, null)}
+                              aria-label={`Quitar prueba ${idx + 1}`}
+                            >
+                              Quitar
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="col-12 mt-2">
@@ -177,24 +284,31 @@ export function CarFineFormPage() {
                 <label className="form-label" htmlFor="car_brand">
                   Marca*
                 </label>
-                <input
-                  className="form-control"
+                <CarBrandCombobox
                   id="car_brand"
-                  required
                   value={form.car_brand}
-                  onChange={(e) => set("car_brand", e.target.value)}
+                  onChange={(v) => set("car_brand", v)}
+                  required
                 />
+                {form.car_brand === OTHER_CAR_BRAND ? (
+                  <div className="form-text text-info">
+                    Especificar la marca al ingresar el modelo.
+                  </div>
+                ) : null}
               </div>
               <div className="col-12 col-md-4">
                 <label className="form-label" htmlFor="car_model">
                   Modelo*
                 </label>
                 <input
-                  className="form-control"
+                  className="form-control text-uppercase"
                   id="car_model"
                   required
                   value={form.car_model}
-                  onChange={(e) => set("car_model", e.target.value)}
+                  onChange={(e) =>
+                    set("car_model", e.target.value.toUpperCase())
+                  }
+                  style={{ textTransform: "uppercase" }}
                 />
               </div>
               <div className="col-12 col-md-4">
@@ -202,11 +316,33 @@ export function CarFineFormPage() {
                   Matrícula*
                 </label>
                 <input
-                  className="form-control"
+                  className="form-control text-uppercase"
                   id="car_reg_number"
                   required
+                  inputMode="text"
+                  autoComplete="off"
+                  spellCheck={false}
                   value={form.car_reg_number}
-                  onChange={(e) => set("car_reg_number", e.target.value)}
+                  onChange={(e) =>
+                    set(
+                      "car_reg_number",
+                      e.target.value.replace(/\s+/g, "").toUpperCase()
+                    )
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === " ") e.preventDefault();
+                  }}
+                  onPaste={(e) => {
+                    const text = e.clipboardData.getData("text");
+                    if (/\s/.test(text)) {
+                      e.preventDefault();
+                      set(
+                        "car_reg_number",
+                        text.replace(/\s+/g, "").toUpperCase()
+                      );
+                    }
+                  }}
+                  style={{ textTransform: "uppercase" }}
                 />
               </div>
 
@@ -215,7 +351,7 @@ export function CarFineFormPage() {
               </div>
               <div className="col-12 col-md-4">
                 <label className="form-label" htmlFor="owner_ci">
-                  C.I. / Pasaporte
+                  DNI / Pasaporte
                 </label>
                 <input
                   className="form-control"
@@ -260,8 +396,25 @@ export function CarFineFormPage() {
               </div>
 
               <div className="col-12 d-grid mt-2">
-                <button type="submit" className="btn btn-primary">
-                  Crear multa
+                <button
+                  type="submit"
+                  className="btn btn-primary d-inline-flex align-items-center justify-content-center gap-2"
+                  disabled={submitting}
+                  aria-busy={submitting}
+                >
+                  {submitting ? (
+                    <>
+                      <span
+                        className="spinner-border spinner-border-sm"
+                        role="status"
+                        aria-hidden
+                        style={{ width: "1em", height: "1em", borderWidth: "0.15em" }}
+                      />
+                      <span>Creando…</span>
+                    </>
+                  ) : (
+                    "Crear multa"
+                  )}
                 </button>
               </div>
             </form>

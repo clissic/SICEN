@@ -32,6 +32,13 @@ import { NewAccountPage } from "./pages/NewAccountPage.jsx";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage.jsx";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage.jsx";
 import { ShipFinesMenuPage } from "./pages/ShipFinesMenuPage.jsx";
+import { ShipFineFormPage } from "./pages/ShipFineFormPage.jsx";
+import { AllShipFinesPage } from "./pages/AllShipFinesPage.jsx";
+import { DeleteShipFinePage } from "./pages/DeleteShipFinePage.jsx";
+import { PersonalFinesMenuPage } from "./pages/PersonalFinesMenuPage.jsx";
+import { PersonalFineFormPage } from "./pages/PersonalFineFormPage.jsx";
+import { AllPersonalFinesPage } from "./pages/AllPersonalFinesPage.jsx";
+import { DeletePersonalFinePage } from "./pages/DeletePersonalFinePage.jsx";
 import { FinesManagementPage } from "./pages/FinesManagementPage.jsx";
 import { UpdateCarFinePage } from "./pages/UpdateCarFinePage.jsx";
 import { DeleteCarFinePage } from "./pages/DeleteCarFinePage.jsx";
@@ -296,6 +303,62 @@ export default function App() {
         element={
           <ProtectedRoute>
             <ShipFinesMenuPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/multas/buques/nueva"
+        element={
+          <ProtectedRoute>
+            <ShipFineFormPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/multas/buques/todas"
+        element={
+          <ProtectedRoute>
+            <AllShipFinesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/multas/buques/eliminar"
+        element={
+          <ProtectedRoute>
+            <DeleteShipFinePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/multas/personales"
+        element={
+          <ProtectedRoute>
+            <PersonalFinesMenuPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/multas/personales/nueva"
+        element={
+          <ProtectedRoute>
+            <PersonalFineFormPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/multas/personales/todas"
+        element={
+          <ProtectedRoute>
+            <AllPersonalFinesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/multas/personales/eliminar"
+        element={
+          <ProtectedRoute>
+            <DeletePersonalFinePage />
           </ProtectedRoute>
         }
       />

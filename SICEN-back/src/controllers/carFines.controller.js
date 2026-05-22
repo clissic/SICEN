@@ -1,6 +1,11 @@
 import { CarFinesMongoose } from "../DAO/models/mongoose/carFines.mongoose.js";
 import { carFinesServices } from "../services/carFines.service.js";
 import { userService } from "../services/users.service.js";
+import {
+  applyProveUpdatesForFine,
+  deleteStoredProveFiles,
+  renameProveFilesByFineNumber,
+} from "../utils/carFineProveFiles.js";
 import { logger } from "../utils/logger.js";
 import CarFineDTO from "./DTO/carFine.dto.js";
 
@@ -91,6 +96,7 @@ class CarFinesController {
       } = req.body;
       const last_modified_by = "S/M";
       const carFineDTO = new CarFineDTO(
+        undefined,
         fine_date,
         fine_time,
         fine_article,
@@ -132,6 +138,8 @@ class CarFinesController {
   }
 
   async createAndRender(req, res) {
+    const uploadedFiles = Array.isArray(req.files) ? req.files : [];
+    let fine_proves = [];
     try {
       const fine_author = req.user.email;
       const last_modified_by = "S/M";
@@ -141,7 +149,6 @@ class CarFinesController {
         fine_article,
         fine_amount,
         fine_extra_amount,
-        fine_proves,
         car_brand,
         car_model,
         car_reg_number,
@@ -150,7 +157,20 @@ class CarFinesController {
         owner_tel,
         owner_dir,
       } = req.body;
+
+      if (uploadedFiles.length === 0) {
+        return res.status(400).json({
+          status: "failed",
+          msg: "Debe adjuntar al menos una foto de prueba (.jpg, hasta 5 MB).",
+          payload: {},
+        });
+      }
+
+      const fine_number = await carFinesServices.getNextFineNumber();
+      fine_proves = renameProveFilesByFineNumber(uploadedFiles, fine_number);
+
       const carFineDTO = new CarFineDTO(
+        fine_number,
         fine_date,
         fine_time,
         fine_article,
@@ -180,6 +200,7 @@ class CarFinesController {
           payload: carFineCreated,
         });
       } else {
+        deleteStoredProveFiles(fine_proves);
         return res.status(400).json({
           status: "failed",
           msg: "Some properties are incorrect in carFinesController.createAndRender, please check",
@@ -187,6 +208,7 @@ class CarFinesController {
         });
       }
     } catch (e) {
+      deleteStoredProveFiles(fine_proves);
       logger.error("Error on carFinesController.createAndRender: " + e);
       return res.status(500).json({
         status: "error",
@@ -412,8 +434,67 @@ class CarFinesController {
     const { fine_number } = req.params;
     const updatedCarFine = { ...req.query, ...req.body };
     delete updatedCarFine.fine_number;
+    delete updatedCarFine.prove_slot_1_action;
+    delete updatedCarFine.prove_slot_2_action;
+    delete updatedCarFine.prove_slot_3_action;
     updatedCarFine.last_modified_by = user.email;
+
+    if (typeof updatedCarFine.fine_amount === "string") {
+      const n = Number(updatedCarFine.fine_amount);
+      if (!Number.isNaN(n)) updatedCarFine.fine_amount = n;
+    }
+    if (typeof updatedCarFine.fine_extra_amount === "string") {
+      const n = Number(updatedCarFine.fine_extra_amount);
+      if (!Number.isNaN(n)) updatedCarFine.fine_extra_amount = n;
+    }
+
+    const reqFiles = req.files;
+    const filesBySlot = [null, null, null];
+    if (reqFiles && !Array.isArray(reqFiles)) {
+      for (let i = 0; i < 3; i++) {
+        const arr = reqFiles[`prove_slot_${i + 1}`];
+        if (Array.isArray(arr) && arr[0]) filesBySlot[i] = arr[0];
+      }
+    }
+    const slotActions = [
+      String(req.body?.prove_slot_1_action || "").toLowerCase(),
+      String(req.body?.prove_slot_2_action || "").toLowerCase(),
+      String(req.body?.prove_slot_3_action || "").toLowerCase(),
+    ];
+    const hasProveChanges = slotActions.some(
+      (a) => a === "replace" || a === "remove"
+    );
+
+    let cleanupFiles = filesBySlot
+      .filter(Boolean)
+      .map((f) => `${"/uploads/carFineProves/"}${f.filename}`);
+
     try {
+      if (hasProveChanges) {
+        const current = await carFinesServices.findByNumber(fine_number);
+        if (!current) {
+          deleteStoredProveFiles(cleanupFiles);
+          return res.status(404).json({
+            ok: false,
+            msg: `La multa N°${fine_number} no fue encontrada.`,
+          });
+        }
+        const finalUrls = applyProveUpdatesForFine({
+          existingProves: Array.isArray(current.fine_proves)
+            ? current.fine_proves
+            : current.fine_proves
+              ? [current.fine_proves]
+              : [],
+          slotActions,
+          slotFiles: filesBySlot,
+          fineNumber: fine_number,
+        });
+        updatedCarFine.fine_proves = finalUrls;
+        cleanupFiles = [];
+      } else {
+        delete updatedCarFine.fine_proves;
+      }
+
       const carFine = await carFinesServices.findOneAndUpdate(
         { fine_number },
         updatedCarFine
@@ -431,11 +512,13 @@ class CarFinesController {
       logger.info(
         `No se encontró la multa con el N° ${fine_number} por ${user.rank} ${user.first_name} ${user.last_name}.`
       );
+      deleteStoredProveFiles(cleanupFiles);
       return res.status(404).json({
         ok: false,
         msg: `La multa N°${fine_number} no fue encontrada.`,
       });
     } catch (error) {
+      deleteStoredProveFiles(cleanupFiles);
       logger.error(
         `Error de servidor al actualizar la multa N° ${fine_number} por ${user.rank} ${user.first_name} ${user.last_name}:`,
         error
@@ -476,6 +559,12 @@ class CarFinesController {
         fine_number,
       });
       if (carFineDeleted) {
+        const provesToDelete = Array.isArray(carFineDeleted.fine_proves)
+          ? carFineDeleted.fine_proves
+          : carFineDeleted.fine_proves
+            ? [carFineDeleted.fine_proves]
+            : [];
+        deleteStoredProveFiles(provesToDelete);
         logger.info(
           `Multa N° ${fine_number} eliminada con éxito por ${user.rank} ${user.first_name} ${user.last_name} (${user.email}).`
         );

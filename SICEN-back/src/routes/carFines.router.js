@@ -5,6 +5,10 @@ import {
   contableGuarded,
   guarded,
 } from "../middlewares/authChains.js";
+import {
+  uploadCarFineProveSlots,
+  uploadCarFineProves,
+} from "../middlewares/carFineProvesUpload.middleware.js";
 
 export const carFinesRouter = express.Router();
 
@@ -13,7 +17,12 @@ carFinesRouter.get("/paginated", ...guarded, carFinesController.paginateList);
 carFinesRouter.get("/mine", ...guarded, carFinesController.mine);
 
 carFinesRouter.post("/create", ...guarded, carFinesController.create);
-carFinesRouter.post("/createAndRender", ...guarded, carFinesController.createAndRender);
+carFinesRouter.post(
+  "/createAndRender",
+  ...guarded,
+  uploadCarFineProves,
+  carFinesController.createAndRender
+);
 
 carFinesRouter.get(
   "/findBy/number/update",
@@ -28,6 +37,7 @@ carFinesRouter.get(
 carFinesRouter.put(
   "/update/:fine_number",
   ...contableGuarded,
+  uploadCarFineProveSlots,
   carFinesController.findByNumberAndUpdate,
 );
 

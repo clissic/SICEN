@@ -46,9 +46,7 @@ export function ForgotPasswordPage() {
             </form>
 
             <p className="small text-muted mt-3 mb-0">
-              Recibirás un enlace a la pantalla de restablecimiento (misma URL
-              pública que la app: <code>PUBLIC_APP_URL</code> o{" "}
-              <code>API_URL</code> en el servidor).
+              Recibirás un enlace a la pantalla de restablecimiento.
             </p>
 
             <div className="mt-3">

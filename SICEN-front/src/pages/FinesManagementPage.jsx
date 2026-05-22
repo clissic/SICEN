@@ -12,7 +12,7 @@ export function FinesManagementPage() {
           </Link>
         </div>
 
-        <div className="row row-cols-1 row-cols-md-2 g-3">
+        <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
           <div className="col">
             <Link className="text-decoration-none" to="/multas/buques">
               <div className="card h-100 shadow-sm">
@@ -60,6 +60,33 @@ export function FinesManagementPage() {
                       <div className="fw-semibold text-body">MULTAS DE VEHÍCULOS</div>
                       <div className="text-muted small">
                         Base de datos de multas de vehículos y flujos específicos.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          </div>
+          <div className="col">
+            <Link className="text-decoration-none" to="/multas/personales">
+              <div className="card h-100 shadow-sm">
+                <img
+                  src="/img/personalFinesMenu.jpg"
+                  alt="Multas personales"
+                  className="card-img-top"
+                  loading="lazy"
+                />
+                <div className="card-body">
+                  <div className="d-flex align-items-start gap-2">
+                    <i
+                      className="menu-tile-icon bi bi-person-badge me-1 px-2 py-1 border border-secondary rounded-1 bg-secondary text-white flex-shrink-0"
+                      style={{ fontSize: "0.95rem", marginTop: "0.15rem" }}
+                      aria-hidden
+                    />
+                    <div className="min-w-0">
+                      <div className="fw-semibold text-body">MULTAS PERSONALES</div>
+                      <div className="text-muted small">
+                        Base de datos de multas personales y flujos específicos.
                       </div>
                     </div>
                   </div>

@@ -1,13 +1,14 @@
 import { logger } from "../../utils/logger.js";
 import { CarFinesMongoose } from "./mongoose/carFines.mongoose.js";
 
-async function getNextFineNumber() {
-  const highestFine = await CarFinesMongoose.findOne().sort("-fine_number");
-  if (highestFine) {
-    return highestFine.fine_number + 1;
-  } else {
-    return 1;
-  }
+export async function getNextCarFineNumber() {
+  const highest = await CarFinesMongoose.findOne()
+    .sort({ fine_number: -1 })
+    .select("fine_number")
+    .lean()
+    .exec();
+  const n = Number(highest?.fine_number);
+  return Number.isFinite(n) ? n + 1 : 1;
 }
 
 class CarFinesModel {
@@ -154,7 +155,7 @@ class CarFinesModel {
   async findOneAndUpdate(query, update) {
     try {
 
-      const updatedCarFine = await CarFinesMongoose.findOneAndUpdate(query, update);
+      const updatedCarFine = await CarFinesMongoose.findOneAndUpdate(query, update, { new: true });
 
       if (!updatedCarFine) {
         throw new Error('No se encontró la multa para actualizar');
