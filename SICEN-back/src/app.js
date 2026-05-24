@@ -20,6 +20,10 @@ import {
   PERSONAL_FINE_PROVES_DIR,
   ensurePersonalFineProvesDirSync,
 } from "./utils/personalFineProveFiles.js";
+import {
+  INSPECTION_PDFS_DIR,
+  ensureInspectionPdfsDirSync,
+} from "./utils/inspectionPDFFiles.js";
 import { usersRouter } from "./routes/users.router.js";
 import { sessionsRouter } from "./routes/sessions.router.js";
 import { carFinesRouter } from "./routes/carFines.router.js";
@@ -29,6 +33,7 @@ import { tokensRouter } from "./routes/tokens.router.js";
 import { unitFilesRouter } from "./routes/unitFiles.router.js";
 import { unitsRouter } from "./routes/units.router.js";
 import { vesselsRouter } from "./routes/vessels.router.js";
+import { vesselInspectionsRouter } from "./routes/vesselInspections.router.js";
 import { seafarersRouter } from "./routes/seafarers.router.js";
 import { licencesRouter } from "./routes/licences.router.js";
 import { titlesRouter } from "./routes/titles.router.js";
@@ -89,6 +94,9 @@ app.use(
   express.static(PERSONAL_FINE_PROVES_DIR)
 );
 
+ensureInspectionPdfsDirSync();
+app.use("/uploads/inspectionsERP", express.static(INSPECTION_PDFS_DIR));
+
 app.use("/api/users", usersRouter);
 app.use("/api/sessions", sessionsRouter);
 app.use("/api/carFines", carFinesRouter);
@@ -98,6 +106,7 @@ app.use("/api/tokens", tokensRouter);
 app.use("/api/unit-files", unitFilesRouter);
 app.use("/api/units", unitsRouter);
 app.use("/api/vessels", vesselsRouter);
+app.use("/api/vesselInspections", vesselInspectionsRouter);
 app.use("/api/seafarers", seafarersRouter);
 app.use("/api/licences", licencesRouter);
 app.use("/api/titles", titlesRouter);

@@ -19,6 +19,8 @@ shipFinesRouter.get(
   shipFinesController.paginateList
 );
 shipFinesRouter.get("/mine", ...guarded, shipFinesController.mine);
+shipFinesRouter.get("/counts", ...guarded, shipFinesController.getCounts);
+shipFinesRouter.get("/stats", ...guarded, shipFinesController.getStats);
 
 shipFinesRouter.post(
   "/createAndRender",

@@ -7,10 +7,12 @@ import {
   addSeafarerSanction,
   addSeafarerTitle,
   createSeafarer,
+  deleteSeafarerById,
   deleteSeafarerHeldLicense,
   deleteSeafarerHeldTitle,
   findSeafarerByDocument,
   getSeafarerStatsForDashboard,
+  updateSeafarerBasicData,
   updateSeafarerHeldLicense,
   updateSeafarerHeldTitle,
 } from "../services/seafarers.service.js";
@@ -109,6 +111,44 @@ export const seafarersController = {
         ok: false,
         msg: "No se pudo listar las sanciones.",
       });
+    }
+  },
+
+  async removeSeafarer(req, res) {
+    try {
+      const result = await deleteSeafarerById(req.params.id);
+      return res.json({
+        ok: true,
+        msg: "Registro de gente de mar eliminado correctamente.",
+        deletedId: result.id,
+      });
+    } catch (e) {
+      return handleError(
+        res,
+        e,
+        "No se pudo eliminar el registro de gente de mar.",
+      );
+    }
+  },
+
+  async updateBasicData(req, res) {
+    try {
+      const seafarer = await updateSeafarerBasicData(
+        req.params.id,
+        req.body || {},
+        req.user,
+      );
+      return res.json({
+        ok: true,
+        msg: "Datos del registro actualizados correctamente.",
+        seafarer,
+      });
+    } catch (e) {
+      return handleError(
+        res,
+        e,
+        "No se pudieron actualizar los datos del registro.",
+      );
     }
   },
 

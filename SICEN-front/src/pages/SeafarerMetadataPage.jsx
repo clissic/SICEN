@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import Swal from "sweetalert2";
 import {
   deleteLicenceCatalogEntry,
   deleteTitleCatalogEntry,
@@ -13,6 +12,11 @@ import { SeafarerMetadataAddModal } from "../components/seafarer/SeafarerMetadat
 import { SeafarerMetadataListBlock } from "../components/seafarer/SeafarerMetadataListBlock.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { formatSeafarerIdentification } from "../constants/seafarerCreateForm.js";
+import {
+  confirmDelete,
+  escapeHtml,
+  notifyDeleteError,
+} from "../utils/confirmDelete.js";
 import { formatDateForTableDisplay } from "../utils/dateDdMmYyyy.js";
 
 const fetchTitlesCatalogPage = (page, q) =>
@@ -67,62 +71,54 @@ export function SeafarerMetadataPage() {
   async function handleDeleteTitleCatalog(row) {
     const id = row?._id != null ? String(row._id) : "";
     if (!id) return;
-    const code = String(row.code ?? "").trim() || "este registro";
-    const result = await Swal.fire({
-      title: "¿Eliminar del catálogo?",
-      text: `Se eliminará el título «${code}». Esta acción no se puede deshacer.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar",
-      focusCancel: true,
-      confirmButtonColor: "#dc3545",
+    const code = String(row.code ?? "").trim();
+    const name = String(row.name ?? "").trim();
+    const result = await confirmDelete({
+      resource: "título del catálogo",
+      summaryHtml: `
+        <p class="mb-2">Se eliminará del catálogo el título:</p>
+        <ul class="mb-2 ps-3">
+          ${code ? `<li>Código: <strong>${escapeHtml(code)}</strong></li>` : ""}
+          ${name ? `<li>Nombre: <strong>${escapeHtml(name)}</strong></li>` : ""}
+        </ul>
+      `,
     });
     if (!result.isConfirmed) return;
     try {
       await deleteTitleCatalogEntry(id);
       bumpRefresh();
     } catch (e) {
-      await Swal.fire({
-        icon: "error",
-        title: "No se pudo eliminar",
-        text:
-          e.message ||
-          e.data?.msg ||
-          "Intente de nuevo o compruebe su conexión.",
-        confirmButtonText: "Aceptar",
-      });
+      await notifyDeleteError(
+        e,
+        "Intente de nuevo o compruebe su conexión.",
+      );
     }
   }
 
   async function handleDeleteLicenceCatalog(row) {
     const id = row?._id != null ? String(row._id) : "";
     if (!id) return;
-    const code = String(row.code ?? "").trim() || "este registro";
-    const result = await Swal.fire({
-      title: "¿Eliminar del catálogo?",
-      text: `Se eliminará la licencia «${code}». Esta acción no se puede deshacer.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar",
-      focusCancel: true,
-      confirmButtonColor: "#dc3545",
+    const code = String(row.code ?? "").trim();
+    const name = String(row.name ?? "").trim();
+    const result = await confirmDelete({
+      resource: "licencia del catálogo",
+      summaryHtml: `
+        <p class="mb-2">Se eliminará del catálogo la licencia:</p>
+        <ul class="mb-2 ps-3">
+          ${code ? `<li>Código: <strong>${escapeHtml(code)}</strong></li>` : ""}
+          ${name ? `<li>Nombre: <strong>${escapeHtml(name)}</strong></li>` : ""}
+        </ul>
+      `,
     });
     if (!result.isConfirmed) return;
     try {
       await deleteLicenceCatalogEntry(id);
       bumpRefresh();
     } catch (e) {
-      await Swal.fire({
-        icon: "error",
-        title: "No se pudo eliminar",
-        text:
-          e.message ||
-          e.data?.msg ||
-          "Intente de nuevo o compruebe su conexión.",
-        confirmButtonText: "Aceptar",
-      });
+      await notifyDeleteError(
+        e,
+        "Intente de nuevo o compruebe su conexión.",
+      );
     }
   }
 

@@ -7,6 +7,16 @@ export const vesselsRouter = express.Router();
 vesselsRouter.get("/stats", ...guarded, vesselsController.getStats);
 
 vesselsRouter.get("/paginated", ...guarded, vesselsController.listPaginated);
+vesselsRouter.get(
+  "/all-paginated",
+  ...guarded,
+  vesselsController.listAllPaginated,
+);
+vesselsRouter.get(
+  "/by-type/:vesselType",
+  ...guarded,
+  vesselsController.listByType,
+);
 
 vesselsRouter.get(
   "/by-business-id/:vesselId/for-edit",

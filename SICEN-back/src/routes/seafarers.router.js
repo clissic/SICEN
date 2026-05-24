@@ -1,12 +1,17 @@
-﻿import express from "express";
+import express from "express";
 import { seafarersController } from "../controllers/seafarers.controller.js";
 import { checkLogin } from "../middlewares/auth.js";
-import { guarded } from "../middlewares/authChains.js";
+import { adminGuarded, guarded } from "../middlewares/authChains.js";
 
 export const seafarersRouter = express.Router();
 
 seafarersRouter.get("/stats", ...guarded, seafarersController.getStats);
 seafarersRouter.get("/by-document", ...guarded, seafarersController.findByDocument);
+seafarersRouter.delete(
+  "/:id",
+  ...adminGuarded,
+  seafarersController.removeSeafarer,
+);
 seafarersRouter.get(
   "/metadata/courses",
   checkLogin,
@@ -18,6 +23,11 @@ seafarersRouter.get(
   seafarersController.metadataSanctions,
 );
 seafarersRouter.post("/", ...guarded, seafarersController.create);
+seafarersRouter.patch(
+  "/:id/basic-data",
+  ...guarded,
+  seafarersController.updateBasicData,
+);
 seafarersRouter.patch(
   "/:id/titles/:entryId",
   ...guarded,

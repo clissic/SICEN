@@ -2,12 +2,19 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { userDelete, userForDelete } from "../api/client.js";
 import { Layout } from "../components/Layout.jsx";
+import {
+  confirmDelete,
+  escapeHtml,
+  notifyDeleteError,
+  notifyDeleteSuccess,
+} from "../utils/confirmDelete.js";
 
 export function DeleteUserPage() {
   const [id, setId] = useState("");
   const [preview, setPreview] = useState(null);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   async function loadUser(e) {
     e.preventDefault();
@@ -26,15 +33,36 @@ export function DeleteUserPage() {
     }
   }
 
-  async function confirmDelete() {
+  async function handleDelete() {
+    if (!preview) return;
+    const fullName = [preview.rank, preview.first_name, preview.last_name]
+      .filter((p) => String(p ?? "").trim())
+      .join(" ");
+    const email = String(preview.email ?? "").trim();
+    const result = await confirmDelete({
+      resource: "usuario",
+      summaryHtml: `
+        <p class="mb-2">Se eliminará permanentemente el usuario:</p>
+        <ul class="mb-2 ps-3">
+          ${fullName ? `<li><strong>${escapeHtml(fullName)}</strong></li>` : ""}
+          ${email ? `<li class="small text-muted">${escapeHtml(email)}</li>` : ""}
+        </ul>
+      `,
+    });
+    if (!result.isConfirmed) return;
+
+    setDeleting(true);
     setErr("");
-    setMsg("");
     try {
       const data = await userDelete(String(preview._id));
-      setMsg(data.msg || "Eliminado");
       setPreview(null);
+      setId("");
+      setMsg(data.msg || "Usuario eliminado correctamente.");
+      await notifyDeleteSuccess(data.msg);
     } catch (ex) {
-      setErr(ex.message);
+      await notifyDeleteError(ex, "No se pudo eliminar el usuario.");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -87,10 +115,31 @@ export function DeleteUserPage() {
               </div>
               <button
                 type="button"
-                className="btn btn-danger"
-                onClick={confirmDelete}
+                className="btn btn-danger d-inline-flex align-items-center gap-2"
+                onClick={handleDelete}
+                disabled={deleting}
+                aria-busy={deleting}
               >
-                Confirmar eliminación
+                {deleting ? (
+                  <>
+                    <span
+                      className="spinner-border spinner-border-sm"
+                      role="status"
+                      aria-hidden
+                      style={{
+                        width: "1em",
+                        height: "1em",
+                        borderWidth: "0.15em",
+                      }}
+                    />
+                    <span>Eliminando…</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-trash3" aria-hidden />
+                    <span>Confirmar eliminación</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

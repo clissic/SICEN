@@ -12,7 +12,7 @@ import {
   formatCI,
   formatPersonName,
 } from "../components/PersonalFineCard.jsx";
-import { FINE_ARTICLE_OPTIONS } from "../constants/fineArticles.js";
+import { PERSONAL_FINE_ARTICLE_OPTIONS } from "../constants/fineArticles.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { provesAsArray } from "../utils/carFineFormatters.js";
 import { preventNegativeNumberKeys } from "../utils/nonNegativeNumberInput.js";
@@ -626,7 +626,7 @@ export function AllPersonalFinesPage() {
                       }
                     >
                       <option value="">Todos</option>
-                      {FINE_ARTICLE_OPTIONS.map((o) => (
+                      {PERSONAL_FINE_ARTICLE_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>
                           {o.label}
                         </option>
@@ -971,13 +971,13 @@ export function AllPersonalFinesPage() {
                     <option value="" disabled>
                       Seleccionar artículo…
                     </option>
-                    {FINE_ARTICLE_OPTIONS.map((o) => (
+                    {PERSONAL_FINE_ARTICLE_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value}>
                         {o.label}
                       </option>
                     ))}
                     {fineEditor.form.fine_article &&
-                    !FINE_ARTICLE_OPTIONS.some(
+                    !PERSONAL_FINE_ARTICLE_OPTIONS.some(
                       (o) => o.value === fineEditor.form.fine_article
                     ) ? (
                       <option value={fineEditor.form.fine_article}>

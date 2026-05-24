@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { shipFineCreateAndRender } from "../api/client.js";
 import { Layout } from "../components/Layout.jsx";
-import { FINE_ARTICLE_OPTIONS } from "../constants/fineArticles.js";
+import { SHIP_FINE_ARTICLE_OPTIONS } from "../constants/fineArticles.js";
+import { FLAG_STATE_OPTIONS } from "../constants/flagStates.js";
 import { preventNegativeNumberKeys } from "../utils/nonNegativeNumberInput.js";
 import { scrollElementIntoViewById } from "../utils/scrollPageToTop.js";
 
@@ -14,6 +15,7 @@ const initial = {
   fine_extra_amount: "",
   omi: "",
   ship_reg_number: "",
+  flag: "",
   owner_ci: "",
   owner_name: "",
   owner_tel: "",
@@ -182,7 +184,7 @@ export function ShipFineFormPage() {
                   <option value="" disabled>
                     Seleccionar artículo…
                   </option>
-                  {FINE_ARTICLE_OPTIONS.map((o) => (
+                  {SHIP_FINE_ARTICLE_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
                       {o.label}
                     </option>
@@ -284,7 +286,7 @@ export function ShipFineFormPage() {
               <div className="col-12 mt-2">
                 <h6 className="text-muted mb-0">Datos del buque</h6>
               </div>
-              <div className="col-12 col-md-6">
+              <div className="col-12 col-md-4">
                 <label className="form-label" htmlFor="omi">
                   Número OMI*
                 </label>
@@ -307,7 +309,7 @@ export function ShipFineFormPage() {
                 />
                 <div className="form-text">Solo dígitos (sin guiones ni espacios).</div>
               </div>
-              <div className="col-12 col-md-6">
+              <div className="col-12 col-md-4">
                 <label className="form-label" htmlFor="ship_reg_number">
                   Matrícula del buque*
                 </label>
@@ -340,6 +342,27 @@ export function ShipFineFormPage() {
                   }}
                   style={{ textTransform: "uppercase" }}
                 />
+              </div>
+              <div className="col-12 col-md-4">
+                <label className="form-label" htmlFor="flag">
+                  Bandera
+                </label>
+                <select
+                  className="form-select"
+                  id="flag"
+                  value={form.flag}
+                  onChange={(e) => set("flag", e.target.value)}
+                >
+                  <option value="">Seleccione país…</option>
+                  {FLAG_STATE_OPTIONS.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+                <div className="form-text">
+                  Pabellón del buque al momento de la infracción.
+                </div>
               </div>
 
               <div className="col-12 mt-2">

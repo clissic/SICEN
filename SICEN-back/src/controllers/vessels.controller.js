@@ -5,6 +5,8 @@ import {
   deleteVesselByIdentifier,
   findVesselByIdentifier,
   getVesselStatsForDashboard,
+  listAllVesselsPaginated,
+  listVesselsByType,
   listVesselsPaginated,
   normalizeVesselInitialPayload,
   updateVesselInitial,
@@ -305,6 +307,87 @@ export const vesselsController = {
     }
   },
 
+  /**
+   * Lista buques por tipo (Ultramar / Cabotaje / Deportivo) para alimentar
+   * un picker. Sin paginación: devuelve `{ ok, vessels: [...] }` con los
+   * campos imprescindibles para mostrar opciones del combobox.
+   */
+  async listByType(req, res) {
+    try {
+      const vesselType = String(req.params.vesselType ?? "").trim();
+      if (!VESSEL_TYPES.has(vesselType)) {
+        return res.status(400).json({
+          ok: false,
+          msg: "Tipo de buque no válido (Ultramar, Cabotaje o Deportivo).",
+        });
+      }
+      const vessels = await listVesselsByType(vesselType);
+      return res.status(200).json({ ok: true, vessels });
+    } catch (e) {
+      logger.error("vessels.listByType: " + (e?.message || e));
+      return res.status(500).json({
+        ok: false,
+        msg: "No se pudieron listar los buques.",
+      });
+    }
+  },
+
+  /**
+   * Lista todos los buques paginados (sin filtros).
+   * Query params: `currentPage` (default 1), `pageSize` (default 10, máx 50).
+   */
+  async listAllPaginated(req, res) {
+    try {
+      const page = parseInt(req.query.currentPage, 10) || 1;
+      const limit = parseInt(req.query.pageSize, 10) || 10;
+
+      const result = await listAllVesselsPaginated({ page, limit });
+
+      const paginatedVessels = result.docs.map((doc) => {
+        const o = doc.toObject ? doc.toObject() : doc;
+        return {
+          _id: o._id,
+          id: o.id,
+          vesselType: o.vesselType,
+          name: o.generalInfo?.name ?? "",
+          owner: o.ownership?.owner ?? "",
+          imoNumber: o.identification?.imoNumber ?? o.imoNumber ?? null,
+          nationalRegistryNumber:
+            o.identification?.nationalRegistryNumber ??
+            o.nationalRegistryNumber ??
+            null,
+          portOfRegistry: o.generalInfo?.portOfRegistry ?? "",
+          flagState: o.generalInfo?.flagState ?? "",
+          shipType: o.generalInfo?.shipType ?? "",
+          createdAt: o.createdAt,
+        };
+      });
+
+      return res.status(200).json({
+        status: "success",
+        msg: "Buques",
+        payload: {
+          paginatedVessels,
+          totalDocs: result.totalDocs,
+          limit: result.limit,
+          totalPages: result.totalPages,
+          page: result.page,
+          hasPrevPage: result.hasPrevPage,
+          hasNextPage: result.hasNextPage,
+          prevPage: result.prevPage,
+          nextPage: result.nextPage,
+          pagingCounter: result.pagingCounter,
+        },
+      });
+    } catch (e) {
+      logger.error("vessels.listAllPaginated: " + (e?.message || e));
+      return res.status(500).json({
+        ok: false,
+        msg: "No se pudieron listar los buques.",
+      });
+    }
+  },
+
   async getByBusinessId(req, res) {
     try {
       const vesselIdParam =
@@ -536,7 +619,7 @@ export const vesselsController = {
       if (err) {
         return res.status(400).json({ ok: false, msg: err });
       }
-      const vessel = await createVesselInitial(p);
+      const vessel = await createVesselInitial(p, req.user);
       const o = vessel.toObject ? vessel.toObject() : vessel;
       return res.status(201).json({
         ok: true,

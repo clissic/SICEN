@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import Swal from "sweetalert2";
 import * as api from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useUnitFromApi } from "../hooks/useUnitFromApi.js";
+import { confirmDelete, escapeHtml } from "../utils/confirmDelete.js";
 
 const PAGE_SIZE = 15;
 
@@ -170,16 +170,14 @@ export function ProcedimientosFilesList({
   }
 
   async function handleDelete(f) {
-    const result = await Swal.fire({
-      title: "¿Eliminar archivo?",
-      text: `Se eliminará permanentemente «${f.name}». Esta acción no se puede deshacer.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Eliminar",
-      cancelButtonText: "Cancelar",
-      focusCancel: true,
-      reverseButtons: true,
-      confirmButtonColor: "var(--bs-danger, #dc3545)",
+    const result = await confirmDelete({
+      resource: "archivo",
+      summaryHtml: `
+        <p class="mb-2">Se eliminará permanentemente el siguiente archivo:</p>
+        <ul class="mb-2 ps-3">
+          <li><strong>${escapeHtml(f.name)}</strong></li>
+        </ul>
+      `,
     });
 
     if (!result.isConfirmed) {

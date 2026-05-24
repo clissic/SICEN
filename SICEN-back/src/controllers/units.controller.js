@@ -22,7 +22,9 @@ function normalizeSiglaParam(raw) {
 const SIGLA_MSG =
   "La sigla debe tener entre 4 y 6 caracteres (solo letras y números).";
 
-/** `YYYY-MM-DD` del formulario → Date en medianoche UTC (día civil). */
+const TZ_UY = "America/Montevideo";
+
+/** `YYYY-MM-DD` del formulario → Date al mediodía UTC (evita corrimiento de día en UY). */
 function parseFoundationDateFromForm(fechaRaw) {
   const s = String(fechaRaw ?? "").trim();
   if (!s) return null;
@@ -34,8 +36,42 @@ function parseFoundationDateFromForm(fechaRaw) {
   const y = Number(m[1]);
   const mo = Number(m[2]) - 1;
   const day = Number(m[3]);
-  const d = new Date(Date.UTC(y, mo, day));
+  const d = new Date(Date.UTC(y, mo, day, 12, 0, 0));
   return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** Hoy (mes/día/año) en zona horaria de Uruguay. */
+function todayPartsInUy() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ_UY,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  return {
+    year: Number(parts.find((p) => p.type === "year").value),
+    month: Number(parts.find((p) => p.type === "month").value),
+    day: Number(parts.find((p) => p.type === "day").value),
+  };
+}
+
+/**
+ * Día civil de la fecha guardada desde input `type="date"` (YYYY-MM-DD en UTC).
+ * No usar TZ local de Uruguay sobre medianoche UTC: desplazaría al día anterior.
+ */
+function foundationCalendarParts(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+  return {
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth() + 1,
+    day: date.getUTCDate(),
+  };
+}
+
+function isFoundationAnniversaryToday(foundationDate, today) {
+  const f = foundationCalendarParts(foundationDate);
+  if (!f) return false;
+  return f.month === today.month && f.day === today.day;
 }
 
 function normalizeEmails(body) {
@@ -83,6 +119,50 @@ export const unitsController = {
       return res.status(500).json({
         ok: false,
         msg: e?.message || "Error al listar unidades.",
+      });
+    }
+  },
+
+  /**
+   * Devuelve las unidades cuyo `foundationDate` coincide con el día de hoy
+   * (mes/día), evaluado en zona horaria de Uruguay. Incluye además el
+   * `anniversaryNumber` (años cumplidos en esta fecha).
+   */
+  async anniversariesToday(req, res) {
+    try {
+      const today = todayPartsInUy();
+
+      const units = await UnitMongoose.find()
+        .select("acronym name shieldRelativeUrl foundationDate")
+        .lean();
+
+      const anniversaries = units
+        .filter((u) => isFoundationAnniversaryToday(u.foundationDate, today))
+        .map((u) => {
+          const f = foundationCalendarParts(u.foundationDate);
+          const foundationYear = f?.year ?? today.year;
+          const anniversaryNumber = today.year - foundationYear;
+          return {
+            acronym: u.acronym,
+            name: u.name,
+            shieldRelativeUrl: u.shieldRelativeUrl,
+            foundationDate: u.foundationDate,
+            foundationYear,
+            anniversaryNumber,
+          };
+        })
+        .filter((d) => d.anniversaryNumber > 0)
+        .sort((a, b) => a.foundationYear - b.foundationYear);
+
+      return res.json({
+        ok: true,
+        today: { ...today, tz: TZ_UY },
+        anniversaries,
+      });
+    } catch (e) {
+      return res.status(500).json({
+        ok: false,
+        msg: e?.message || "Error al obtener aniversarios de unidades.",
       });
     }
   },

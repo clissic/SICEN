@@ -231,6 +231,76 @@ export function formatSeafarerIdentification(seafarer) {
 }
 
 /**
+ * Convierte un documento de seafarer (consulta) al shape del formulario
+ * `INITIAL_SEAFARER_CREATE_FORM`. Útil para precargar el modal de modificación.
+ */
+export function seafarerToCreateForm(seafarer) {
+  if (!seafarer || typeof seafarer !== "object") {
+    return { ...INITIAL_SEAFARER_CREATE_FORM };
+  }
+  const id =
+    seafarer.identificationDocuments && typeof seafarer.identificationDocuments === "object"
+      ? seafarer.identificationDocuments
+      : {};
+  const cc = id.civicCredential && typeof id.civicCredential === "object" ? id.civicCredential : {};
+  const pd = seafarer.personalData && typeof seafarer.personalData === "object" ? seafarer.personalData : {};
+  const bt = pd.bloodType && typeof pd.bloodType === "object" ? pd.bloodType : {};
+  const morph =
+    seafarer.morphologicalData && typeof seafarer.morphologicalData === "object"
+      ? seafarer.morphologicalData
+      : {};
+  const mf =
+    seafarer.maritimeFitness && typeof seafarer.maritimeFitness === "object"
+      ? seafarer.maritimeFitness
+      : {};
+  const mc = mf.medicalCertificate && typeof mf.medicalCertificate === "object" ? mf.medicalCertificate : {};
+  const vc = mf.vaccinationCard && typeof mf.vaccinationCard === "object" ? mf.vaccinationCard : {};
+  const ct = seafarer.contact && typeof seafarer.contact === "object" ? seafarer.contact : {};
+
+  const toDateInput = (v) => {
+    if (v == null || v === "") return "";
+    if (typeof v === "string") return v.slice(0, 10);
+    const d = v instanceof Date ? v : new Date(v);
+    if (Number.isNaN(d.getTime())) return "";
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
+  return {
+    ...INITIAL_SEAFARER_CREATE_FORM,
+    dni: String(id.dni ?? "").trim(),
+    passport: String(id.passport ?? "").trim(),
+    ccSeries: String(cc.series ?? "").trim(),
+    ccNumber: String(cc.number ?? "").trim(),
+    firstName: String(pd.firstName ?? "").trim(),
+    lastName: String(pd.lastName ?? "").trim(),
+    birthDate: toDateInput(pd.birthDate),
+    nationality: String(pd.nationality ?? "").trim(),
+    gender: String(pd.gender ?? "").trim(),
+    bloodGroup: String(bt.group ?? "").trim().toUpperCase(),
+    bloodRh: String(bt.rhFactor ?? "").trim(),
+    hairColor: String(morph.hairColor ?? "").trim(),
+    hairColorDetail: String(morph.hairColorDetail ?? "").trim(),
+    hairColoration: String(morph.hairColoration ?? "").trim(),
+    eyeColor: String(morph.eyeColor ?? "").trim(),
+    skinColor: String(morph.skinColor ?? "").trim(),
+    heightCm:
+      morph.heightCm == null || morph.heightCm === ""
+        ? ""
+        : String(morph.heightCm),
+    medicalExpiration: toDateInput(mc.expirationDate),
+    medicalStatus: String(mc.status ?? "").trim(),
+    vaccinationExpiration: toDateInput(vc.expirationDate),
+    vaccinationStatus: String(vc.status ?? "").trim(),
+    phone: String(ct.phone ?? "").trim(),
+    email: String(ct.email ?? "").trim(),
+    address: String(ct.address ?? "").trim(),
+  };
+}
+
+/**
  * Plano del formulario → cuerpo JSON esperado por `POST /api/seafarers`.
  * @param {typeof INITIAL_SEAFARER_CREATE_FORM} f
  */

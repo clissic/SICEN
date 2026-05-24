@@ -16,6 +16,8 @@ const schema = new Schema({
   omi: { type: Number, required: true },
   /** Matrícula del buque. */
   ship_reg_number: { type: String, required: true },
+  /** Bandera (pabellón) del buque al momento de la infracción. */
+  flag: { type: String, default: "" },
   owner_ci: { type: String },
   owner_name: { type: String },
   owner_tel: { type: String },

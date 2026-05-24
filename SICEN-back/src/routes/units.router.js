@@ -21,6 +21,11 @@ function wrapUpload(multerMw, handler) {
 }
 
 unitsRouter.get("/public", unitsController.listPublic);
+unitsRouter.get(
+  "/anniversaries/today",
+  ...loginOnly,
+  unitsController.anniversariesToday
+);
 
 unitsRouter.get("/", ...loginOnly, unitsController.list);
 

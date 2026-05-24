@@ -83,6 +83,7 @@ class ShipFinesController {
         fine_extra_amount,
         omi,
         ship_reg_number,
+        flag,
         owner_ci,
         owner_name,
         owner_tel,
@@ -125,6 +126,7 @@ class ShipFinesController {
         fine_proves,
         omiNumber,
         ship_reg_number,
+        typeof flag === "string" ? flag.trim() : "",
         owner_ci,
         owner_name,
         owner_tel,
@@ -174,6 +176,7 @@ class ShipFinesController {
         fine_status: fine.fine_status,
         omi: fine.omi,
         ship_reg_number: fine.ship_reg_number,
+        flag: fine.flag,
         owner_ci: fine.owner_ci,
         owner_name: fine.owner_name,
         owner_tel: fine.owner_tel,
@@ -202,6 +205,7 @@ class ShipFinesController {
         fine_status,
         omi,
         ship_reg_number,
+        flag,
         owner_ci,
         owner_name,
       } = req.query;
@@ -237,6 +241,9 @@ class ShipFinesController {
           $regex: new RegExp(ship_reg_number, "i"),
         };
       }
+      if (flag) {
+        mongooseFilter.flag = { $regex: new RegExp(flag, "i") };
+      }
       if (owner_ci) {
         mongooseFilter.owner_ci = { $regex: new RegExp(owner_ci) };
       }
@@ -262,6 +269,7 @@ class ShipFinesController {
         fine_status: fine.fine_status,
         omi: fine.omi,
         ship_reg_number: fine.ship_reg_number,
+        flag: fine.flag,
         owner_ci: fine.owner_ci,
         owner_name: fine.owner_name,
         owner_tel: fine.owner_tel,
@@ -510,6 +518,116 @@ class ShipFinesController {
       return res.status(500).json({
         ok: false,
         msg: `La multa N°${fine_number} no pudo ser eliminada por un error del servidor.`,
+      });
+    }
+  }
+
+  /**
+   * Conteo agregado de multas de buques.
+   * Devuelve `total` (no desestimadas) y `dismissed`.
+   */
+  async getCounts(req, res) {
+    try {
+      const [total, dismissed] = await Promise.all([
+        ShipFinesMongoose.countDocuments({
+          fine_status: { $ne: "dismissed" },
+        }),
+        ShipFinesMongoose.countDocuments({ fine_status: "dismissed" }),
+      ]);
+      return res.status(200).json({
+        status: "success",
+        msg: "Ship fines counts",
+        payload: { total, dismissed },
+      });
+    } catch (error) {
+      logger.error("Error on shipFinesController.getCounts: " + error);
+      return res.status(500).json({
+        status: "error",
+        msg: "Error generando conteos de multas de buques.",
+      });
+    }
+  }
+
+  /**
+   * Estadísticas de multas de buques: ranking de banderas más infractoras y
+   * artículos más aplicados. Excluye multas en estado `dismissed`.
+   *
+   * Query params (opcionales):
+   *   - `limit` (default 10, máximo 50)
+   */
+  async getStats(req, res) {
+    try {
+      const rawLimit = Number(req.query?.limit);
+      const limit =
+        Number.isFinite(rawLimit) && rawLimit > 0
+          ? Math.min(Math.floor(rawLimit), 50)
+          : 10;
+
+      const baseMatch = { fine_status: { $ne: "dismissed" } };
+
+      const buildGroupedAggregation = (field, emptyLabel) => [
+        { $match: baseMatch },
+        {
+          $group: {
+            _id: {
+              $let: {
+                vars: {
+                  trimmed: {
+                    $trim: {
+                      input: {
+                        $toString: { $ifNull: [`$${field}`, ""] },
+                      },
+                    },
+                  },
+                },
+                in: {
+                  $cond: [
+                    { $eq: ["$$trimmed", ""] },
+                    emptyLabel,
+                    "$$trimmed",
+                  ],
+                },
+              },
+            },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { count: -1, _id: 1 } },
+        { $limit: limit },
+        { $project: { _id: 0, label: "$_id", count: 1 } },
+      ];
+
+      const [totalConsidered, flagsAgg, articlesAgg, ownersAgg] =
+        await Promise.all([
+          ShipFinesMongoose.countDocuments(baseMatch),
+          ShipFinesMongoose.aggregate(
+            buildGroupedAggregation("flag", "Sin bandera")
+          ),
+          ShipFinesMongoose.aggregate(
+            buildGroupedAggregation("fine_article", "Sin artículo")
+          ),
+          ShipFinesMongoose.aggregate(
+            buildGroupedAggregation("owner_ci", "Sin DNI / Pasaporte")
+          ),
+        ]);
+
+      return res.status(200).json({
+        status: "success",
+        msg: "Ship fines stats",
+        payload: {
+          totalConsidered,
+          limit,
+          excludedStatuses: ["dismissed"],
+          topFlags: flagsAgg,
+          topArticles: articlesAgg,
+          topOwners: ownersAgg,
+        },
+      });
+    } catch (error) {
+      logger.error("Error on shipFinesController.getStats: " + error);
+      return res.status(500).json({
+        status: "error",
+        msg: "Error generando estadísticas de multas de buques.",
       });
     }
   }

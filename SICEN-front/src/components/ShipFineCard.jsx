@@ -185,6 +185,22 @@ export function ShipFineCard({ fine, onStatusEdit, onDataEdit, onOpenProve }) {
               <div className="col-12 col-md-6">
                 <div className="car-fine-card__field">
                   <span className="car-fine-card__field-icon">
+                    <i className="bi bi-flag-fill" aria-hidden />
+                  </span>
+                  <div className="car-fine-card__field-body">
+                    <div className="car-fine-card__field-label">Bandera</div>
+                    <div className="car-fine-card__field-value">
+                      {fine.flag && String(fine.flag).trim() !== ""
+                        ? fine.flag
+                        : "Sin bandera"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-12 col-md-6">
+                <div className="car-fine-card__field">
+                  <span className="car-fine-card__field-icon">
                     <i className="bi bi-shield-check" aria-hidden />
                   </span>
                   <div className="car-fine-card__field-body">

@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
 import { useAuth } from "../context/AuthContext.jsx";
+import { AnniversaryModal } from "./AnniversaryModal.jsx";
+import { IframeModal } from "./IframeModal.jsx";
 import { ThemeToggle, useBootstrapTheme } from "./ThemeToggle.jsx";
+
+const JPC_SITE_URL = "https://jpc-dev.uy";
 
 function LogoutPowerButton({ onLogout }) {
   const btnRef = useRef(null);
@@ -108,6 +112,7 @@ function NavbarToolbar({ user, onLogout }) {
 export function Layout({ children }) {
   const { user, logout } = useAuth();
   const bsTheme = useBootstrapTheme();
+  const [jpcModalOpen, setJpcModalOpen] = useState(false);
   const navbarEmblemSrc =
     bsTheme === "dark"
       ? "/img/Franja-PNN-CUADRADO-Blanco.png"
@@ -125,6 +130,19 @@ export function Layout({ children }) {
         }
         footer .jpc-footer-link:hover {
           text-decoration: underline;
+        }
+        footer .jpc-footer-link-btn {
+          background: transparent;
+          border: 0;
+          padding: 0;
+          line-height: inherit;
+          cursor: pointer;
+          color: inherit;
+        }
+        footer .jpc-footer-link-btn:focus-visible {
+          outline: 2px solid var(--bs-primary);
+          outline-offset: 2px;
+          border-radius: 2px;
         }
         footer .footer-pnn-logo {
           height: 2.5rem;
@@ -196,6 +214,8 @@ export function Layout({ children }) {
 
       <main className="flex-grow-1">{children}</main>
 
+      <AnniversaryModal />
+
       <footer className="border-top py-3">
         <div className="container">
           <div className="d-flex flex-column flex-md-row flex-wrap align-items-center justify-content-center justify-content-md-between w-100 gap-3">
@@ -219,11 +239,11 @@ export function Layout({ children }) {
               <div className="d-inline-flex align-items-center fw-semibold justify-content-center justify-content-md-end flex-wrap gap-1">
                 <span>
                   Desarrollado por{" "}
-                  <a
-                    className="jpc-footer-link"
-                    href="https://jpc-dev.uy"
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    type="button"
+                    className="jpc-footer-link jpc-footer-link-btn"
+                    onClick={() => setJpcModalOpen(true)}
+                    aria-label="Abrir sitio de JPC en una vista previa"
                   >
                     <img
                       className="jpc-footer-logo flex-shrink-0"
@@ -232,7 +252,7 @@ export function Layout({ children }) {
                       aria-hidden="true"
                       decoding="async"
                     />
-                  </a>
+                  </button>
                 </span>
                 
               </div>
@@ -241,6 +261,15 @@ export function Layout({ children }) {
           </div>
         </div>
       </footer>
+
+      <IframeModal
+        open={jpcModalOpen}
+        onClose={() => setJpcModalOpen(false)}
+        url={JPC_SITE_URL}
+        titleText="JPC — jpc-dev.uy"
+        logoSrc="/img/LogoJPC.svg"
+        ariaLabel="Sitio de JPC en una vista previa"
+      />
     </div>
   );
 }

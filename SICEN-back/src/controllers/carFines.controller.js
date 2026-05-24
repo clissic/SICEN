@@ -551,6 +551,117 @@ class CarFinesController {
     }
   }
 
+  /**
+   * Conteo agregado de multas vehiculares.
+   * Devuelve `total` (no desestimadas) y `dismissed`.
+   */
+  async getCounts(req, res) {
+    try {
+      const [total, dismissed] = await Promise.all([
+        CarFinesMongoose.countDocuments({
+          fine_status: { $ne: "dismissed" },
+        }),
+        CarFinesMongoose.countDocuments({ fine_status: "dismissed" }),
+      ]);
+      return res.status(200).json({
+        status: "success",
+        msg: "Car fines counts",
+        payload: { total, dismissed },
+      });
+    } catch (error) {
+      logger.error("Error on carFinesController.getCounts: " + error);
+      return res.status(500).json({
+        status: "error",
+        msg: "Error generando conteos de multas vehiculares.",
+      });
+    }
+  }
+
+  /**
+   * Estadísticas de multas vehiculares: rankings de matrículas, artículos y
+   * DNI/Pasaporte de titulares más infractores. Excluye multas en estado
+   * `dismissed`.
+   *
+   * Query params (opcionales):
+   *   - `limit` (default 10, máximo 50)
+   */
+  async getStats(req, res) {
+    try {
+      const rawLimit = Number(req.query?.limit);
+      const limit =
+        Number.isFinite(rawLimit) && rawLimit > 0
+          ? Math.min(Math.floor(rawLimit), 50)
+          : 10;
+
+      const baseMatch = { fine_status: { $ne: "dismissed" } };
+
+      const buildGroupedAggregation = (field, emptyLabel) => [
+        { $match: baseMatch },
+        {
+          $group: {
+            _id: {
+              $let: {
+                vars: {
+                  trimmed: {
+                    $trim: {
+                      input: {
+                        $toString: { $ifNull: [`$${field}`, ""] },
+                      },
+                    },
+                  },
+                },
+                in: {
+                  $cond: [
+                    { $eq: ["$$trimmed", ""] },
+                    emptyLabel,
+                    "$$trimmed",
+                  ],
+                },
+              },
+            },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { count: -1, _id: 1 } },
+        { $limit: limit },
+        { $project: { _id: 0, label: "$_id", count: 1 } },
+      ];
+
+      const [totalConsidered, platesAgg, articlesAgg, ownersAgg] =
+        await Promise.all([
+          CarFinesMongoose.countDocuments(baseMatch),
+          CarFinesMongoose.aggregate(
+            buildGroupedAggregation("car_reg_number", "Sin matrícula")
+          ),
+          CarFinesMongoose.aggregate(
+            buildGroupedAggregation("fine_article", "Sin artículo")
+          ),
+          CarFinesMongoose.aggregate(
+            buildGroupedAggregation("owner_ci", "Sin DNI / Pasaporte")
+          ),
+        ]);
+
+      return res.status(200).json({
+        status: "success",
+        msg: "Car fines stats",
+        payload: {
+          totalConsidered,
+          limit,
+          excludedStatuses: ["dismissed"],
+          topPlates: platesAgg,
+          topArticles: articlesAgg,
+          topOwners: ownersAgg,
+        },
+      });
+    } catch (error) {
+      logger.error("Error on carFinesController.getStats: " + error);
+      return res.status(500).json({
+        status: "error",
+        msg: "Error generando estadísticas de multas vehiculares.",
+      });
+    }
+  }
+
   async findByNumberAndDelete(req, res) {
     const user = req.user;
     const { fine_number } = req.params;

@@ -1,0 +1,62 @@
+---
+description: Crear skills proactivamente cuando se establezca un patrón estándar reutilizable en SICEN
+alwaysApply: true
+---
+
+# Skills proactivos para estandarizar patrones
+
+Cuando durante una implementación en SICEN se establezca una lógica/estética
+que deba repetirse en el futuro, **crear o actualizar un skill** en
+`.cursor/skills/<nombre>/SKILL.md` antes de cerrar la tarea. El objetivo es
+que las próximas implementaciones similares mantengan la misma lógica y
+estética sin tener que reconstruir el patrón.
+
+## Cuándo crear un skill nuevo
+
+Crear un skill cuando se cumpla **al menos una** de estas condiciones:
+
+- Se introduce un helper compartido (`SICEN-front/src/utils/...`,
+  `SICEN-front/src/components/...` reutilizable, middleware backend, etc.)
+  que debería usarse en lugar de reimplementar el patrón.
+- Se refactorizan varias páginas/componentes para que compartan la misma
+  estructura visual o flujo (modales, confirmaciones, tarjetas, tablas
+  paginadas, formularios con la misma validación, etc.).
+- Se define una convención de UI (copys en español rioplatense, colores,
+  iconos, layout de botones, atajos de teclado) que ya se aplicó en 2+
+  lugares.
+- Se establece un contrato backend (forma del payload, nombres de rutas,
+  guards a usar, formato de respuesta `{ ok, msg, ... }`) que se repetirá.
+
+## Cuándo actualizar un skill existente
+
+Antes de crear uno nuevo, revisar `.cursor/skills/` y agregar ejemplos o
+reglas al skill existente si el patrón cae dentro de su alcance. Si la
+extensión hace que el skill supere ~500 líneas o mezcle temas distintos,
+dividirlo en archivos hermanos enlazados desde `SKILL.md`.
+
+## Forma esperada del skill
+
+Seguir las reglas de `~/.cursor/skills-cursor/create-skill/SKILL.md`:
+
+- Frontmatter con `name` en `kebab-case` y `description` específica que
+  incluya QUÉ hace y CUÁNDO se debe usar (palabras gatillo concretas).
+- Cuerpo conciso (<500 líneas) con: helper/API que provee el patrón,
+  reglas obligatorias, antipatrones a evitar, **template listo para
+  copiar** y lista de "ejemplos vivos" del repo.
+- Idioma español rioplatense, mismo registro que el resto del proyecto.
+
+## Flujo recomendado al detectar un patrón
+
+1. Implementar el cambio en el código.
+2. Identificar el helper/convención que quedó como estándar.
+3. Crear/actualizar el skill con el template y los ejemplos vivos.
+4. Mencionar en la respuesta final qué skill quedó (creado o actualizado)
+   y qué cubre, para que el usuario lo registre.
+
+## Ejemplo
+
+El skill `delete-flow-pattern`
+(`.cursor/skills/delete-flow-pattern/SKILL.md`) se creó después de unificar
+todas las eliminaciones a través del helper `confirmDelete` y los Swal de
+éxito/error. Replicar ese estilo de skill: helper, reglas, template y lista
+de páginas que ya siguen el patrón.

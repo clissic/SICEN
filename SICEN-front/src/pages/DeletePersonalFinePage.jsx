@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 import { personalFineDelete, personalFineForDelete } from "../api/client.js";
 import { CarFineProveViewer } from "../components/CarFineProveViewer.jsx";
@@ -8,6 +8,12 @@ import {
   formatCI,
   formatPersonName,
 } from "../components/PersonalFineCard.jsx";
+import {
+  confirmDelete,
+  escapeHtml,
+  notifyDeleteError,
+  notifyDeleteSuccess,
+} from "../utils/confirmDelete.js";
 import { preventNegativeNumberKeys } from "../utils/nonNegativeNumberInput.js";
 
 export function DeletePersonalFinePage() {
@@ -17,7 +23,6 @@ export function DeletePersonalFinePage() {
   const [err, setErr] = useState("");
   const [searching, setSearching] = useState(false);
   const [viewer, setViewer] = useState(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const closeViewer = useCallback(() => setViewer(null), []);
@@ -30,28 +35,6 @@ export function DeletePersonalFinePage() {
       return { ...current, index: next };
     });
   }, []);
-
-  const closeConfirm = useCallback(() => {
-    if (deleting) return;
-    setConfirmOpen(false);
-  }, [deleting]);
-
-  useEffect(() => {
-    if (!confirmOpen) return undefined;
-    function onKey(e) {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        closeConfirm();
-      }
-    }
-    document.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [confirmOpen, closeConfirm]);
 
   async function loadFine(e) {
     e.preventDefault();
@@ -73,29 +56,47 @@ export function DeletePersonalFinePage() {
     }
   }
 
-  async function confirmDelete() {
+  async function handleDelete() {
     if (!preview) return;
+    const ci = formatCI(preview.person_ci);
+    const personName = formatPersonName(preview);
+    const article = preview.fine_article
+      ? `Art. ${preview.fine_article}`
+      : "";
+    const result = await confirmDelete({
+      resource: "multa personal",
+      summaryHtml: `
+        <p class="mb-2">
+          Se eliminará la siguiente multa personal:
+        </p>
+        <ul class="mb-2 ps-3">
+          <li>N° de multa: <strong>${escapeHtml(preview.fine_number)}</strong></li>
+          ${personName ? `<li>Infractor: <strong>${escapeHtml(personName)}</strong></li>` : ""}
+          ${ci ? `<li>DNI: <strong>${escapeHtml(ci)}</strong></li>` : ""}
+          ${article ? `<li>${escapeHtml(article)}</li>` : ""}
+        </ul>
+      `,
+      extraNote: "También se borrarán las fotos de prueba asociadas.",
+    });
+    if (!result.isConfirmed) return;
+
     setDeleting(true);
     setErr("");
-    setMsg("");
     try {
       const data = await personalFineDelete(preview.fine_number);
-      setMsg(
-        data.msg ||
-          `Multa N° ${preview.fine_number} eliminada correctamente.`
-      );
       setPreview(null);
       setNum("");
-      setConfirmOpen(false);
+      setMsg(
+        data.msg ||
+          `Multa N° ${preview.fine_number} eliminada correctamente.`,
+      );
+      await notifyDeleteSuccess(data.msg);
     } catch (ex) {
-      setErr(ex.message || "No se pudo eliminar la multa.");
+      await notifyDeleteError(ex, "No se pudo eliminar la multa.");
     } finally {
       setDeleting(false);
     }
   }
-
-  const ci = preview ? formatCI(preview.person_ci) : "";
-  const personName = preview ? formatPersonName(preview) : "";
 
   return (
     <Layout>
@@ -195,87 +196,7 @@ export function DeletePersonalFinePage() {
               <button
                 type="button"
                 className="btn btn-danger d-inline-flex align-items-center gap-2"
-                onClick={() => setConfirmOpen(true)}
-              >
-                <i className="bi bi-trash3" aria-hidden />
-                <span>ELIMINAR</span>
-              </button>
-            </div>
-          </>
-        ) : null}
-      </div>
-
-      <CarFineProveViewer
-        viewer={viewer}
-        onClose={closeViewer}
-        onStep={stepViewer}
-      />
-
-      {confirmOpen && preview ? (
-        <div
-          className="car-fine-status-modal"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Confirmar eliminación de multa personal"
-          onClick={closeConfirm}
-        >
-          <div
-            className="car-fine-status-modal__dialog card shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="card-header d-flex align-items-center justify-content-between gap-2">
-              <div>
-                <div className="fw-semibold">
-                  Eliminar Multa N° {preview.fine_number}
-                </div>
-                {ci ? (
-                  <small className="text-muted">
-                    DNI {ci}
-                    {personName ? ` · ${personName}` : ""}
-                  </small>
-                ) : null}
-              </div>
-              <button
-                type="button"
-                className="btn-close"
-                aria-label="Cerrar"
-                onClick={closeConfirm}
-                disabled={deleting}
-              />
-            </div>
-            <div className="card-body">
-              <div className="alert alert-danger d-flex align-items-start gap-2 mb-3">
-                <i
-                  className="bi bi-exclamation-octagon-fill fs-4 flex-shrink-0"
-                  aria-hidden
-                />
-                <div>
-                  <div className="fw-semibold">
-                    ¿Confirmás eliminar esta multa?
-                  </div>
-                  <div className="small">
-                    Se borrarán también las fotos de prueba asociadas. Esta
-                    acción no se puede deshacer.
-                  </div>
-                </div>
-              </div>
-              {err ? (
-                <div className="alert alert-danger py-2">{err}</div>
-              ) : null}
-            </div>
-            <div className="card-footer d-flex flex-wrap justify-content-end gap-2">
-              <button
-                type="button"
-                className="btn btn-outline-secondary"
-                onClick={closeConfirm}
-                disabled={deleting}
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                className="btn btn-danger d-inline-flex align-items-center gap-2"
-                onClick={confirmDelete}
+                onClick={handleDelete}
                 disabled={deleting}
                 aria-busy={deleting}
               >
@@ -296,14 +217,20 @@ export function DeletePersonalFinePage() {
                 ) : (
                   <>
                     <i className="bi bi-trash3" aria-hidden />
-                    <span>Confirmar eliminación</span>
+                    <span>ELIMINAR</span>
                   </>
                 )}
               </button>
             </div>
-          </div>
-        </div>
-      ) : null}
+          </>
+        ) : null}
+      </div>
+
+      <CarFineProveViewer
+        viewer={viewer}
+        onClose={closeViewer}
+        onStep={stepViewer}
+      />
     </Layout>
   );
 }

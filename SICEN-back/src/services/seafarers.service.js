@@ -305,6 +305,115 @@ function httpError(message, statusCode = 400) {
   return e;
 }
 
+/**
+ * Elimina un registro completo de gente de mar (por _id).
+ * Solo debe poder llamarse desde rutas con guard de administrador.
+ * @param {string} seafarerId
+ * @returns {Promise<{ id: string }>}
+ */
+export async function deleteSeafarerById(seafarerId) {
+  const id = str(seafarerId);
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw httpError("Identificador de registro no válido.", 400);
+  }
+  const deleted = await SeafarerMongoose.findByIdAndDelete(id).exec();
+  if (!deleted) {
+    throw httpError("Registro de gente de mar no encontrado.", 404);
+  }
+  return { id };
+}
+
+/** Estado general del marinero (active / disqualified / deceased). */
+function normalizeSeafarerGeneralStatus(raw) {
+  const gs = raw && typeof raw === "object" ? raw : {};
+  return {
+    active: gs.active === true || gs.active === "true",
+    disqualified: gs.disqualified === true || gs.disqualified === "true",
+    deceased: gs.deceased === true || gs.deceased === "true",
+  };
+}
+
+/**
+ * Actualiza los datos básicos del marinero: identificación, datos personales,
+ * morfología, aptitud náutica, contacto y estado general.
+ *
+ * No toca títulos / licencias / cursos / sanciones / observaciones.
+ *
+ * @param {string} seafarerId
+ * @param {object} body — cuerpo HTTP crudo (mismo shape que `create`)
+ * @param {object|null} user
+ * @returns {Promise<object>} marinero actualizado (formato consulta)
+ */
+export async function updateSeafarerBasicData(seafarerId, body, user) {
+  const id = str(seafarerId);
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw httpError("Identificador de registro no válido.", 400);
+  }
+
+  const normalized = normalizeSeafarerCreateBody(body);
+  const err = validateSeafarerCreateInput(normalized);
+  if (err) throw httpError(err, 400);
+
+  const idDocs = normalized.identificationDocuments;
+  const dupOr = [];
+  if (idDocs.dni) {
+    dupOr.push({ "identificationDocuments.dni": idDocs.dni });
+    dupOr.push({ "document.type": "DNI", "document.number": idDocs.dni });
+    dupOr.push({
+      "document.type": "Cédula de identidad",
+      "document.number": idDocs.dni,
+    });
+  }
+  if (idDocs.passport) {
+    dupOr.push({ "identificationDocuments.passport": idDocs.passport });
+    dupOr.push({
+      "document.type": "Pasaporte",
+      "document.number": idDocs.passport,
+    });
+  }
+  if (idDocs.civicCredential.series && idDocs.civicCredential.number) {
+    dupOr.push({
+      "identificationDocuments.civicCredential.series":
+        idDocs.civicCredential.series,
+      "identificationDocuments.civicCredential.number":
+        idDocs.civicCredential.number,
+    });
+  }
+  if (dupOr.length) {
+    const existing = await SeafarerMongoose.findOne({
+      $and: [{ _id: { $ne: new mongoose.Types.ObjectId(id) } }, { $or: dupOr }],
+    })
+      .lean()
+      .exec();
+    if (existing) {
+      throw httpError(
+        "Ya existe otro registro con ese DNI, pasaporte o credencial cívica.",
+        409,
+      );
+    }
+  }
+
+  const doc = await loadSeafarerDocById(id);
+
+  doc.set("identificationDocuments", normalized.identificationDocuments);
+  doc.set("personalData", normalized.personalData);
+  doc.set("morphologicalData", normalized.morphologicalData);
+  doc.set("maritimeFitness", normalized.maritimeFitness);
+  doc.set("contact", normalized.contact);
+
+  if (body && typeof body === "object" && body.generalStatus !== undefined) {
+    doc.set("generalStatus", normalizeSeafarerGeneralStatus(body.generalStatus));
+  }
+
+  if (doc.document && (doc.document.type || doc.document.number)) {
+    doc.set("document", undefined);
+  }
+
+  touchSeafarerMetadata(doc, user);
+  await doc.save();
+  return seafarerToConsultObject(doc._id);
+}
+
 const SEAFARER_CONSULT_POPULATE = [
   {
     path: "titles.titleId",

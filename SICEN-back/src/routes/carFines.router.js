@@ -15,6 +15,8 @@ export const carFinesRouter = express.Router();
 carFinesRouter.get("/getAll", ...adminGuarded, carFinesController.getAll);
 carFinesRouter.get("/paginated", ...guarded, carFinesController.paginateList);
 carFinesRouter.get("/mine", ...guarded, carFinesController.mine);
+carFinesRouter.get("/counts", ...guarded, carFinesController.getCounts);
+carFinesRouter.get("/stats", ...guarded, carFinesController.getStats);
 
 carFinesRouter.post("/create", ...guarded, carFinesController.create);
 carFinesRouter.post(

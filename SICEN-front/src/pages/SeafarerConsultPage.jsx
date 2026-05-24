@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import Swal from "sweetalert2";
 import {
   addSeafarerCourse,
   addSeafarerHeldLicense,
@@ -10,9 +9,11 @@ import {
   deleteSeafarerHeldLicense,
   deleteSeafarerHeldTitle,
   findSeafarerByDocument,
+  updateSeafarerBasicData,
   updateSeafarerHeldLicense,
   updateSeafarerHeldTitle,
 } from "../api/client.js";
+import { SeafarerBasicDataEditModal } from "../components/seafarer/SeafarerBasicDataEditModal.jsx";
 import { SeafarerBasicDataTable } from "../components/seafarer/SeafarerBasicDataTable.jsx";
 import {
   SeafarerCoursesSection,
@@ -31,6 +32,7 @@ import {
   isCcDocumentSearchType,
   normalizeSeafarerDocumentNumber,
 } from "../constants/seafarerCreateForm.js";
+import { notifyDeleteError } from "../utils/confirmDelete.js";
 import { scrollElementIntoViewById, scrollPageToTop } from "../utils/scrollPageToTop.js";
 
 const emptySectionState = () => ({
@@ -53,6 +55,11 @@ export function SeafarerConsultPage() {
   const [courses, setCourses] = useState(emptySectionState);
   const [sanctions, setSanctions] = useState(emptySectionState);
   const [observations, setObservations] = useState(emptySectionState);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editErr, setEditErr] = useState("");
+  const [editOk, setEditOk] = useState("");
 
   const seafarerId = seafarer?._id ? String(seafarer._id) : "";
 
@@ -223,12 +230,7 @@ export function SeafarerConsultPage() {
         ok: "",
       });
       scrollPageToTop();
-      await Swal.fire({
-        icon: "error",
-        title: "No se pudo eliminar",
-        text: e.message || e.data?.msg || "Intente de nuevo.",
-        confirmButtonText: "Aceptar",
-      });
+      await notifyDeleteError(e, "No se pudo eliminar la licencia.");
       return false;
     }
   }
@@ -308,12 +310,7 @@ export function SeafarerConsultPage() {
         ok: "",
       });
       scrollPageToTop();
-      await Swal.fire({
-        icon: "error",
-        title: "No se pudo eliminar",
-        text: e.message || e.data?.msg || "Intente de nuevo.",
-        confirmButtonText: "Aceptar",
-      });
+      await notifyDeleteError(e, "No se pudo eliminar el título.");
       return false;
     }
   }
@@ -357,6 +354,30 @@ export function SeafarerConsultPage() {
       });
       scrollPageToTop();
       return false;
+    }
+  }
+
+  function handleOpenEdit() {
+    setEditErr("");
+    setEditOk("");
+    setEditOpen(true);
+  }
+
+  async function handleSaveBasicData(payload) {
+    if (!seafarerId) return;
+    setEditSaving(true);
+    setEditErr("");
+    try {
+      const data = await updateSeafarerBasicData(seafarerId, payload);
+      applySeafarerUpdate(data.seafarer);
+      setEditOk(data.msg || "Datos del registro actualizados.");
+      setEditOpen(false);
+    } catch (e) {
+      setEditErr(
+        e.message || e.data?.msg || "No se pudieron actualizar los datos.",
+      );
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -409,7 +430,21 @@ export function SeafarerConsultPage() {
 
         {seafarer ? (
           <>
-            <SeafarerBasicDataTable seafarer={seafarer} />
+            {editOk ? (
+              <div className="alert alert-success py-2">{editOk}</div>
+            ) : null}
+            <SeafarerBasicDataTable
+              seafarer={seafarer}
+              onEdit={handleOpenEdit}
+            />
+            <SeafarerBasicDataEditModal
+              open={editOpen}
+              seafarer={seafarer}
+              onClose={() => setEditOpen(false)}
+              onSave={handleSaveBasicData}
+              saving={editSaving}
+              saveErr={editErr}
+            />
             <SeafarerHeldTitlesSection
               rows={heldTitleRows}
               onAddTitle={handleAddTitle}

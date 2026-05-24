@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import Swal from "sweetalert2";
 import "../../styles/seafarer-consult-sections.css";
+import {
+  confirmDelete as confirmDeleteAlert,
+  escapeHtml,
+} from "../../utils/confirmDelete.js";
 import {
   courseFormToEntry,
   heldLicenseDisplayRowToForm,
@@ -227,15 +230,14 @@ export function SeafarerHeldTitlesSection({
     const label =
       [row.code, row.name].filter((x) => String(x).trim()).join(" — ") ||
       "este título";
-    const result = await Swal.fire({
-      title: "¿Eliminar título?",
-      text: `Se quitará de la ficha: ${label}. Esta acción no se puede deshacer.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar",
-      focusCancel: true,
-      confirmButtonColor: "#dc3545",
+    const result = await confirmDeleteAlert({
+      resource: "título",
+      summaryHtml: `
+        <p class="mb-2">Se quitará de la ficha del marinero el siguiente título:</p>
+        <ul class="mb-2 ps-3">
+          <li><strong>${escapeHtml(label)}</strong></li>
+        </ul>
+      `,
     });
     if (!result.isConfirmed) return;
     await onDeleteHeldTitle(row.heldEntryId);
@@ -614,15 +616,14 @@ export function SeafarerLicenseTableSection({
     const label =
       [row.code, row.name].filter((x) => String(x).trim()).join(" — ") ||
       "esta licencia";
-    const result = await Swal.fire({
-      title: "¿Eliminar licencia?",
-      text: `Se quitará de la ficha: ${label}. Esta acción no se puede deshacer.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar",
-      focusCancel: true,
-      confirmButtonColor: "#dc3545",
+    const result = await confirmDeleteAlert({
+      resource: "licencia",
+      summaryHtml: `
+        <p class="mb-2">Se quitará de la ficha del marinero la siguiente licencia:</p>
+        <ul class="mb-2 ps-3">
+          <li><strong>${escapeHtml(label)}</strong></li>
+        </ul>
+      `,
     });
     if (!result.isConfirmed) return;
     await onDeleteHeldLicense(row.heldEntryId);

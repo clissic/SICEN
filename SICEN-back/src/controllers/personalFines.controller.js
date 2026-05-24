@@ -545,6 +545,112 @@ class PersonalFinesController {
     }
   }
 
+  /**
+   * Conteo agregado de multas personales.
+   * Devuelve `total` (no desestimadas) y `dismissed`.
+   */
+  async getCounts(req, res) {
+    try {
+      const [total, dismissed] = await Promise.all([
+        PersonalFinesMongoose.countDocuments({
+          fine_status: { $ne: "dismissed" },
+        }),
+        PersonalFinesMongoose.countDocuments({ fine_status: "dismissed" }),
+      ]);
+      return res.status(200).json({
+        status: "success",
+        msg: "Personal fines counts",
+        payload: { total, dismissed },
+      });
+    } catch (error) {
+      logger.error("Error on personalFinesController.getCounts: " + error);
+      return res.status(500).json({
+        status: "error",
+        msg: "Error generando conteos de multas personales.",
+      });
+    }
+  }
+
+  /**
+   * Estadísticas de multas personales: ranking de titulares (DNI / Pasaporte)
+   * más infractores y artículos más aplicados. Excluye multas en estado
+   * `dismissed`.
+   *
+   * Query params (opcionales):
+   *   - `limit` (default 10, máximo 50)
+   */
+  async getStats(req, res) {
+    try {
+      const rawLimit = Number(req.query?.limit);
+      const limit =
+        Number.isFinite(rawLimit) && rawLimit > 0
+          ? Math.min(Math.floor(rawLimit), 50)
+          : 10;
+
+      const baseMatch = { fine_status: { $ne: "dismissed" } };
+
+      const buildGroupedAggregation = (field, emptyLabel) => [
+        { $match: baseMatch },
+        {
+          $group: {
+            _id: {
+              $let: {
+                vars: {
+                  trimmed: {
+                    $trim: {
+                      input: {
+                        $toString: { $ifNull: [`$${field}`, ""] },
+                      },
+                    },
+                  },
+                },
+                in: {
+                  $cond: [
+                    { $eq: ["$$trimmed", ""] },
+                    emptyLabel,
+                    "$$trimmed",
+                  ],
+                },
+              },
+            },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { count: -1, _id: 1 } },
+        { $limit: limit },
+        { $project: { _id: 0, label: "$_id", count: 1 } },
+      ];
+
+      const [totalConsidered, ownersAgg, articlesAgg] = await Promise.all([
+        PersonalFinesMongoose.countDocuments(baseMatch),
+        PersonalFinesMongoose.aggregate(
+          buildGroupedAggregation("person_ci", "Sin DNI / Pasaporte")
+        ),
+        PersonalFinesMongoose.aggregate(
+          buildGroupedAggregation("fine_article", "Sin artículo")
+        ),
+      ]);
+
+      return res.status(200).json({
+        status: "success",
+        msg: "Personal fines stats",
+        payload: {
+          totalConsidered,
+          limit,
+          excludedStatuses: ["dismissed"],
+          topOwners: ownersAgg,
+          topArticles: articlesAgg,
+        },
+      });
+    } catch (error) {
+      logger.error("Error on personalFinesController.getStats: " + error);
+      return res.status(500).json({
+        status: "error",
+        msg: "Error generando estadísticas de multas personales.",
+      });
+    }
+  }
+
   async findByNumberAndDelete(req, res) {
     const user = req.user;
     const { fine_number } = req.params;

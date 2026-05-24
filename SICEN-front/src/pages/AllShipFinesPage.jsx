@@ -8,7 +8,8 @@ import {
 import { CarFineProveViewer } from "../components/CarFineProveViewer.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { ShipFineCard } from "../components/ShipFineCard.jsx";
-import { FINE_ARTICLE_OPTIONS } from "../constants/fineArticles.js";
+import { SHIP_FINE_ARTICLE_OPTIONS } from "../constants/fineArticles.js";
+import { FLAG_STATE_OPTIONS } from "../constants/flagStates.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import {
   formatPlate,
@@ -44,6 +45,7 @@ function buildFineEditorForm(fine) {
       fine?.fine_extra_amount == null ? "" : String(fine.fine_extra_amount),
     omi: fine?.omi == null ? "" : String(fine.omi),
     ship_reg_number: fine?.ship_reg_number ?? "",
+    flag: fine?.flag ?? "",
     owner_ci: fine?.owner_ci ?? "",
     owner_name: fine?.owner_name ?? "",
     owner_tel: fine?.owner_tel ?? "",
@@ -97,6 +99,7 @@ const EMPTY_FILTERS = Object.freeze({
   fine_amount: "",
   omi: "",
   ship_reg_number: "",
+  flag: "",
   owner_ci: "",
   owner_name: "",
 });
@@ -600,7 +603,7 @@ export function AllShipFinesPage() {
                       }
                     >
                       <option value="">Todos</option>
-                      {FINE_ARTICLE_OPTIONS.map((o) => (
+                      {SHIP_FINE_ARTICLE_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>
                           {o.label}
                         </option>
@@ -685,6 +688,28 @@ export function AllShipFinesPage() {
                       autoComplete="off"
                       style={{ textTransform: "uppercase" }}
                     />
+                  </div>
+                  <div className="col-12 col-md-6 col-lg-4">
+                    <label className="form-label" htmlFor="flt_ship_flag">
+                      Bandera
+                    </label>
+                    <select
+                      id="flt_ship_flag"
+                      className="form-select"
+                      value={filters.flag}
+                      onChange={(e) => setFilter("flag", e.target.value)}
+                    >
+                      <option value="">Todas</option>
+                      {FLAG_STATE_OPTIONS.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                      {filters.flag &&
+                      !FLAG_STATE_OPTIONS.includes(filters.flag) ? (
+                        <option value={filters.flag}>{filters.flag}</option>
+                      ) : null}
+                    </select>
                   </div>
                   <div className="col-12 col-md-6 col-lg-4">
                     <label className="form-label" htmlFor="flt_ship_owner_ci">
@@ -928,13 +953,13 @@ export function AllShipFinesPage() {
                     <option value="" disabled>
                       Seleccionar artículo…
                     </option>
-                    {FINE_ARTICLE_OPTIONS.map((o) => (
+                    {SHIP_FINE_ARTICLE_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value}>
                         {o.label}
                       </option>
                     ))}
                     {fineEditor.form.fine_article &&
-                    !FINE_ARTICLE_OPTIONS.some(
+                    !SHIP_FINE_ARTICLE_OPTIONS.some(
                       (o) => o.value === fineEditor.form.fine_article
                     ) ? (
                       <option value={fineEditor.form.fine_article}>
@@ -1053,6 +1078,32 @@ export function AllShipFinesPage() {
                     }}
                     style={{ textTransform: "uppercase" }}
                   />
+                </div>
+                <div className="col-12 col-md-6">
+                  <label className="form-label" htmlFor="edit_ship_flag">
+                    Bandera
+                  </label>
+                  <select
+                    id="edit_ship_flag"
+                    className="form-select"
+                    value={fineEditor.form.flag}
+                    onChange={(e) =>
+                      setFineEditorField("flag", e.target.value)
+                    }
+                  >
+                    <option value="">Seleccione país…</option>
+                    {FLAG_STATE_OPTIONS.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                    {fineEditor.form.flag &&
+                    !FLAG_STATE_OPTIONS.includes(fineEditor.form.flag) ? (
+                      <option value={fineEditor.form.flag}>
+                        {fineEditor.form.flag}
+                      </option>
+                    ) : null}
+                  </select>
                 </div>
 
                 <div className="col-12 mt-2">

@@ -1,8 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import Swal from "sweetalert2";
-import { deleteVessel, vesselsPaginated } from "../api/client.js";
+import {
+  deleteVessel,
+  vesselsAllPaginated,
+  vesselsPaginated,
+} from "../api/client.js";
 import { Layout } from "../components/Layout.jsx";
+import {
+  confirmDelete,
+  escapeHtml,
+  notifyDeleteError,
+  notifyDeleteSuccess,
+} from "../utils/confirmDelete.js";
 import { preventNegativeNumberKeys } from "../utils/nonNegativeNumberInput.js";
 
 const FILTER_TYPE_OPTIONS = [
@@ -52,28 +61,33 @@ export function AllShipsPage() {
   const isDeportivo = filterType === "Deportivo";
 
   useEffect(() => {
-    if (!activeQuery) return;
     let cancelled = false;
     setErr("");
     setLoading(true);
 
-    const params = {
-      currentPage: page,
-      pageSize: 10,
-      vesselType: activeQuery.vesselType,
-    };
-    if (activeQuery.vesselType === "Ultramar") {
-      params.imoNumber = activeQuery.imoNumber;
-    } else if (activeQuery.vesselType === "Deportivo") {
-      params.nationalRegistryNumber = activeQuery.nationalRegistryNumber;
-      params.portOfRegistry = activeQuery.portOfRegistry;
-      params.recreationalDocType = activeQuery.recreationalDocType;
+    let request;
+    if (activeQuery) {
+      const params = {
+        currentPage: page,
+        pageSize: 10,
+        vesselType: activeQuery.vesselType,
+      };
+      if (activeQuery.vesselType === "Ultramar") {
+        params.imoNumber = activeQuery.imoNumber;
+      } else if (activeQuery.vesselType === "Deportivo") {
+        params.nationalRegistryNumber = activeQuery.nationalRegistryNumber;
+        params.portOfRegistry = activeQuery.portOfRegistry;
+        params.recreationalDocType = activeQuery.recreationalDocType;
+      } else {
+        params.nationalRegistryNumber = activeQuery.nationalRegistryNumber;
+        params.portOfRegistry = activeQuery.portOfRegistry;
+      }
+      request = vesselsPaginated(params);
     } else {
-      params.nationalRegistryNumber = activeQuery.nationalRegistryNumber;
-      params.portOfRegistry = activeQuery.portOfRegistry;
+      request = vesselsAllPaginated({ currentPage: page, pageSize: 10 });
     }
 
-    vesselsPaginated(params)
+    request
       .then((r) => {
         if (!cancelled) setData(r.payload);
       })
@@ -95,16 +109,20 @@ export function AllShipsPage() {
   async function handleDeleteRow(r) {
     const vesselKey = r.id ?? r._id;
     if (!vesselKey) return;
-    const label = String(r.name ?? "").trim() || "este buque";
-    const confirm = await Swal.fire({
-      title: "¿Eliminar buque?",
-      text: `Se eliminará de forma permanente el buque "${label}" y todos sus datos asociados en esta base. Esta acción no se puede deshacer.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar",
-      focusCancel: true,
-      confirmButtonColor: "#dc3545",
+    const name = String(r.name ?? "").trim();
+    const regNumber = String(r.regNumber ?? r.reg_number ?? "").trim();
+    const flagState = String(r.flagState ?? r.flag_state ?? "").trim();
+    const confirm = await confirmDelete({
+      resource: "buque",
+      summaryHtml: `
+        <p class="mb-2">Se eliminará permanentemente el buque:</p>
+        <ul class="mb-2 ps-3">
+          <li><strong>${escapeHtml(name || "—")}</strong></li>
+          ${regNumber ? `<li class="small">Matrícula: ${escapeHtml(regNumber)}</li>` : ""}
+          ${flagState ? `<li class="small">Bandera: ${escapeHtml(flagState)}</li>` : ""}
+        </ul>
+      `,
+      extraNote: "Se borrarán también todos sus datos asociados en esta base.",
     });
     if (!confirm.isConfirmed) return;
 
@@ -112,23 +130,10 @@ export function AllShipsPage() {
     setDeletingKey(keyStr);
     try {
       await deleteVessel(keyStr);
-      await Swal.fire({
-        icon: "success",
-        title: "Eliminado",
-        text: "El buque se eliminó correctamente.",
-        confirmButtonText: "Aceptar",
-      });
+      await notifyDeleteSuccess("El buque se eliminó correctamente.");
       setRefetchNonce((n) => n + 1);
     } catch (ex) {
-      await Swal.fire({
-        icon: "error",
-        title: "No se pudo eliminar",
-        text:
-          ex.message ||
-          ex.data?.msg ||
-          "Ocurrió un error al eliminar el buque.",
-        confirmButtonText: "Aceptar",
-      });
+      await notifyDeleteError(ex, "Ocurrió un error al eliminar el buque.");
     } finally {
       setDeletingKey(null);
     }
@@ -414,14 +419,13 @@ export function AllShipsPage() {
           </div>
         </form>
 
-        {activeQuery ? (
-          <>
-            <div className="text-muted small mb-2">
-              Total <strong>{data?.totalDocs ?? "—"}</strong> · Pág.{" "}
-              <strong>{data?.page ?? page}</strong> /{" "}
-              <strong>{data?.totalPages ?? "—"}</strong>
-              {loading ? <span className="ms-2">Cargando…</span> : null}
-            </div>
+        <div className="text-muted small mb-2">
+          {activeQuery ? "Resultados del filtro" : "Todos los buques"} · Total{" "}
+          <strong>{data?.totalDocs ?? "—"}</strong> · Pág.{" "}
+          <strong>{data?.page ?? page}</strong> /{" "}
+          <strong>{data?.totalPages ?? "—"}</strong>
+          {loading ? <span className="ms-2">Cargando…</span> : null}
+        </div>
 
             <div className="card shadow-sm">
               <div className="table-responsive">
@@ -495,7 +499,9 @@ export function AllShipsPage() {
                     {rows.length === 0 && !loading ? (
                       <tr>
                         <td colSpan={9} className="text-center text-muted py-4">
-                          No hay buques que coincidan con los filtros.
+                          {activeQuery
+                            ? "No hay buques que coincidan con los filtros."
+                            : "Aún no hay buques registrados en la base de datos."}
                         </td>
                       </tr>
                     ) : null}
@@ -536,17 +542,7 @@ export function AllShipsPage() {
                   </button>
                 </li>
               </ul>
-            </nav>
-          </>
-        ) : (
-          <p className="text-muted small mb-0">
-            {isDeleteFlow
-              ? "Busque el buque y pulse Eliminar para borrarlo definitivamente de la base de datos."
-              : isModifyFlow
-                ? "Busque el buque y pulse Modificar para editar sus datos de registro."
-                : "Elija tipo de buque (Ultramar, Cabotaje o Deportivo), complete los criterios y pulse Buscar."}
-          </p>
-        )}
+        </nav>
       </div>
     </Layout>
   );

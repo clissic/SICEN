@@ -1,9 +1,83 @@
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { personalFinesStats } from "../api/client.js";
 import { Layout } from "../components/Layout.jsx";
 
 const ICON_TILE = { fontSize: "0.95rem", marginTop: "0.15rem" };
 
+function StatsTable({ rows, total, emptyLabel, valueLabel }) {
+  if (!rows || rows.length === 0) {
+    return <p className="text-muted small mb-0">{emptyLabel}</p>;
+  }
+  return (
+    <div className="table-responsive">
+      <table className="table table-sm align-middle mb-0">
+        <thead>
+          <tr>
+            <th scope="col" style={{ width: "3rem" }}>
+              #
+            </th>
+            <th scope="col">{valueLabel}</th>
+            <th scope="col" className="text-end" style={{ width: "6rem" }}>
+              Multas
+            </th>
+            <th scope="col" className="text-end" style={{ width: "5rem" }}>
+              %
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, idx) => {
+            const pct =
+              total > 0 ? Math.round((row.count / total) * 1000) / 10 : 0;
+            return (
+              <tr key={`${row.label}-${idx}`}>
+                <td className="text-muted">{idx + 1}</td>
+                <td className="text-break">{row.label}</td>
+                <td className="text-end fw-semibold">{row.count}</td>
+                <td className="text-end text-muted">
+                  {pct.toLocaleString("es-UY", {
+                    maximumFractionDigits: 1,
+                  })}
+                  %
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function PersonalFinesMenuPage() {
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsErr, setStatsErr] = useState("");
+
+  const loadStats = useCallback(async () => {
+    setStatsLoading(true);
+    setStatsErr("");
+    try {
+      const res = await personalFinesStats({ limit: 10 });
+      setStats(res?.payload || null);
+    } catch (e) {
+      setStatsErr(
+        e?.message || "No se pudieron cargar las estadísticas de multas."
+      );
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
+
+  const total = stats?.totalConsidered ?? 0;
+  const topOwners = stats?.topOwners ?? [];
+  const topArticles = stats?.topArticles ?? [];
+
   return (
     <Layout>
       <div className="container py-4">
@@ -84,7 +158,7 @@ export function PersonalFinesMenuPage() {
             >
               <div className="card h-100 shadow-sm border-danger">
                 <img
-                  src="/img/deletePersonalFine.jpg"
+                  src="/img/deleteCarFine.jpg"
                   alt="Borrar multa personal"
                   className="card-img-top"
                   loading="lazy"
@@ -108,6 +182,102 @@ export function PersonalFinesMenuPage() {
             </Link>
           </div>
         </div>
+
+        <section className="mt-4">
+          <div className="d-flex align-items-end justify-content-between flex-wrap gap-2 mb-2">
+            <div>
+              <h4 className="m-0">Estadísticas de multas personales</h4>
+              <div className="text-muted small">
+                Rankings calculados sobre multas vigentes (se excluyen las
+                desestimadas).
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+              onClick={loadStats}
+              disabled={statsLoading}
+              title="Actualizar estadísticas"
+            >
+              <i
+                className={`bi ${
+                  statsLoading
+                    ? "bi-arrow-clockwise spinner-rotate"
+                    : "bi-arrow-clockwise"
+                }`}
+                aria-hidden
+              />
+              <span>{statsLoading ? "Actualizando…" : "Actualizar"}</span>
+            </button>
+          </div>
+
+          {statsErr ? (
+            <div className="alert alert-danger py-2 small mb-3">{statsErr}</div>
+          ) : null}
+
+          <div className="card shadow-sm">
+            <div className="card-body">
+              <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
+                <span className="badge text-bg-secondary fs-6">
+                  Total considerado: {total}
+                </span>
+                <span className="text-muted small">
+                  Top {stats?.limit ?? 10} en cada ranking.
+                </span>
+              </div>
+
+              <div className="row g-4">
+                <div className="col-12 col-lg-6">
+                  <h6 className="text-uppercase text-muted small fw-semibold border-bottom pb-2 mb-3">
+                    <i className="bi bi-person-badge me-2" aria-hidden />
+                    Titulares más infractores (DNI / Pasaporte)
+                  </h6>
+                  {statsLoading && !stats ? (
+                    <div className="d-flex align-items-center gap-2 text-muted">
+                      <span
+                        className="spinner-border spinner-border-sm"
+                        role="status"
+                        aria-hidden
+                      />
+                      <span>Cargando…</span>
+                    </div>
+                  ) : (
+                    <StatsTable
+                      rows={topOwners}
+                      total={total}
+                      valueLabel="DNI / Pasaporte"
+                      emptyLabel="Aún no hay multas registradas con titular."
+                    />
+                  )}
+                </div>
+
+                <div className="col-12 col-lg-6">
+                  <h6 className="text-uppercase text-muted small fw-semibold border-bottom pb-2 mb-3">
+                    <i className="bi bi-receipt me-2" aria-hidden />
+                    Multas más colocadas (por artículo)
+                  </h6>
+                  {statsLoading && !stats ? (
+                    <div className="d-flex align-items-center gap-2 text-muted">
+                      <span
+                        className="spinner-border spinner-border-sm"
+                        role="status"
+                        aria-hidden
+                      />
+                      <span>Cargando…</span>
+                    </div>
+                  ) : (
+                    <StatsTable
+                      rows={topArticles}
+                      total={total}
+                      valueLabel="Artículo"
+                      emptyLabel="Aún no hay multas registradas."
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     </Layout>
   );

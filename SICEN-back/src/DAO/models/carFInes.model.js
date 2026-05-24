@@ -9,6 +9,7 @@ export async function getNextCarFineNumber() {
     .exec();
   const n = Number(highest?.fine_number);
   return Number.isFinite(n) ? n + 1 : 1;
+  return Number.isFinite(n) ? n + 1 : 1;
 }
 
 class CarFinesModel {

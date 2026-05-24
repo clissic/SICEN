@@ -21,6 +21,7 @@ import { GenteMarMenuPage } from "./pages/GenteMarMenuPage.jsx";
 import { GenteMarPlaceholderPage } from "./pages/GenteMarPlaceholderPage.jsx";
 import { NewSeafarerPage } from "./pages/NewSeafarerPage.jsx";
 import { SeafarerConsultPage } from "./pages/SeafarerConsultPage.jsx";
+import { SeafarerDeletePage } from "./pages/SeafarerDeletePage.jsx";
 import { SeafarerMetadataPage } from "./pages/SeafarerMetadataPage.jsx";
 import { CarFinesMenuPage } from "./pages/CarFinesMenuPage.jsx";
 import { CarFineFormPage } from "./pages/CarFineFormPage.jsx";
@@ -51,6 +52,12 @@ import { UpdateUserPage } from "./pages/UpdateUserPage.jsx";
 import { DeleteUserPage } from "./pages/DeleteUserPage.jsx";
 import { NotFoundPage } from "./pages/NotFoundPage.jsx";
 import { EstadoRectorPuertosPage } from "./pages/EstadoRectorPuertosPage.jsx";
+import { InspectionsMenuPage } from "./pages/InspectionsMenuPage.jsx";
+import { ConsultInspectionsListPage } from "./pages/ConsultInspectionsListPage.jsx";
+import { DeleteInspectionPage } from "./pages/DeleteInspectionPage.jsx";
+import { InspectionsPlaceholderPage } from "./pages/InspectionsPlaceholderPage.jsx";
+import { CreateInspectionPage } from "./pages/CreateInspectionPage.jsx";
+import { OserpMenuPage } from "./pages/OserpMenuPage.jsx";
 import { ManualUsuarioPage } from "./pages/ManualUsuarioPage.jsx";
 import { UserTutorialRequiredPage } from "./pages/UserTutorialRequiredPage.jsx";
 
@@ -262,7 +269,7 @@ export default function App() {
         path="/base-gente-mar/eliminar"
         element={
           <ProtectedRoute admin>
-            <GenteMarPlaceholderPage title="Eliminar — gente de mar" />
+            <SeafarerDeletePage />
           </ProtectedRoute>
         }
       />
@@ -407,6 +414,46 @@ export default function App() {
         element={
           <ProtectedRoute>
             <EstadoRectorPuertosPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/estado-rector-puertos/inspecciones"
+        element={
+          <ProtectedRoute>
+            <InspectionsMenuPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/estado-rector-puertos/inspecciones/nueva"
+        element={
+          <ProtectedRoute>
+            <CreateInspectionPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/estado-rector-puertos/inspecciones/modificar"
+        element={
+          <ProtectedRoute>
+            <ConsultInspectionsListPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/estado-rector-puertos/inspecciones/eliminar"
+        element={
+          <ProtectedRoute admin>
+            <DeleteInspectionPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/estado-rector-puertos/oserp"
+        element={
+          <ProtectedRoute>
+            <OserpMenuPage />
           </ProtectedRoute>
         }
       />

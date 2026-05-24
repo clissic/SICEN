@@ -10,6 +10,7 @@ class ShipFineDTO {
     fine_proves,
     omi,
     ship_reg_number,
+    flag,
     owner_ci,
     owner_name,
     owner_tel,
@@ -26,6 +27,7 @@ class ShipFineDTO {
     this.fine_proves = fine_proves;
     this.omi = omi;
     this.ship_reg_number = ship_reg_number;
+    this.flag = flag || "";
     this.owner_ci = owner_ci || "S/D";
     this.owner_name = owner_name || "S/D";
     this.owner_tel = owner_tel || "S/D";

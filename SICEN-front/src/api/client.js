@@ -180,6 +180,11 @@ export function getUnit(acronym) {
   return apiFetch(`/api/units/${enc}`);
 }
 
+/** Unidades que cumplen aniversario hoy (TZ Uruguay). */
+export function getUnitAnniversariesToday() {
+  return apiFetch(`/api/units/anniversaries/today`);
+}
+
 /** Actualiza una unidad (admin). `formData`: campos de alta; `sigla` puede cambiar; escudo opcional. */
 export async function updateUnit(acronym, formData) {
   const token = getAuthToken();
@@ -318,6 +323,19 @@ export function findSeafarerByDocument(
   return apiFetch(`/api/seafarers/by-document?${q}`);
 }
 
+export function updateSeafarerBasicData(seafarerId, payload) {
+  const sid = encodeURIComponent(String(seafarerId ?? "").trim());
+  return apiFetch(`/api/seafarers/${sid}/basic-data`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteSeafarer(seafarerId) {
+  const sid = encodeURIComponent(String(seafarerId ?? "").trim());
+  return apiFetch(`/api/seafarers/${sid}`, { method: "DELETE" });
+}
+
 export function addSeafarerTitle(seafarerId, entry) {
   return apiFetch(`/api/seafarers/${encodeURIComponent(seafarerId)}/titles`, {
     method: "POST",
@@ -438,6 +456,23 @@ export function vesselsPaginated(params) {
   return apiFetch(`/api/vessels/paginated?${q}`);
 }
 
+/** Lista todos los buques paginados, sin filtros. */
+export function vesselsAllPaginated(params) {
+  const q = new URLSearchParams(params);
+  return apiFetch(`/api/vessels/all-paginated?${q}`);
+}
+
+/**
+ * Lista buques por tipo (Ultramar / Cabotaje / Deportivo) para alimentar
+ * comboboxes. Devuelve `{ ok, vessels: [{ _id, vesselType, name, imoNumber,
+ * nationalRegistryNumber, flagState, portOfRegistry }] }`. Hasta 500 buques;
+ * pensado para pickers, no para listados completos.
+ */
+export function vesselsByType(vesselType) {
+  const t = encodeURIComponent(String(vesselType ?? "").trim());
+  return apiFetch(`/api/vessels/by-type/${t}`);
+}
+
 /** Datos del buque para la vista de certificados (JWT). */
 export function getVesselForCertificates(vesselId) {
   const enc = encodeURIComponent(String(vesselId ?? "").trim());
@@ -488,6 +523,180 @@ export function addVesselExtraCertificatePreset(vesselId, key) {
   );
 }
 
+/**
+ * Inspecciones de buques (PSC / Estado Rector de Puertos).
+ * El backend valida que `vesselId` pertenezca a la colección `vessels`.
+ *
+ * Estructura de payload:
+ * {
+ *   vesselId: string,            // _id de Mongo o id de negocio del buque
+ *   arrivalDate: string|Date,    // fecha de ingreso al puerto
+ *   inspectionDate: string|Date, // fecha en que se realizó la inspección
+ *                                // (suele coincidir con arrivalDate)
+ *   arrivalPort: string,         // puerto de ingreso
+ *   cialaPriority: string,       // prioridad CIALA (texto libre)
+ *   inspectionPerformed: boolean,
+ *   inspectors?: string[],       // emails (lowercase) de los inspectores
+ *                                 // que firmaron la diligencia. Opcional:
+ *                                 // si se omite, el backend agrega solo el
+ *                                 // email del usuario autenticado cuando
+ *                                 // el registro pasa a `inspectionPerformed:
+ *                                 // true`.
+ *   deficiencies: Array<{
+ *     code: string,
+ *     name: string,
+ *     rule: string,
+ *     actionsTaken: number[],
+ *     ISMrelated: boolean,
+ *   }>,
+ * }
+ *
+ * `pdfFile` (opcional) es un `File` con el PDF de la inspección (≤ 1 MB).
+ * Si está presente, la request se manda como `multipart/form-data` y los
+ * campos no string (`deficiencies`, `inspectors`, `inspectionPerformed`) se
+ * serializan;
+ * el archivo se almacena en `SICEN-back/storage/inspectionsERP/<_id>.pdf` y
+ * la URL pública (`/uploads/inspectionsERP/...`) queda guardada en el campo
+ * `inspectionPDF` del documento.
+ */
+export function createVesselInspection(payload, pdfFile = null) {
+  if (pdfFile instanceof File) {
+    const fd = new FormData();
+    appendInspectionFields(fd, payload);
+    fd.append("inspectionPDF", pdfFile, pdfFile.name);
+    return apiFetch("/api/vesselInspections", {
+      method: "POST",
+      body: fd,
+    });
+  }
+  return apiFetch("/api/vesselInspections", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+function appendInspectionFields(fd, payload) {
+  const p = payload && typeof payload === "object" ? payload : {};
+  if (p.vesselId != null) fd.append("vesselId", String(p.vesselId));
+  if (p.arrivalDate != null) fd.append("arrivalDate", String(p.arrivalDate));
+  if (p.inspectionDate != null) {
+    fd.append("inspectionDate", String(p.inspectionDate));
+  }
+  if (p.arrivalPort != null) fd.append("arrivalPort", String(p.arrivalPort));
+  if (p.cialaPriority != null) {
+    fd.append("cialaPriority", String(p.cialaPriority));
+  }
+  if (p.inspectionPerformed !== undefined) {
+    fd.append("inspectionPerformed", p.inspectionPerformed ? "true" : "false");
+  }
+  if (Array.isArray(p.deficiencies)) {
+    fd.append("deficiencies", JSON.stringify(p.deficiencies));
+  }
+  if (Array.isArray(p.inspectors)) {
+    fd.append("inspectors", JSON.stringify(p.inspectors));
+  }
+  if (p.removeInspectionPDF) {
+    fd.append("removeInspectionPDF", "true");
+  }
+}
+
+/**
+ * Lista paginada de inspecciones.
+ *
+ * Params soportados (todos opcionales):
+ *  - `page`, `limit` — control de paginación.
+ *  - `vesselId` — filtra por un buque puntual.
+ *  - `arrivalPort` — filtra por puerto de ingreso (mayúsculas, exact match).
+ *  - `inspectionPerformed` — boolean o "all".
+ *  - `year` — año de ejercicio (filtra por `arrivalDate`).
+ *  - `search` — busca por OMI o nombre del buque (case-insensitive, parcial).
+ *  - `mine` — `true` para devolver sólo las inspecciones que el usuario
+ *    autenticado **realizó** (su email figura en el array `inspectors`).
+ *    El backend resuelve el email contra `req.user.email` del JWT. No usa
+ *    `metadata.createdBy`, así que si un OSERP carga el ingreso y otro
+ *    firma la diligencia, la inspección aparece en el listado del que
+ *    firma (no del que cargó).
+ *  - `inspectorEmail` — email arbitrario que debe figurar en `inspectors`.
+ *    Equivalente a `mine` pero permite consultar al inspector de otro
+ *    usuario (uso administrativo). Case-insensitive.
+ *  - `inspectionDate` — string `YYYY-MM-DD`. Filtra por el día exacto en que
+ *    se realizó la inspección (campo `inspectionDate` del esquema). Útil
+ *    para la pantalla de eliminación.
+ *  - `includePlaceholders` — `true` para incluir registros con
+ *    `arrivalDate: null` (placeholder automático del alta de Ultramar).
+ *    Por defecto, los placeholders quedan fuera.
+ */
+export function vesselInspectionsPaginated(params) {
+  const q = new URLSearchParams();
+  const p = params && typeof params === "object" ? params : {};
+  for (const [key, value] of Object.entries(p)) {
+    if (value === undefined || value === null || value === "") continue;
+    q.set(key, String(value));
+  }
+  return apiFetch(`/api/vesselInspections/paginated?${q}`);
+}
+
+/** Años con inspecciones registradas, descendentes (más reciente primero). */
+export function vesselInspectionYears() {
+  return apiFetch("/api/vesselInspections/years");
+}
+
+/**
+ * Estadísticas del módulo Inspecciones acotadas a un ejercicio anual.
+ * Respuesta:
+ * {
+ *   ok: true,
+ *   stats: {
+ *     year, totalArrivals, totalInspections,
+ *     inspectionsWithDeficiencies, inspectionsClean, inspectionsWithIsm,
+ *     totalDeficiencies, avgDeficienciesPerInspection,
+ *     byPriority: { p1, p2, noPriority } con { arrivals, inspections, deficient, deficientPct },
+ *     topPorts: [{ port, p1Arrivals, p1Inspections, p1CoveragePct }] (top 5 por cobertura P1),
+ *     topDeficiencies: [{ code, count }],
+ *     byInspector: [{ email, firstName, lastName, rank, unit, avatar, count, countP1, countP2 }]
+ *       — atribuye cada inspección a los emails del array `inspectors` del
+ *       documento (no a `metadata.createdBy`). Si una inspección tiene
+ *       varios inspectores, cada uno suma 1 a su contador.
+ *   }
+ * }
+ */
+export function vesselInspectionsStats(year) {
+  const q = new URLSearchParams({ year: String(year ?? "") });
+  return apiFetch(`/api/vesselInspections/stats?${q}`);
+}
+
+export function getVesselInspection(inspectionId) {
+  const enc = encodeURIComponent(String(inspectionId ?? "").trim());
+  return apiFetch(`/api/vesselInspections/${enc}`);
+}
+
+/**
+ * Actualiza una inspección. Si `pdfFile` es un `File`, se envía como
+ * multipart y reemplaza el PDF previo en disco. Si `payload.removeInspectionPDF`
+ * es `true`, el backend elimina el PDF existente y deja el campo vacío.
+ */
+export function updateVesselInspection(inspectionId, payload, pdfFile = null) {
+  const enc = encodeURIComponent(String(inspectionId ?? "").trim());
+  if (pdfFile instanceof File) {
+    const fd = new FormData();
+    appendInspectionFields(fd, payload);
+    fd.append("inspectionPDF", pdfFile, pdfFile.name);
+    return apiFetch(`/api/vesselInspections/${enc}`, {
+      method: "PUT",
+      body: fd,
+    });
+  }
+  return apiFetch(`/api/vesselInspections/${enc}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteVesselInspection(inspectionId) {
+  const enc = encodeURIComponent(String(inspectionId ?? "").trim());
+  return apiFetch(`/api/vesselInspections/${enc}`, { method: "DELETE" });
+}
+
 /** Borra un archivo en Procedimientos (`relativePath` como en el listado). */
 export function deleteProcedimientoFile(division, relativePath) {
   const base =
@@ -527,6 +736,16 @@ export async function logout() {
 export function carFinesPaginated(params) {
   const q = new URLSearchParams(params);
   return apiFetch(`/api/carFines/paginated?${q}`);
+}
+
+export function carFinesCounts() {
+  return apiFetch(`/api/carFines/counts`);
+}
+
+export function carFinesStats(params = {}) {
+  const q = new URLSearchParams(params);
+  const query = q.toString();
+  return apiFetch(`/api/carFines/stats${query ? `?${query}` : ""}`);
 }
 
 export function carFinesMine() {
@@ -613,6 +832,16 @@ export function shipFinesPaginated(params) {
   return apiFetch(`/api/shipFines/paginated?${q}`);
 }
 
+export function shipFinesStats(params = {}) {
+  const q = new URLSearchParams(params);
+  const query = q.toString();
+  return apiFetch(`/api/shipFines/stats${query ? `?${query}` : ""}`);
+}
+
+export function shipFinesCounts() {
+  return apiFetch(`/api/shipFines/counts`);
+}
+
 export function shipFineCreateAndRender(fields, proveFiles = []) {
   const fd = new FormData();
   for (const [k, v] of Object.entries(fields ?? {})) {
@@ -684,6 +913,16 @@ export function shipFineDelete(fine_number) {
 export function personalFinesPaginated(params) {
   const q = new URLSearchParams(params);
   return apiFetch(`/api/personalFines/paginated?${q}`);
+}
+
+export function personalFinesCounts() {
+  return apiFetch(`/api/personalFines/counts`);
+}
+
+export function personalFinesStats(params = {}) {
+  const q = new URLSearchParams(params);
+  const query = q.toString();
+  return apiFetch(`/api/personalFines/stats${query ? `?${query}` : ""}`);
 }
 
 export function personalFineCreateAndRender(fields, proveFiles = []) {

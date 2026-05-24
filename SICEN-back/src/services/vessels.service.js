@@ -19,6 +19,8 @@ import {
   isPesqueroShipType,
   SPORT_RECREATIONAL_DOC_TYPES,
 } from "../constants/vesselStatsClassification.js";
+import { logger } from "../utils/logger.js";
+import { createPlaceholderInspectionForVessel } from "./vesselInspections.service.js";
 
 function escapeRegex(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -141,9 +143,17 @@ export function buildRegistrationSubdoc(p, existing) {
 
 /**
  * Crea un buque con datos iniciales; el resto de módulos completará PSC, embargos, etc.
+ *
+ * Side effect: si el buque es de **Ultramar**, dispara la creación de un
+ * registro placeholder en `vesselInspections` con `inspectionPerformed: false`
+ * y los campos de inspección vacíos. Esto garantiza que el módulo de Estado
+ * Rector de Puertos arranque con una fila por buque elegible aunque todavía
+ * no haya ingresado a puerto nacional.
+ *
  * @param {ReturnType<typeof normalizeVesselInitialPayload>} p — cuerpo ya normalizado.
+ * @param {{ email?: string }|null} [user] — autor del alta (para auditar el placeholder).
  */
-export async function createVesselInitial(p) {
+export async function createVesselInitial(p, user = null) {
   const id = randomUUID();
   const reg = buildRegistrationSubdoc(p, null);
 
@@ -171,6 +181,19 @@ export async function createVesselInitial(p) {
   };
 
   const created = await VesselMongoose.create(doc);
+
+  if (p.vesselType === "Ultramar") {
+    try {
+      await createPlaceholderInspectionForVessel(created._id, user);
+    } catch (err) {
+      /* El alta del buque ya fue exitosa: registramos la falla del side
+         effect pero no la propagamos para no perder el documento creado. */
+      logger.warn(
+        `createVesselInitial: no se pudo crear el placeholder de inspección para el buque ${created._id}: ${err?.message || err}`
+      );
+    }
+  }
+
   return created;
 }
 
@@ -388,6 +411,65 @@ export async function listVesselsPaginated({
     limit: safeLimit,
     sort: { createdAt: -1 },
   });
+}
+
+/**
+ * Lista buques de un tipo (Ultramar / Cabotaje / Deportivo) ordenados por
+ * nombre, devolviendo sólo los campos necesarios para un picker:
+ *   `{ _id, vesselType, name, imoNumber, nationalRegistryNumber,
+ *      flagState, portOfRegistry }`.
+ *
+ * Pensado para alimentar comboboxes (p. ej. el desplegable de buques en el
+ * formulario de alta de inspecciones). Hasta 500 documentos: si la base crece
+ * más allá de ese número conviene paginar o filtrar server-side por query.
+ *
+ * @param {string} vesselType — uno de "Ultramar" | "Cabotaje" | "Deportivo".
+ */
+export async function listVesselsByType(vesselType) {
+  const vt = String(vesselType ?? "").trim();
+  if (!vt) return [];
+  const docs = await VesselMongoose.find(
+    { vesselType: vt },
+    {
+      vesselType: 1,
+      "generalInfo.name": 1,
+      "generalInfo.flagState": 1,
+      "generalInfo.portOfRegistry": 1,
+      "identification.imoNumber": 1,
+      "identification.nationalRegistryNumber": 1,
+    }
+  )
+    .sort({ "generalInfo.name": 1 })
+    .limit(500)
+    .lean();
+
+  return docs.map((d) => ({
+    _id: d._id,
+    vesselType: d.vesselType ?? "",
+    name: d.generalInfo?.name ?? "",
+    imoNumber: d.identification?.imoNumber ?? null,
+    nationalRegistryNumber:
+      d.identification?.nationalRegistryNumber ?? null,
+    flagState: d.generalInfo?.flagState ?? "",
+    portOfRegistry: d.generalInfo?.portOfRegistry ?? "",
+  }));
+}
+
+/**
+ * Lista todos los buques paginados, sin requerir filtros.
+ * @returns paginate result con `docs`, `totalDocs`, `totalPages`, etc.
+ */
+export async function listAllVesselsPaginated({ page, limit } = {}) {
+  const safePage = Math.max(1, Number(page) || 1);
+  const safeLimit = Math.min(50, Math.max(1, Number(limit) || 10));
+  return VesselMongoose.paginate(
+    {},
+    {
+      page: safePage,
+      limit: safeLimit,
+      sort: { createdAt: -1 },
+    },
+  );
 }
 
 /**

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { personalFineCreateAndRender } from "../api/client.js";
 import { Layout } from "../components/Layout.jsx";
-import { FINE_ARTICLE_OPTIONS } from "../constants/fineArticles.js";
+import { PERSONAL_FINE_ARTICLE_OPTIONS } from "../constants/fineArticles.js";
 import { preventNegativeNumberKeys } from "../utils/nonNegativeNumberInput.js";
 import { scrollElementIntoViewById } from "../utils/scrollPageToTop.js";
 
@@ -211,7 +211,7 @@ export function PersonalFineFormPage() {
                   <option value="" disabled>
                     Seleccionar artículo…
                   </option>
-                  {FINE_ARTICLE_OPTIONS.map((o) => (
+                  {PERSONAL_FINE_ARTICLE_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
                       {o.label}
                     </option>

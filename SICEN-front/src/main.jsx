@@ -7,6 +7,8 @@ import "./styles/sweetalert2-theme.css";
 import "./styles/menu-tiles.css";
 import "./styles/user-state-badges.css";
 import "./styles/car-brand-combobox.css";
+import "./styles/vessel-combobox.css";
+import "./styles/inspector-badge.css";
 import "./styles/car-fine-card.css";
 import "./styles/mi-unidad.css";
 import App from "./App.jsx";

@@ -3,6 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { deleteUnit, listUnitsRegistered } from "../api/client.js";
 import { Layout } from "../components/Layout.jsx";
+import {
+  confirmDelete,
+  escapeHtml,
+  notifyDeleteError,
+  notifyDeleteSuccess,
+} from "../utils/confirmDelete.js";
 
 export function BorrarUnidadPage() {
   const navigate = useNavigate();
@@ -43,19 +49,23 @@ export function BorrarUnidadPage() {
 
     const selected = units.find((u) => u.acronym === selectedAcronym);
     const nameLine = selected?.name
-      ? `<div class="small text-muted mt-1">${selected.name}</div>`
+      ? `<li class="small text-muted">${escapeHtml(selected.name)}</li>`
       : "";
 
-    const r = await Swal.fire({
-      icon: "warning",
-      title: "¿Eliminar unidad definitivamente?",
-      html: `Se borrará la unidad <strong>${selectedAcronym}</strong> del sistema y los archivos PNG del escudo en el servidor. Esta acción no se puede deshacer.${nameLine}<p class="small mt-3 mb-0">No podrá eliminar si hay usuarios asignados a esta sigla.</p>`,
-      showCancelButton: true,
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar",
-      confirmButtonColor: "#dc3545",
-      focusCancel: true,
-      allowOutsideClick: false,
+    const r = await confirmDelete({
+      resource: "unidad",
+      summaryHtml: `
+        <p class="mb-2">
+          Se borrará la unidad del sistema junto con los archivos PNG del
+          escudo en el servidor:
+        </p>
+        <ul class="mb-2 ps-3">
+          <li><strong>${escapeHtml(selectedAcronym)}</strong></li>
+          ${nameLine}
+        </ul>
+      `,
+      extraNote:
+        "No podrá eliminarse si hay usuarios asignados a esta sigla.",
     });
 
     if (!r.isConfirmed) return;
@@ -63,19 +73,10 @@ export function BorrarUnidadPage() {
     setDeleting(true);
     try {
       const data = await deleteUnit(selectedAcronym);
-      await Swal.fire({
-        icon: "success",
-        title: "Unidad eliminada",
-        text: data.msg || "La unidad se eliminó correctamente.",
-        confirmButtonText: "Aceptar",
-      });
+      await notifyDeleteSuccess(data.msg || "La unidad se eliminó correctamente.");
       navigate("/gestion-unidades");
     } catch (err) {
-      await Swal.fire({
-        icon: "error",
-        title: "No se pudo eliminar",
-        text: err?.message || "Error del servidor.",
-      });
+      await notifyDeleteError(err, "Error al eliminar la unidad.");
     } finally {
       setDeleting(false);
     }

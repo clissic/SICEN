@@ -23,6 +23,16 @@ personalFinesRouter.get(
   personalFinesController.paginateList
 );
 personalFinesRouter.get("/mine", ...guarded, personalFinesController.mine);
+personalFinesRouter.get(
+  "/counts",
+  ...guarded,
+  personalFinesController.getCounts
+);
+personalFinesRouter.get(
+  "/stats",
+  ...guarded,
+  personalFinesController.getStats
+);
 
 personalFinesRouter.post(
   "/createAndRender",

@@ -1,0 +1,71 @@
+---
+description: Copys visibles al usuario en SICEN-front no deben exponer detalles de implementación (rutas, carpetas, IDs internos, nombres de campos del esquema, comandos, etc.).
+globs: SICEN-front/**/*.jsx,SICEN-front/**/*.js
+alwaysApply: false
+---
+
+# Copys orientados al usuario, no al desarrollador
+
+En SICEN, todo texto que el usuario final llega a ver en pantalla
+(`<label>`, `<div className="form-text">`, placeholders, mensajes de
+error, alertas, toasts, ayudas contextuales) tiene que estar redactado
+**en español rioplatense, conciso y centrado en lo que el usuario tiene
+que hacer**, sin filtrar detalles de implementación.
+
+## Reglas obligatorias
+
+1. **No exponer rutas del sistema de archivos ni del backend.**
+ Nada de `/uploads/...`, `SICEN-back/storage/...`, `public/files/...`,
+ nombres de carpetas internas, ni URLs de endpoints. Si el usuario
+ necesita ubicar un archivo, mostrar el nombre amigable o un link
+ dentro de la propia UI.
+
+2. **No exponer nombres de campos del esquema ni de la BD.**
+ Evitar referencias como `vesselId`, `inspectionPDF`, `_id`,
+ `arrivalDate`, `metadata.createdBy`. Si hay que nombrar al campo en
+ un mensaje, usar el rótulo humano del formulario ("Buque", "PDF de
+ inspección", "Fecha de ingreso").
+
+3. **No exponer identificadores internos.** Nada de "se renombrará a
+ `<_id>.pdf`", "se asigna un ObjectId", "se guardará con el
+ identificador X". Al usuario le alcanza con saber qué pasa, no cómo.
+
+4. **No mencionar herramientas técnicas.** Evitar palabras como
+ Multer, Mongoose, FormData, JSON, multipart, middleware, regex,
+ aggregation, etc., en cualquier texto visible.
+
+5. **Sí decir qué hace, no cómo.** Privilegiar: "Adjunte el reporte en
+ PDF (máx. 1 MB).", "Se eliminará junto con el registro.", "El buque
+ quedará disponible en el listado.".
+
+6. **Los detalles técnicos van en comentarios o JSDoc.** Si hay que
+ documentar dónde se guarda algo o cómo se procesa, ponerlo en el
+ código backend, en JSDoc del cliente API (`SICEN-front/src/api/...`)
+ o en los skills (`.cursor/skills/...`), nunca en el JSX visible.
+
+## Antipatrones
+
+- ❌ `"El archivo se guardará bajo /uploads/inspectionsERP/ con el nombre del identificador de la inspección."`
+- ❌ `"Se enviará al endpoint POST /api/vesselInspections."`
+- ❌ `"Multer rechazará el archivo si supera 1 MB."`
+- ❌ `"El campo cialaPriority se normaliza a 1 o 2 en el backend."`
+
+## Reemplazos correctos
+
+- ✅ `"Adjunte el reporte en PDF (máx. 1 MB)."`
+- ✅ `"Se registrará la inspección al guardar."`
+- ✅ `"El PDF no puede superar 1 MB."`
+- ✅ `"Para estadísticas se consideran Prioridad 1 y Prioridad 2; el resto se agrupa como Sin prioridad."`
+
+## Cuándo aplicar la regla
+
+Cada vez que se agregue o edite:
+
+- `form-text`, `help-block`, `<small>` debajo de un input.
+- Mensajes de validación (cliente y backend si rebotan a la UI).
+- Tooltips, placeholders, modales de confirmación.
+- Tarjetas/legendas explicativas en menús (`InspectionsMenuPage`,
+ `EstadoRectorPuertosPage`, etc.).
+
+Si una pantalla heredó un copy técnico previo, **reemplazarlo cuando
+se la toque**, aunque la tarea principal no sea el copy.
