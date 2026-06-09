@@ -166,7 +166,7 @@ export function VesselUltramarCombobox({
           required={required}
           value={displayValue}
           placeholder={loading ? "Cargando buques de Ultramar…" : placeholder}
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => setOpen(true)}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
           aria-expanded={open}

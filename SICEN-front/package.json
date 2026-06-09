@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/generate-oserp-manifest.mjs",
     "build": "vite build",
     "build:watch": "vite build --watch",
     "preview": "vite preview"

@@ -18,14 +18,16 @@ consistencia entre módulos (multas, buques, inspecciones, etc.).
 | `CarBrandCombobox` | `SICEN-front/src/components/CarBrandCombobox.jsx` | Catálogo **estático** de marcas de vehículo (`constants/carBrands.js`) + opción final `Otra`. |
 | `VesselUltramarCombobox` | `SICEN-front/src/components/VesselUltramarCombobox.jsx` | Catálogo **dinámico**: trae los buques de Ultramar desde `GET /api/vessels/by-type/Ultramar` y deja elegir uno por OMI o nombre. |
 | `InspectorCombobox` | `SICEN-front/src/components/InspectorCombobox.jsx` | Catálogo **dinámico filtrado**: trae todos los usuarios con `usersGetAll()` y deja sólo los **OSERP activos** (state "Oficial Supervisor por el Estado Rector de Puertos" + `isActive: true`). Devuelve el **email** como valor. Soporta `disabled`, `disabledPlaceholder` y `excludedEmails` (uso multi-select: los emails listados ahí desaparecen del desplegable, ideal para armar arrays sin duplicados desde el padre). |
+| `OserpCandidateCombobox` | `SICEN-front/src/components/OserpCandidateCombobox.jsx` | **Espejo** de `InspectorCombobox`: trae `usersGetAll()` y deja sólo a los usuarios que **NO** tienen OSERP activo (candidatos al alta). Devuelve `(email, userDoc)`. Usado en `OserpAltaPage` (`/estado-rector-puertos/oserp/alta`, tarjeta "ALTAS / BAJAS"): el desplegable de **alta** usa este combobox y el de **baja** reusa `InspectorCombobox` (OSERP activos). Tras cada alta/baja, el padre remonta **ambos** comboboxes con una `key` compartida (`refreshKey`) para que las listas reflejen el cambio al instante. |
 
 ## Reglas obligatorias
 
 1. **No usar `<select>` nativo** para más de ~10 opciones o cuando se
    necesita búsqueda. Se construye un combobox como los del listado.
 2. **Input principal `readOnly`** que muestra el valor elegido y abre el
-   popover al hacer clic o recibir foco; al lado, **botón chevron** que
-   alterna `bi-chevron-down` / `bi-chevron-up`.
+   popover al hacer clic o recibir foco (`onClick` y `onFocus` → `setOpen(true)`,
+   **sin toggle**); al lado, **botón chevron** que sí alterna abrir/cerrar
+   (`setOpen(o => !o)`) y cambia `bi-chevron-down` / `bi-chevron-up`.
 3. **Popover dentro del mismo contenedor** (`position-absolute`), con:
    - **Input de búsqueda** arriba (con `placeholder` específico, p. ej.
      "Buscar marca…", "Buscar por OMI o nombre…").
@@ -69,6 +71,10 @@ consistencia entre módulos (multas, buques, inspecciones, etc.).
 - ❌ Cerrar el popover con `onBlur` del input principal (rompe el clic
   sobre las opciones en algunos navegadores). Usar siempre el listener
   de `mousedown` sobre el documento.
+- ❌ Combinar `onFocus={() => setOpen(true)}` con `onClick={() => setOpen(o => !o)}`
+  en el input principal: al soltar el clic, el `click` alterna y cierra el
+  menú que acababa de abrir el `focus`. El input display debe **solo abrir**
+  (`setOpen(true)`); el **toggle** queda en el botón chevron.
 - ❌ Hardcodear colores en el CSS del combobox; tienen que venir de
   variables Bootstrap para mantener el tema claro/oscuro.
 - ❌ Mostrar sólo el "nombre" cuando hay un identificador único más

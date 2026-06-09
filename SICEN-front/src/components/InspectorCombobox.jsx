@@ -243,7 +243,7 @@ export function InspectorCombobox({
           value={displayValue}
           placeholder={computedPlaceholder}
           onClick={() => {
-            if (!isUnusable) setOpen((o) => !o);
+            if (!isUnusable) setOpen(true);
           }}
           onFocus={() => {
             if (!isUnusable) setOpen(true);

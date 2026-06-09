@@ -6,8 +6,8 @@ import { logger } from "../utils/logger.js";
 import UserDTO from "./DTO/users.dto.js";
 import { isValidUserUnitAsync } from "../constants/userUnits.js";
 import {
+  applyUserStatesModification,
   mergeUserStatesFromDocument,
-  normalizeUserStatesPayload,
 } from "../constants/userStates.js";
 import {
   deleteStoredAvatarFile,
@@ -602,7 +602,14 @@ class UsersController {
           });
         }
       }
-      updatedUser.states = normalizeUserStatesPayload(updatedUser.states);
+      /* Registramos en cada habilitación que cambió quién la modificó
+         (`modifyBy`) y cuándo (`lastModify`); las que no cambian conservan su
+         auditoría previa. */
+      updatedUser.states = applyUserStatesModification(
+        existing.states,
+        updatedUser.states,
+        user.email,
+      );
     }
 
     updatedUser._id = id;

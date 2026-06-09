@@ -58,6 +58,9 @@ import { DeleteInspectionPage } from "./pages/DeleteInspectionPage.jsx";
 import { InspectionsPlaceholderPage } from "./pages/InspectionsPlaceholderPage.jsx";
 import { CreateInspectionPage } from "./pages/CreateInspectionPage.jsx";
 import { OserpMenuPage } from "./pages/OserpMenuPage.jsx";
+import { OserpAltaPage } from "./pages/OserpAltaPage.jsx";
+import { OserpCodesPage } from "./pages/OserpCodesPage.jsx";
+import { OserpDeficiencyAssistantPage } from "./pages/OserpDeficiencyAssistantPage.jsx";
 import { ManualUsuarioPage } from "./pages/ManualUsuarioPage.jsx";
 import { UserTutorialRequiredPage } from "./pages/UserTutorialRequiredPage.jsx";
 
@@ -454,6 +457,30 @@ export default function App() {
         element={
           <ProtectedRoute>
             <OserpMenuPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/estado-rector-puertos/oserp/alta"
+        element={
+          <ProtectedRoute admin>
+            <OserpAltaPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/estado-rector-puertos/oserp/codigos-reglamentos"
+        element={
+          <ProtectedRoute>
+            <OserpCodesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/estado-rector-puertos/oserp/asistente-deficiencias"
+        element={
+          <ProtectedRoute>
+            <OserpDeficiencyAssistantPage />
           </ProtectedRoute>
         }
       />

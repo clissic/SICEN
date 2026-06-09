@@ -6,6 +6,10 @@ const userStateSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
     isActive: { type: Boolean, default: false },
+    /** Fecha/hora del último cambio de esta habilitación. */
+    lastModify: { type: Date, default: null },
+    /** Email del usuario que realizó el último cambio de esta habilitación. */
+    modifyBy: { type: String, default: "", trim: true },
   },
   { _id: false },
 );

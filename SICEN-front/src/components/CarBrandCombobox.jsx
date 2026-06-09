@@ -107,7 +107,7 @@ export function CarBrandCombobox({
           required={required}
           value={value || ""}
           placeholder={placeholder}
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => setOpen(true)}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
           aria-expanded={open}

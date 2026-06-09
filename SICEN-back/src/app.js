@@ -47,11 +47,18 @@ const MONGO_PASSWORD = env.mongoPassword;
 const dbName = "SIGMU_DB";
 
 const CLIENT_DIST = path.join(__dirname, "../public");
+const CLIENT_INDEX = path.join(CLIENT_DIST, "index.html");
+/** Solo montamos la SPA si el build generó index.html (evita ENOENT si /public quedó vacío). */
+const hasSpaBuild = fs.existsSync(CLIENT_INDEX);
 
 const httpServer = app.listen(PORT, () => {
   logger.info(`Servidor — http://localhost:${PORT}`);
-  if (fs.existsSync(CLIENT_DIST)) {
+  if (hasSpaBuild) {
     logger.info(`SPA (React) servida desde ${CLIENT_DIST}`);
+  } else if (fs.existsSync(CLIENT_DIST)) {
+    logger.warn(
+      "Carpeta /public sin index.html (build incompleto o fallido). Ejecutá: cd SICEN-front && npm run build"
+    );
   } else {
     logger.warn(
       "No hay build del front en /public. Ejecutá: cd SICEN-front && npm run build"
@@ -111,7 +118,7 @@ app.use("/api/seafarers", seafarersRouter);
 app.use("/api/licences", licencesRouter);
 app.use("/api/titles", titlesRouter);
 
-if (fs.existsSync(CLIENT_DIST)) {
+if (hasSpaBuild) {
   app.use(express.static(CLIENT_DIST));
   app.get("*", (req, res, next) => {
     if (req.path.startsWith("/api")) {
@@ -130,7 +137,17 @@ if (fs.existsSync(CLIENT_DIST)) {
           "Recurso estático no encontrado. Genere el front: cd SICEN-front && npm run build"
         );
     }
-    res.sendFile(path.join(CLIENT_DIST, "index.html"));
+    res.sendFile(CLIENT_INDEX, (err) => {
+      if (err) {
+        logger.error(`Error al servir SPA: ${err.message}`);
+        return res
+          .status(503)
+          .type("text/plain")
+          .send(
+            "La aplicación no está disponible. Genere el front: cd SICEN-front && npm run build"
+          );
+      }
+    });
   });
 }
 
