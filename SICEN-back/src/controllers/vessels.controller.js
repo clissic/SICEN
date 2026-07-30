@@ -9,6 +9,7 @@ import {
   listVesselsByType,
   listVesselsPaginated,
   normalizeVesselInitialPayload,
+  searchVesselsByType,
   updateVesselInitial,
   upsertVesselCertificate,
   vesselDocToFormPayload,
@@ -328,6 +329,49 @@ export const vesselsController = {
       return res.status(500).json({
         ok: false,
         msg: "No se pudieron listar los buques.",
+      });
+    }
+  },
+
+  /**
+   * Búsqueda parcial por nombre y/o matrícula dentro de un tipo.
+   * Query: name, nationalRegistryNumber, limit (default 15).
+   * Mínimo 2 caracteres en al menos uno de los filtros.
+   */
+  async searchByType(req, res) {
+    try {
+      const vesselType = String(req.params.vesselType ?? "").trim();
+      if (!VESSEL_TYPES.has(vesselType)) {
+        return res.status(400).json({
+          ok: false,
+          msg: "Tipo de buque no válido (Ultramar, Cabotaje o Deportivo).",
+        });
+      }
+      const name =
+        req.query.name != null ? String(req.query.name).trim() : "";
+      const nationalRegistryNumber =
+        req.query.nationalRegistryNumber != null
+          ? String(req.query.nationalRegistryNumber).trim()
+          : "";
+      const limit = parseInt(req.query.limit, 10) || 15;
+
+      const result = await searchVesselsByType({
+        vesselType,
+        name,
+        nationalRegistryNumber,
+        limit,
+      });
+      return res.status(200).json({
+        ok: true,
+        vessels: result.vessels,
+        total: result.total,
+        limit: result.limit,
+      });
+    } catch (e) {
+      logger.error("vessels.searchByType: " + (e?.message || e));
+      return res.status(500).json({
+        ok: false,
+        msg: "No se pudieron buscar los buques.",
       });
     }
   },

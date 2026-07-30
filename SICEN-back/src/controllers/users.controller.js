@@ -403,6 +403,7 @@ class UsersController {
         newEmail,
         newDataBody,
         profilePhotoDataUrl,
+        specializationRequests,
       } = req.body;
       const emailSent = await userService.sendNewDataEmail({
         first_name,
@@ -419,6 +420,7 @@ class UsersController {
         newEmail,
         newDataBody,
         profilePhotoDataUrl,
+        specializationRequests,
       });
       return res.status(200).json({
         ok: true,

@@ -10,22 +10,46 @@ import {
 import { transport } from "../utils/nodemailer.js";
 import { logger } from "../utils/logger.js";
 
-/** Data URL JPEG → adjunto Nodemailer (solicitud de foto de perfil). */
-function jpegDataUrlToMailAttachment(dataUrl) {
+/** Data URL (JPEG / PNG / PDF) → adjunto Nodemailer. */
+function dataUrlToMailAttachment(dataUrl, fallbackName = "adjunto") {
   if (!dataUrl || typeof dataUrl !== "string") return null;
-  const m = /^data:image\/jpeg;base64,([\s\S]+)$/i.exec(dataUrl.trim());
+  const m = /^data:([^;,]+);base64,([\s\S]+)$/i.exec(dataUrl.trim());
   if (!m) return null;
+  const contentType = String(m[1] || "").toLowerCase();
   try {
-    const buf = Buffer.from(m[1].replace(/\s/g, ""), "base64");
+    const buf = Buffer.from(m[2].replace(/\s/g, ""), "base64");
     if (!buf.length) return null;
+    let ext = "bin";
+    if (contentType.includes("jpeg") || contentType.includes("jpg")) ext = "jpg";
+    else if (contentType.includes("png")) ext = "png";
+    else if (contentType.includes("pdf")) ext = "pdf";
+    const safeBase = String(fallbackName || "adjunto")
+      .replace(/[^\w.\-áéíóúñÁÉÍÓÚÑ ]+/gi, "_")
+      .trim()
+      .slice(0, 80);
+    const filename = /\.\w+$/.test(safeBase)
+      ? safeBase
+      : `${safeBase || "adjunto"}.${ext}`;
     return {
-      filename: "foto-perfil-solicitud.jpg",
+      filename,
       content: buf,
-      contentType: "image/jpeg",
+      contentType: contentType || "application/octet-stream",
     };
   } catch {
     return null;
   }
+}
+
+/** Data URL JPEG → adjunto Nodemailer (solicitud de foto de perfil). */
+function jpegDataUrlToMailAttachment(dataUrl) {
+  const att = dataUrlToMailAttachment(dataUrl, "foto-perfil-solicitud.jpg");
+  if (!att) return null;
+  if (!String(att.contentType).includes("jpeg")) return null;
+  return {
+    ...att,
+    filename: "foto-perfil-solicitud.jpg",
+    contentType: "image/jpeg",
+  };
 }
 
 class UserService {
@@ -196,14 +220,56 @@ ${sicenCalloutHtml(`<p style="${S.justification}">${escapeHtml(newAccBody)}</p>`
     newEmail,
     newDataBody,
     profilePhotoDataUrl,
+    specializationRequests,
   }) {
     try {
       const S = sicenEmailBodyStyles;
+      const attachments = [];
       const photoAtt = jpegDataUrlToMailAttachment(profilePhotoDataUrl);
-      const attachments = photoAtt ? [photoAtt] : undefined;
+      if (photoAtt) attachments.push(photoAtt);
       const photoNote = photoAtt
         ? `<p style="${S.paragraph}"><strong>Foto de perfil:</strong> imagen adjunta (<code style="${S.codeInline}">foto-perfil-solicitud.jpg</code>) para revisión.</p>`
         : "";
+
+      const specs = Array.isArray(specializationRequests)
+        ? specializationRequests
+        : [];
+      const specRowsHtml = [];
+      specs.forEach((raw, idx) => {
+        const name = String(raw?.name ?? "").trim();
+        if (!name) return;
+        const actionRaw = String(raw?.action ?? "").trim();
+        const action =
+          actionRaw === "Alta" || actionRaw === "Baja" ? actionRaw : "—";
+        const fileName = String(raw?.certificateFileName ?? "").trim();
+        const dataUrl = String(raw?.certificateDataUrl ?? "").trim();
+        let certLabel = "Sin certificado adjunto";
+        if (dataUrl) {
+          const safeName =
+            fileName ||
+            `certificado-especializacion-${idx + 1}`;
+          const att = dataUrlToMailAttachment(
+            dataUrl,
+            `cert-${idx + 1}-${safeName}`
+          );
+          if (att) {
+            attachments.push(att);
+            certLabel = `Adjunto: <code style="${S.codeInline}">${escapeHtml(att.filename)}</code>`;
+          } else {
+            certLabel = "Certificado indicado (no se pudo adjuntar)";
+          }
+        }
+        specRowsHtml.push(
+          `<tr style="${S.trBorder}"><td style="${S.tdLabel}">${escapeHtml(name)}</td><td style="${S.tdValue}"><strong>${escapeHtml(action)}</strong> · ${certLabel}</td></tr>`
+        );
+      });
+      const specsBlock =
+        specRowsHtml.length > 0
+          ? `<p style="${S.sectionHeadingSpaced}">Especializaciones solicitadas</p>
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="${S.table}">
+${specRowsHtml.join("")}
+</table>`
+          : "";
 
       const bodyHtml = `
 <p style="${S.paragraph}"><strong>Usuario actual</strong></p>
@@ -219,6 +285,7 @@ ${sicenCalloutHtml(`<p style="${S.justification}">${escapeHtml(newAccBody)}</p>`
   <tr><td style="${S.tdLabel}">Rol</td><td style="${S.tdValue}"><strong>${escapeHtml(newRole)}</strong></td></tr>
 </table>
 ${photoNote}
+${specsBlock}
 <p style="${S.sectionHeading}">Justificación</p>
 ${sicenCalloutHtml(`<p style="${S.justification}">${escapeHtml(newDataBody)}</p>`, "muted")}
 `;
@@ -234,7 +301,7 @@ ${sicenCalloutHtml(`<p style="${S.justification}">${escapeHtml(newDataBody)}</p>
           footerNote:
             "Revise la solicitud en el panel de administración antes de aplicar cambios en la base de datos.",
         }),
-        ...(attachments ? { attachments } : {}),
+        ...(attachments.length ? { attachments } : {}),
       });
     } catch (error) {
       logger.error("Email could not be sent successfully: " + error);

@@ -37,6 +37,8 @@ import { vesselInspectionsRouter } from "./routes/vesselInspections.router.js";
 import { seafarersRouter } from "./routes/seafarers.router.js";
 import { licencesRouter } from "./routes/licences.router.js";
 import { titlesRouter } from "./routes/titles.router.js";
+import { sportMovementsRouter } from "./routes/sportMovements.router.js";
+import { notificationsRouter } from "./routes/notifications.router.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -117,6 +119,8 @@ app.use("/api/vesselInspections", vesselInspectionsRouter);
 app.use("/api/seafarers", seafarersRouter);
 app.use("/api/licences", licencesRouter);
 app.use("/api/titles", titlesRouter);
+app.use("/api/sportMovements", sportMovementsRouter);
+app.use("/api/notifications", notificationsRouter);
 
 if (hasSpaBuild) {
   app.use(express.static(CLIENT_DIST));

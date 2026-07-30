@@ -13,6 +13,11 @@ vesselsRouter.get(
   vesselsController.listAllPaginated,
 );
 vesselsRouter.get(
+  "/by-type/:vesselType/search",
+  ...guarded,
+  vesselsController.searchByType,
+);
+vesselsRouter.get(
   "/by-type/:vesselType",
   ...guarded,
   vesselsController.listByType,

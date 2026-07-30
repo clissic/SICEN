@@ -90,12 +90,52 @@ function normalizeEmails(body) {
   };
 }
 
+/**
+ * Acepta JSON string, array o un solo string desde multipart.
+ * Deduplica (case-insensitive) y limita a 50 puertos.
+ */
+function normalizePortsUnderJurisdiction(raw) {
+  let list = [];
+  if (raw == null || raw === "") {
+    list = [];
+  } else if (Array.isArray(raw)) {
+    list = raw;
+  } else if (typeof raw === "string") {
+    const s = raw.trim();
+    if (!s) {
+      list = [];
+    } else if (s.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(s);
+        list = Array.isArray(parsed) ? parsed : [s];
+      } catch {
+        list = [s];
+      }
+    } else {
+      list = [s];
+    }
+  }
+
+  const seen = new Set();
+  const out = [];
+  for (const item of list) {
+    const name = String(item ?? "").trim().slice(0, 200);
+    if (!name) continue;
+    const key = name.toLocaleUpperCase("es-UY");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(name);
+    if (out.length >= 50) break;
+  }
+  return out;
+}
+
 export const unitsController = {
   async list(req, res) {
     try {
       const units = await UnitMongoose.find()
         .select(
-          "acronym name address phone foundationDate shieldRelativeUrl emailRadio emailPoliciaMaritima emailMarinaMercante emailApoyoLogistico emailSecretaria"
+          "acronym name address phone foundationDate shieldRelativeUrl emailRadio emailPoliciaMaritima emailMarinaMercante emailApoyoLogistico emailSecretaria portsUnderJurisdiction"
         )
         .sort({ acronym: 1 })
         .lean();
@@ -206,6 +246,9 @@ export const unitsController = {
       }
 
       const emails = normalizeEmails(req.body);
+      const portsUnderJurisdiction = normalizePortsUnderJurisdiction(
+        req.body.puertosJurisdiccion ?? req.body.portsUnderJurisdiction
+      );
 
       let shieldRelativeUrl;
       if (req.file?.buffer?.length) {
@@ -222,6 +265,7 @@ export const unitsController = {
         phone,
         ...emails,
         heraldica,
+        portsUnderJurisdiction,
         foundationDate,
         shieldRelativeUrl,
       });
@@ -256,7 +300,7 @@ export const unitsController = {
       }
       const unit = await UnitMongoose.findOne({ acronym: sigla })
         .select(
-          "acronym name address phone foundationDate shieldRelativeUrl heraldica emailRadio emailPoliciaMaritima emailMarinaMercante emailApoyoLogistico emailSecretaria"
+          "acronym name address phone foundationDate shieldRelativeUrl heraldica emailRadio emailPoliciaMaritima emailMarinaMercante emailApoyoLogistico emailSecretaria portsUnderJurisdiction"
         )
         .lean();
       if (!unit) {
@@ -308,6 +352,9 @@ export const unitsController = {
       }
 
       const emails = normalizeEmails(req.body);
+      const portsUnderJurisdiction = normalizePortsUnderJurisdiction(
+        req.body.puertosJurisdiccion ?? req.body.portsUnderJurisdiction
+      );
 
       const newSigla = String(req.body.sigla ?? "").trim().toUpperCase();
       if (!/^[A-Z0-9]{4,6}$/.test(newSigla)) {
@@ -357,6 +404,7 @@ export const unitsController = {
       existing.phone = phone;
       existing.heraldica = heraldica;
       existing.foundationDate = foundationDate;
+      existing.portsUnderJurisdiction = portsUnderJurisdiction;
       existing.shieldRelativeUrl =
         hasNewFile || shieldPngFileExists(newSigla)
           ? shieldPublicUrl(newSigla)

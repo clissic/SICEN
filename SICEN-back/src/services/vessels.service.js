@@ -421,7 +421,7 @@ export async function listVesselsPaginated({
  *
  * Pensado para alimentar comboboxes (p. ej. el desplegable de buques en el
  * formulario de alta de inspecciones). Hasta 500 documentos: si la base crece
- * más allá de ese número conviene paginar o filtrar server-side por query.
+ * más allá de ese número conviene `searchVesselsByType` (filtro server-side).
  *
  * @param {string} vesselType — uno de "Ultramar" | "Cabotaje" | "Deportivo".
  */
@@ -453,6 +453,112 @@ export async function listVesselsByType(vesselType) {
     flagState: d.generalInfo?.flagState ?? "",
     portOfRegistry: d.generalInfo?.portOfRegistry ?? "",
   }));
+}
+
+const VESSEL_SEARCH_MIN_CHARS = 2;
+const VESSEL_SEARCH_MAX_LIMIT = 30;
+
+/**
+ * Búsqueda server-side de buques por tipo + nombre y/o matrícula (parcial,
+ * case-insensitive). Exige al menos 2 caracteres en nombre o en matrícula.
+ * Devuelve como máximo `limit` (default 15, máx. 30) en el mismo shape que
+ * `listVesselsByType`.
+ */
+export async function searchVesselsByType({
+  vesselType,
+  name,
+  nationalRegistryNumber,
+  limit,
+} = {}) {
+  const vt = String(vesselType ?? "").trim();
+  if (!vt) return { vessels: [], total: 0 };
+
+  const nameQ = String(name ?? "").trim();
+  const regQ = String(nationalRegistryNumber ?? "").trim();
+  const nameOk = nameQ.length >= VESSEL_SEARCH_MIN_CHARS;
+  const regOk = regQ.length >= VESSEL_SEARCH_MIN_CHARS;
+  if (!nameOk && !regOk) {
+    return { vessels: [], total: 0 };
+  }
+
+  const filter = { vesselType: vt };
+  const and = [];
+  if (nameOk) {
+    and.push({
+      "generalInfo.name": {
+        $regex: new RegExp(escapeRegex(nameQ), "i"),
+      },
+    });
+  }
+  if (regOk) {
+    and.push({
+      "identification.nationalRegistryNumber": {
+        $regex: new RegExp(escapeRegex(regQ), "i"),
+      },
+    });
+  }
+  if (and.length === 1) {
+    Object.assign(filter, and[0]);
+  } else if (and.length > 1) {
+    filter.$and = and;
+  }
+
+  const safeLimit = Math.min(
+    VESSEL_SEARCH_MAX_LIMIT,
+    Math.max(1, Number(limit) || 15)
+  );
+
+  const [docs, total] = await Promise.all([
+    VesselMongoose.find(filter, {
+      vesselType: 1,
+      recreationalDocType: 1,
+      recreationalCategory: 1,
+      "identification.callSign": 1,
+      "generalInfo.name": 1,
+      "generalInfo.flagState": 1,
+      "generalInfo.portOfRegistry": 1,
+      "generalInfo.yearBuilt": 1,
+      "generalInfo.shipType": 1,
+      "generalInfo.grossTonnage": 1,
+      "generalInfo.lengthOverall": 1,
+      "generalInfo.beam": 1,
+      "generalInfo.puntal": 1,
+      "identification.imoNumber": 1,
+      "identification.nationalRegistryNumber": 1,
+      "ownership.owner": 1,
+      "crew.crewCapacity": 1,
+    })
+      .sort({ "generalInfo.name": 1 })
+      .limit(safeLimit)
+      .lean(),
+    VesselMongoose.countDocuments(filter),
+  ]);
+
+  return {
+    vessels: docs.map((d) => ({
+      _id: d._id,
+      vesselType: d.vesselType ?? "",
+      name: d.generalInfo?.name ?? "",
+      imoNumber: d.identification?.imoNumber ?? null,
+      nationalRegistryNumber:
+        d.identification?.nationalRegistryNumber ?? null,
+      callSign: d.identification?.callSign ?? "",
+      flagState: d.generalInfo?.flagState ?? "",
+      portOfRegistry: d.generalInfo?.portOfRegistry ?? "",
+      recreationalDocType: d.recreationalDocType ?? "",
+      recreationalCategory: d.recreationalCategory ?? "",
+      shipType: d.generalInfo?.shipType ?? "",
+      yearBuilt: d.generalInfo?.yearBuilt ?? null,
+      grossTonnage: d.generalInfo?.grossTonnage ?? null,
+      lengthOverall: d.generalInfo?.lengthOverall ?? null,
+      beam: d.generalInfo?.beam ?? null,
+      puntal: d.generalInfo?.puntal ?? null,
+      owner: d.ownership?.owner ?? "",
+      crewCapacity: d.crew?.crewCapacity ?? null,
+    })),
+    total,
+    limit: safeLimit,
+  };
 }
 
 /**

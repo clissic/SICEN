@@ -18,6 +18,11 @@ const schema = new Schema(
     emailApoyoLogistico: { type: String, default: "", maxlength: 120 },
     emailSecretaria: { type: String, default: "", maxlength: 120 },
     heraldica: { type: String, default: "", maxlength: 20000 },
+    /** Puertos bajo jurisdicción de la prefectura / unidad. */
+    portsUnderJurisdiction: {
+      type: [String],
+      default: [],
+    },
     foundationDate: { type: Date, required: true },
     shieldRelativeUrl: {
       type: String,
