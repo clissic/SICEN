@@ -72,13 +72,6 @@ export function HomePage() {
 
                 <hr />
 
-                <div className="d-flex flex-wrap gap-2 justify-content-center justify-content-xl-start">
-                  <p className="mb-0">Rol:</p> 
-                  <span className="badge text-bg-secondary">
-                    {user?.role ?? "—"}
-                  </span>
-                </div>
-
                 <div className="row g-2 mt-3 row-cols-3 row-cols-lg-1 row-cols-xl-3">
                   <div className="col d-flex align-items-stretch">
                     <Link
@@ -137,6 +130,13 @@ export function HomePage() {
                 </div>
 
                 <UserStateBadges states={user?.states} />
+
+                <div className="d-flex flex-wrap gap-2 justify-content-center justify-content-xl-start mt-3">
+                  <p className="mb-0">Rol:</p>
+                  <span className="badge text-bg-secondary">
+                    {user?.role ?? "—"}
+                  </span>
+                </div>
               </div>
             </div>
           </div>

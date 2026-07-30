@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
 import { userUpdate } from "../api/client.js";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { OserpCandidateCombobox } from "../components/OserpCandidateCombobox.jsx";
 import { InspectorCombobox } from "../components/InspectorCombobox.jsx";
@@ -221,11 +222,7 @@ export function OserpAltaPage() {
             {msg}
           </div>
         ) : null}
-        {err ? (
-          <div className="alert alert-danger" role="alert">
-            {err}
-          </div>
-        ) : null}
+        <ErrorAlert message={err} className="alert alert-danger" />
 
         <div className="row g-3 align-items-stretch">
           <div className="col-12 col-lg-6">

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { carFinesStats } from "../api/client.js";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { formatPlate } from "../utils/carFineFormatters.js";
 
@@ -203,7 +204,7 @@ export function CarFinesMenuPage() {
               className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
               onClick={loadStats}
               disabled={statsLoading}
-              title="Actualizar estadísticas"
+              data-sicen-popover="Actualizar estadísticas"
             >
               <i
                 className={`bi ${
@@ -218,7 +219,7 @@ export function CarFinesMenuPage() {
           </div>
 
           {statsErr ? (
-            <div className="alert alert-danger py-2 small mb-3">{statsErr}</div>
+            <ErrorAlert message={statsErr} className="alert alert-danger py-2 small mb-3" />
           ) : null}
 
           <div className="card shadow-sm">

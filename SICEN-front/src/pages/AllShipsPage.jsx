@@ -5,6 +5,7 @@ import {
   vesselsAllPaginated,
   vesselsPaginated,
 } from "../api/client.js";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 import {
   confirmDelete,
@@ -241,7 +242,7 @@ export function AllShipsPage() {
           </Link>
         </div>
 
-        {err ? <div className="alert alert-danger py-2">{err}</div> : null}
+        <ErrorAlert message={err} />
 
         <form
           className="card shadow-sm mb-3"

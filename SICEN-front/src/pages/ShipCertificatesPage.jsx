@@ -14,6 +14,7 @@ import {
   getOtherCertificateLabel,
 } from "../constants/vesselCertificateOtherPresets.js";
 import { VESSEL_CERTIFICATE_PRESETS } from "../constants/vesselCertificatePresets.js";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 import {
   certificateExpiryUrgency,
@@ -498,7 +499,7 @@ export function ShipCertificatesPage() {
           </div>
         </div>
 
-        {err ? <div className="alert alert-danger py-2">{err}</div> : null}
+        <ErrorAlert message={err} />
 
         {loading ? (
           <p className="text-muted small mb-0">Cargando certificados…</p>

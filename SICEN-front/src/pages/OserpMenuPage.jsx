@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { usersGetAll } from "../api/client.js";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 
 const ICON_TILE = { fontSize: "0.95rem", marginTop: "0.15rem" };
@@ -99,11 +100,7 @@ function OserpActiveList() {
     <div className="card shadow-sm mt-4">
       <div className="card-body">
         <h5 className="card-title d-flex align-items-center gap-2 mb-3">
-          <i className="bi bi-people text-secondary" aria-hidden />
           OSERP habilitados
-          <span className="badge text-bg-secondary ms-auto">
-            {users.length}
-          </span>
         </h5>
 
         <div className="input-group input-group-sm mb-3">
@@ -124,7 +121,7 @@ function OserpActiveList() {
         {loading ? (
           <p className="text-muted mb-0">Cargando OSERP habilitados…</p>
         ) : error ? (
-          <div className="alert alert-danger mb-0">{error}</div>
+          <ErrorAlert message={error} className="alert alert-danger mb-0" />
         ) : users.length === 0 ? (
           <div className="alert alert-secondary mb-0">
             No hay usuarios habilitados como OSERP.

@@ -12,6 +12,13 @@ export const MI_UNIDAD_AREAS = [
     iconClass: "bi-journal-text",
   },
   {
+    slug: "movimientos-deportivos",
+    title: "MOVIMIENTOS DEPORTIVOS",
+    subtitle:
+      "Despachos, arribos esperados y demorados entre prefecturas.",
+    iconClass: "bi-compass",
+  },
+  {
     slug: "puerto-capurro",
     title: "PUERTO CAPURRO",
     subtitle: "Información relacionada con la pesca nacional.",

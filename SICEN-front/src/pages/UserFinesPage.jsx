@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { carFinesMine } from "../api/client.js";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 
 export function UserFinesPage() {
@@ -23,7 +24,7 @@ export function UserFinesPage() {
           </Link>
         </div>
 
-        {err ? <div className="alert alert-danger py-2">{err}</div> : null}
+        <ErrorAlert message={err} />
 
         <div className="card shadow-sm">
           <div className="table-responsive">

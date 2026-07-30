@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { userDelete, userForDelete } from "../api/client.js";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 import {
   confirmDelete,
@@ -100,7 +101,7 @@ export function DeleteUserPage() {
           </div>
         </div>
 
-        {err ? <div className="alert alert-danger py-2">{err}</div> : null}
+        <ErrorAlert message={err} />
         {msg ? <div className="alert alert-success py-2">{msg}</div> : null}
 
         {preview ? (

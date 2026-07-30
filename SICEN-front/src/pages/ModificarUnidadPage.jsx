@@ -3,6 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { getUnit, listUnitsRegistered, updateUnit } from "../api/client.js";
 import { Layout } from "../components/Layout.jsx";
+import {
+  UnitJurisdictionPortsFields,
+  appendPortsUnderJurisdiction,
+} from "../components/UnitJurisdictionPortsFields.jsx";
 
 const ESCUDO_PRENA = "/img/ESCUDO-UNIDADES-PNN/PRENA.png";
 
@@ -16,6 +20,13 @@ function isoToDateInput(iso) {
   return `${y}-${m}-${day}`;
 }
 
+function portsFromUnit(unit) {
+  const list = Array.isArray(unit?.portsUnderJurisdiction)
+    ? unit.portsUnderJurisdiction.map((p) => String(p || ""))
+    : [];
+  return list.length ? list : [""];
+}
+
 export function ModificarUnidadPage() {
   const navigate = useNavigate();
   const [units, setUnits] = useState([]);
@@ -24,6 +35,7 @@ export function ModificarUnidadPage() {
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [ports, setPorts] = useState([""]);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,11 +60,14 @@ export function ModificarUnidadPage() {
     const ac = e.target.value;
     setSelectedAcronym(ac);
     setDetail(null);
+    setPorts([""]);
     if (!ac) return;
     setDetailLoading(true);
     try {
       const data = await getUnit(ac);
-      setDetail(data.unit ?? null);
+      const unit = data.unit ?? null;
+      setDetail(unit);
+      setPorts(portsFromUnit(unit));
     } catch (err) {
       await Swal.fire({
         icon: "error",
@@ -60,6 +75,7 @@ export function ModificarUnidadPage() {
         text: err?.message || "Error del servidor.",
       });
       setDetail(null);
+      setPorts([""]);
     } finally {
       setDetailLoading(false);
     }
@@ -74,6 +90,7 @@ export function ModificarUnidadPage() {
     if (!escudo || typeof escudo !== "object" || escudo.size === 0) {
       fd.delete("escudo");
     }
+    appendPortsUnderJurisdiction(fd, ports);
 
     setSubmitting(true);
     try {
@@ -140,9 +157,7 @@ export function ModificarUnidadPage() {
             <div className="card-body p-4">
               <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
                 <img
-                  src={
-                    detail.shieldRelativeUrl?.trim() || ESCUDO_PRENA
-                  }
+                  src={detail.shieldRelativeUrl?.trim() || ESCUDO_PRENA}
                   alt=""
                   className="object-fit-contain flex-shrink-0"
                   style={{ maxHeight: "4rem", maxWidth: "5rem" }}
@@ -194,7 +209,13 @@ export function ModificarUnidadPage() {
                       minLength={4}
                       maxLength={6}
                       pattern="[A-Za-z0-9]{4,6}"
-                      title="4 a 6 caracteres alfanuméricos"
+                      data-sicen-popover="4 a 6 caracteres alfanuméricos"
+                      onInvalid={(e) => {
+                        e.currentTarget.setCustomValidity(
+                          "4 a 6 caracteres alfanuméricos"
+                        );
+                      }}
+                      onInput={(e) => e.currentTarget.setCustomValidity("")}
                       defaultValue={detail.acronym}
                       autoComplete="off"
                     />
@@ -241,6 +262,13 @@ export function ModificarUnidadPage() {
                       defaultValue={isoToDateInput(detail.foundationDate)}
                     />
                   </div>
+
+                  <UnitJurisdictionPortsFields
+                    ports={ports}
+                    onChange={setPorts}
+                    disabled={submitting}
+                    idPrefix="mu-port"
+                  />
 
                   <div className="col-md-6">
                     <label className="form-label" htmlFor="mu-eradio">

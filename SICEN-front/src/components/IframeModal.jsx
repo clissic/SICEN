@@ -91,7 +91,7 @@ export function IframeModal({
                   href={url}
                   target="_blank"
                   rel="noreferrer"
-                  title="Abrir en una pestaña nueva"
+                  data-sicen-popover="Abrir en una pestaña nueva"
                 >
                   <i className="bi bi-box-arrow-up-right" aria-hidden />
                   <span className="d-none d-sm-inline">Abrir en pestaña</span>

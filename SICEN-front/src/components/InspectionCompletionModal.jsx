@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
 import { updateVesselInspection, usersGetAll } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { ErrorAlert } from "./ErrorAlert.jsx";
 import { InspectorCombobox } from "./InspectorCombobox.jsx";
 
 /**
@@ -499,9 +500,7 @@ export function InspectionCompletionModal({
                 </div>
               </div>
 
-              {clientErr ? (
-                <div className="alert alert-danger py-2">{clientErr}</div>
-              ) : null}
+              <ErrorAlert message={clientErr} />
 
               <div className="row g-3">
                 <div className="col-md-6">

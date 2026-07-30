@@ -106,7 +106,7 @@ export function PersonalFineCard({
                   className="car-fine-card__status car-fine-card__status--btn"
                   onClick={() => onStatusEdit(fine)}
                   aria-label={`Cambiar estado de la multa N° ${fine.fine_number}`}
-                  title="Cambiar estado"
+                  data-sicen-popover="Cambiar estado"
                 >
                   <i className={`bi ${st.icon}`} aria-hidden />
                   <span>{st.label}</span>
@@ -128,7 +128,7 @@ export function PersonalFineCard({
                   className="car-fine-card__edit-btn"
                   onClick={() => onDataEdit(fine)}
                   aria-label={`Editar datos de la multa N° ${fine.fine_number}`}
-                  title="Editar datos de la multa"
+                  data-sicen-popover="Editar datos de la multa"
                 >
                   <i className="bi bi-pencil-fill" aria-hidden />
                   <span>Editar</span>
@@ -155,7 +155,7 @@ export function PersonalFineCard({
         <div className="d-flex flex-column gap-3">
           <div className="d-flex flex-wrap align-items-center gap-3 w-100">
             {ci ? (
-              <span className="car-fine-card__plate" title={`DNI ${ci}`}>
+              <span className="car-fine-card__plate" data-sicen-popover={`DNI ${ci}`}>
                 {ci}
               </span>
             ) : (
@@ -168,7 +168,7 @@ export function PersonalFineCard({
                 className="bi bi-person-fill text-secondary flex-shrink-0"
                 aria-hidden
               />
-              <span className="fw-semibold text-truncate" title={fullName}>
+              <span className="fw-semibold text-truncate" data-sicen-popover={fullName}>
                 {fullName}
               </span>
             </div>
@@ -369,7 +369,7 @@ export function PersonalFineCard({
                       key={`${p}-${idx}`}
                       className="badge text-bg-secondary text-truncate"
                       style={{ maxWidth: 240 }}
-                      title={String(p)}
+                      data-sicen-popover={String(p)}
                     >
                       {String(p)}
                     </span>

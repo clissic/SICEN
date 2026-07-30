@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 import { carFineDelete, carFineForDelete } from "../api/client.js";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { CarFineCard } from "../components/CarFineCard.jsx";
 import { CarFineProveViewer } from "../components/CarFineProveViewer.jsx";
 import { Layout } from "../components/Layout.jsx";
@@ -162,7 +163,7 @@ export function DeleteCarFinePage() {
           </div>
         </div>
 
-        {err ? <div className="alert alert-danger py-2">{err}</div> : null}
+        <ErrorAlert message={err} />
         {msg ? (
           <div className="alert alert-success py-2" role="status">
             {msg}

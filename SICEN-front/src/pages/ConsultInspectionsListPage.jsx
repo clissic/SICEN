@@ -322,7 +322,7 @@ function InspectionsSearchSection({
                               className="d-inline-flex align-items-center justify-content-center text-decoration-none"
                               style={{ color: "#fd7e14", fontSize: "1.4rem" }}
                               aria-label="Descargar PDF de la inspección"
-                              title="Descargar PDF"
+                              data-sicen-popover="Descargar PDF"
                             >
                               <i className="bi bi-filetype-pdf" aria-hidden />
                             </a>
@@ -335,7 +335,7 @@ function InspectionsSearchSection({
                                 cursor: "not-allowed",
                               }}
                               aria-disabled="true"
-                              title="Sin PDF cargado"
+                              data-sicen-popover="Sin PDF cargado"
                             >
                               <i className="bi bi-filetype-pdf" aria-hidden />
                             </span>

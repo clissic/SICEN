@@ -97,9 +97,6 @@ function FilesColumn({ title, icon, files }) {
         <h5 className="card-title d-flex align-items-center gap-2 mb-3">
           <i className={`bi ${icon} text-secondary`} aria-hidden />
           {title}
-          <span className="badge text-bg-secondary ms-auto">
-            {files.length}
-          </span>
         </h5>
 
         {files.length === 0 ? (
@@ -144,7 +141,7 @@ function FilesColumn({ title, icon, files }) {
                   >
                     <i
                       className={`bi ${className} fs-3 flex-shrink-0`}
-                      title={label}
+                      data-sicen-popover={label}
                       aria-hidden
                     />
                     <div className="min-w-0 flex-grow-1">
@@ -249,7 +246,7 @@ export function OserpCodesPage() {
                 <i
                   className="bi bi-box-arrow-up-right small"
                   aria-hidden
-                  title="Se abre en otra pestaña"
+                  data-sicen-popover="Se abre en otra pestaña"
                 />
               </a>
             ) : null}
@@ -274,7 +271,7 @@ export function OserpCodesPage() {
           <div className="col">
             <FilesColumn
               title="Reglamentación nacional"
-              icon="bi-bank"
+              icon="bi-flag"
               files={nacionales}
             />
           </div>

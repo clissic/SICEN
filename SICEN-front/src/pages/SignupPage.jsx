@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 
 export function SignupPage() {
@@ -41,7 +42,7 @@ export function SignupPage() {
         <div className="card shadow-sm">
           <div className="card-body p-4">
             <h3 className="mb-3">Nueva cuenta</h3>
-            {err ? <div className="alert alert-danger py-2">{err}</div> : null}
+            <ErrorAlert message={err} />
 
             <form onSubmit={onSubmit} className="row g-3">
               <div className="col-12">

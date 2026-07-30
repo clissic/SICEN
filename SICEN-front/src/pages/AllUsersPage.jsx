@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { usersPaginated } from "../api/client.js";
 import { UserUnitSelect } from "../components/UserUnitSelect.jsx";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { RANK_OPTIONS } from "../constants/ranks.js";
 
@@ -95,7 +96,7 @@ export function AllUsersPage() {
           </Link>
         </div>
 
-        {err ? <div className="alert alert-danger py-2">{err}</div> : null}
+        <ErrorAlert message={err} />
 
         <div className="card shadow-sm mb-3">
           <div className="card-body py-3">

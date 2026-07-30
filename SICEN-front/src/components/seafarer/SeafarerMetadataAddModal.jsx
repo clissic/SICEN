@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ErrorAlert } from "../ErrorAlert.jsx";
 import {
   addSeafarerCourse,
   addSeafarerSanction,
@@ -418,7 +419,7 @@ export function SeafarerMetadataAddModal({
                 </div>
               </div>
               {findErr ? (
-                <div className="alert alert-danger py-2 small">{findErr}</div>
+                <ErrorAlert message={findErr} className="alert alert-danger py-2 small" />
               ) : null}
               {person ? (
                 <div className="alert alert-secondary py-2 small mb-3">
@@ -842,7 +843,7 @@ export function SeafarerMetadataAddModal({
           ) : null}
 
           {saveErr ? (
-            <div className="alert alert-danger py-2 small mt-3 mb-0">{saveErr}</div>
+            <ErrorAlert message={saveErr} className="alert alert-danger py-2 small mt-3 mb-0" />
           ) : null}
 
           <div className="d-flex justify-content-end gap-2 mt-3">

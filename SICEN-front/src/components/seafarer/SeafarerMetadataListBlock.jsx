@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ErrorAlert } from "../ErrorAlert.jsx";
 import "../../styles/seafarer-consult-sections.css";
 
 /**
@@ -97,11 +98,7 @@ export function SeafarerMetadataListBlock({
           </div>
         </div>
 
-        {err ? (
-          <div className="alert alert-danger py-2 small mb-3" role="alert">
-            {err}
-          </div>
-        ) : null}
+        <ErrorAlert message={err} className="alert alert-danger py-2 small mb-3" />
 
         <div className="table-responsive">
           <table className="table table-sm table-bordered mb-0 seafarer-consult-table">

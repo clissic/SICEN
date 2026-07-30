@@ -3,10 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { createUnit } from "../api/client.js";
 import { Layout } from "../components/Layout.jsx";
+import {
+  UnitJurisdictionPortsFields,
+  appendPortsUnderJurisdiction,
+} from "../components/UnitJurisdictionPortsFields.jsx";
 
 export function SumarUnidadPage() {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const [ports, setPorts] = useState([""]);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -16,6 +21,7 @@ export function SumarUnidadPage() {
     if (!escudo || typeof escudo !== "object" || escudo.size === 0) {
       fd.delete("escudo");
     }
+    appendPortsUnderJurisdiction(fd, ports);
 
     setSubmitting(true);
     try {
@@ -82,7 +88,13 @@ export function SumarUnidadPage() {
                     minLength={4}
                     maxLength={6}
                     pattern="[A-Za-z0-9]{4,6}"
-                    title="4 a 6 caracteres alfanuméricos"
+                    data-sicen-popover="4 a 6 caracteres alfanuméricos"
+                    onInvalid={(e) => {
+                      e.currentTarget.setCustomValidity(
+                        "4 a 6 caracteres alfanuméricos"
+                      );
+                    }}
+                    onInput={(e) => e.currentTarget.setCustomValidity("")}
                     autoComplete="off"
                   />
                   <div className="form-text">
@@ -128,6 +140,13 @@ export function SumarUnidadPage() {
                     required
                   />
                 </div>
+
+                <UnitJurisdictionPortsFields
+                  ports={ports}
+                  onChange={setPorts}
+                  disabled={submitting}
+                  idPrefix="su-port"
+                />
 
                 <div className="col-md-6">
                   <label className="form-label" htmlFor="su-eradio">

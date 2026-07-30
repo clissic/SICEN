@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
 import { createVesselInspection } from "../api/client.js";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { VesselUltramarCombobox } from "../components/VesselUltramarCombobox.jsx";
 import {
@@ -176,11 +177,7 @@ export function CreateInspectionPage() {
                 {msg}
               </div>
             ) : null}
-            {err ? (
-              <div className="alert alert-danger" role="alert">
-                {err}
-              </div>
-            ) : null}
+            <ErrorAlert message={err} className="alert alert-danger" />
 
             <form onSubmit={onSubmit} noValidate>
               <div className="row g-3">

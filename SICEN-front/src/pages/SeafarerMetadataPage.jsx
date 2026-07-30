@@ -181,7 +181,7 @@ export function SeafarerMetadataPage() {
                 <button
                   type="button"
                   className="btn btn-link btn-sm text-body p-1 me-1"
-                  title="Modificar"
+                  data-sicen-popover="Modificar"
                   aria-label="Modificar"
                   onClick={() => {
                     setCatalogueEntryKind("title");
@@ -195,7 +195,7 @@ export function SeafarerMetadataPage() {
                 <button
                   type="button"
                   className="btn btn-link btn-sm text-danger p-1"
-                  title="Eliminar"
+                  data-sicen-popover="Eliminar"
                   aria-label="Eliminar"
                   onClick={() => handleDeleteTitleCatalog(row)}
                 >
@@ -245,7 +245,7 @@ export function SeafarerMetadataPage() {
                 <button
                   type="button"
                   className="btn btn-link btn-sm text-body p-1 me-1"
-                  title="Modificar"
+                  data-sicen-popover="Modificar"
                   aria-label="Modificar"
                   onClick={() => {
                     setCatalogueEntryKind("license");
@@ -259,7 +259,7 @@ export function SeafarerMetadataPage() {
                 <button
                   type="button"
                   className="btn btn-link btn-sm text-danger p-1"
-                  title="Eliminar"
+                  data-sicen-popover="Eliminar"
                   aria-label="Eliminar"
                   onClick={() => handleDeleteLicenceCatalog(row)}
                 >

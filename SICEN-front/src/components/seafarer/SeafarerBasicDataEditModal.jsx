@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { ErrorAlert } from "../ErrorAlert.jsx";
 import { FLAG_STATE_OPTIONS } from "../../constants/flagStates.js";
 import {
   INITIAL_SEAFARER_CREATE_FORM,
@@ -181,11 +182,7 @@ export function SeafarerBasicDataEditModal({
             </div>
 
             <div className="modal-body">
-                {(clientErr || saveErr) ? (
-                  <div className="alert alert-danger py-2">
-                    {clientErr || saveErr}
-                  </div>
-                ) : null}
+                <ErrorAlert message={clientErr || saveErr} />
 
                 <fieldset className="border rounded-3 px-3 pt-2 pb-3 mb-3">
                   <legend className="float-none w-auto px-2 fs-6 fw-semibold text-body">

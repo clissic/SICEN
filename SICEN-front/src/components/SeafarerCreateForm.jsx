@@ -15,6 +15,7 @@ import {
   SEAFARER_SKIN_COLOR_OPTIONS,
 } from "../constants/seafarerCreateForm.js";
 import { Link } from "react-router-dom";
+import { ErrorAlert } from "./ErrorAlert.jsx";
 
 /**
  * Formulario de alta de gente de mar (solo datos que carga el usuario en el alta).
@@ -44,7 +45,7 @@ export function SeafarerCreateForm({
       </p>
 
       {msg ? <div className="alert alert-success py-2">{msg}</div> : null}
-      {err ? <div className="alert alert-danger py-2">{err}</div> : null}
+      <ErrorAlert message={err} />
 
       <form onSubmit={onSubmit}>
         <fieldset className="border rounded-3 px-3 pt-2 pb-3 mb-4">

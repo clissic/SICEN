@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { forgotPassword } from "../api/client.js";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 
 export function ForgotPasswordPage() {
@@ -27,7 +28,7 @@ export function ForgotPasswordPage() {
           <div className="card-body p-4">
             <h3 className="mb-3">Recuperar contraseña</h3>
             {msg ? <div className="alert alert-success py-2">{msg}</div> : null}
-            {err ? <div className="alert alert-danger py-2">{err}</div> : null}
+            <ErrorAlert message={err} />
 
             <form onSubmit={onSubmit} className="vstack gap-3">
               <div>

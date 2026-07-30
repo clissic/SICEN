@@ -45,7 +45,7 @@ export function EstadoRectorPuertosPage() {
                         <i
                           className="bi bi-box-arrow-up-right text-muted small"
                           aria-hidden
-                          title="Se abre en otra pestaña"
+                          data-sicen-popover="Se abre en otra pestaña"
                         />
                       </div>
                       <div className="text-muted small">

@@ -6,6 +6,7 @@ import {
   personalFinesPaginated,
 } from "../api/client.js";
 import { CarFineProveViewer } from "../components/CarFineProveViewer.jsx";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 import {
   PersonalFineCard,
@@ -786,7 +787,7 @@ export function AllPersonalFinesPage() {
           </div>
         </div>
 
-        {err ? <div className="alert alert-danger py-2">{err}</div> : null}
+        <ErrorAlert message={err} />
         {statusMsg ? (
           <div
             className="alert alert-success py-2 d-flex align-items-center justify-content-between gap-3"
@@ -904,7 +905,7 @@ export function AllPersonalFinesPage() {
             </div>
             <div className="card-body">
               {fineEditorErr ? (
-                <div className="alert alert-danger py-2">{fineEditorErr}</div>
+                <ErrorAlert message={fineEditorErr} />
               ) : null}
               <form
                 className="row g-3"
@@ -1392,7 +1393,7 @@ export function AllPersonalFinesPage() {
             </div>
             <div className="card-body">
               {statusErr ? (
-                <div className="alert alert-danger py-2">{statusErr}</div>
+                <ErrorAlert message={statusErr} />
               ) : null}
               <div
                 className="car-fine-status-modal__options"

@@ -81,10 +81,12 @@ export function AuthProvider({ children }) {
       signup,
       logout,
     }),
-    [user, refresh, login, signup, logout]
+    [user, refresh, login, signup, logout],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

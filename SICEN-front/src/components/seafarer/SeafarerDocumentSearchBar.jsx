@@ -7,6 +7,7 @@ import {
   normalizeSeafarerPassport,
   SEAFARER_DOCUMENT_SEARCH_OPTIONS,
 } from "../../constants/seafarerCreateForm.js";
+import { ErrorAlert } from "../ErrorAlert.jsx";
 
 export function SeafarerDocumentSearchBar({
   documentType,
@@ -134,7 +135,7 @@ export function SeafarerDocumentSearchBar({
           </div>
         </div>
         {searchErr ? (
-          <div className="alert alert-danger py-2 mt-3 mb-0">{searchErr}</div>
+          <ErrorAlert message={searchErr} className="alert alert-danger py-2 mt-3 mb-0" />
         ) : null}
       </div>
     </div>

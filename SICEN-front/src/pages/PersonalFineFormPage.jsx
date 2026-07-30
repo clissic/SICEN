@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { personalFineCreateAndRender } from "../api/client.js";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { PERSONAL_FINE_ARTICLE_OPTIONS } from "../constants/fineArticles.js";
 import { preventNegativeNumberKeys } from "../utils/nonNegativeNumberInput.js";
@@ -161,7 +162,7 @@ export function PersonalFineFormPage() {
           style={{ scrollMarginTop: "1rem" }}
         >
           {msg ? <div className="alert alert-success py-2">{msg}</div> : null}
-          {err ? <div className="alert alert-danger py-2">{err}</div> : null}
+          <ErrorAlert message={err} />
         </div>
 
         <div className="card shadow-sm">

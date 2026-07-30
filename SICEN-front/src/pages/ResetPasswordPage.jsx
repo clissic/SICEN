@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { resetPassword, validateRecoveryToken } from "../api/client.js";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 
 export function ResetPasswordPage() {
@@ -49,17 +50,13 @@ export function ResetPasswordPage() {
               </Link>
             </div>
 
-            {valid === false ? (
-              <div className="alert alert-danger py-2">
-                Token inválido o expirado.
-              </div>
-            ) : null}
+            <ErrorAlert message={valid === false ? "Token inválido o expirado." : null} />
             {valid === null ? (
               <div className="text-muted small">Validando token…</div>
             ) : null}
 
             {msg ? <div className="alert alert-success py-2">{msg}</div> : null}
-            {err ? <div className="alert alert-danger py-2">{err}</div> : null}
+            <ErrorAlert message={err} />
 
             {valid ? (
               <form onSubmit={onSubmit} className="vstack gap-3 mt-3">

@@ -2,11 +2,20 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { updateDataRequest } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
+import {
+  SpecializationRequestFields,
+  normalizeSpecializationRequests,
+} from "../components/SpecializationRequestFields.jsx";
 import { UserAvatarFileInput } from "../components/UserAvatarFileInput.jsx";
 import { UserUnitSelect } from "../components/UserUnitSelect.jsx";
 import { ADMIN_EDIT_ROLES, normalizeRoleForSelect } from "../constants/userRoles.js";
 import { RANK_OPTIONS } from "../constants/ranks.js";
+
+function emptySpecRow() {
+  return { name: "", certificateDataUrl: "", certificateFileName: "" };
+}
 
 export function UpdateDataPage() {
   const { user } = useAuth();
@@ -17,6 +26,9 @@ export function UpdateDataPage() {
   const [newUnit, setNewUnit] = useState("");
   const [newEmail, setNe] = useState("");
   const [profilePhotoDataUrl, setProfilePhotoDataUrl] = useState("");
+  const [specializationRequests, setSpecializationRequests] = useState([
+    emptySpecRow(),
+  ]);
   const [newDataBody, setBody] = useState("");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -33,6 +45,7 @@ export function UpdateDataPage() {
     setNewUnit(user.unit ?? "");
     setNe(user.email ?? "");
     setProfilePhotoDataUrl("");
+    setSpecializationRequests([emptySpecRow()]);
   }, [user?._id]);
 
   async function onSubmit(e) {
@@ -41,6 +54,17 @@ export function UpdateDataPage() {
     setMsg("");
     setSubmitting(true);
     try {
+      let specs = [];
+      try {
+        specs = normalizeSpecializationRequests(
+          specializationRequests,
+          user?.states
+        );
+      } catch (normErr) {
+        setErr(normErr.message || "Revise las especializaciones solicitadas.");
+        setSubmitting(false);
+        return;
+      }
       const newRolePayload =
         user.role === "superAdmin" ? "superAdmin" : newRole;
       const data = await updateDataRequest({
@@ -60,6 +84,7 @@ export function UpdateDataPage() {
         ...(profilePhotoDataUrl
           ? { profilePhotoDataUrl }
           : {}),
+        ...(specs.length ? { specializationRequests: specs } : {}),
       });
       setMsg(data.msg || "Solicitud enviada");
     } catch (ex) {
@@ -89,7 +114,7 @@ export function UpdateDataPage() {
             </p>
 
             {msg ? <div className="alert alert-success py-2">{msg}</div> : null}
-            {err ? <div className="alert alert-danger py-2">{err}</div> : null}
+            <ErrorAlert message={err} />
 
             <form onSubmit={onSubmit} className="row g-3">
               <div className="col-12 col-md-6">
@@ -180,6 +205,12 @@ export function UpdateDataPage() {
                 id="update-data-profile-photo"
                 onDataUrl={setProfilePhotoDataUrl}
                 label="Foto de perfil (archivo .jpg, opcional)"
+              />
+              <SpecializationRequestFields
+                rows={specializationRequests}
+                onChange={setSpecializationRequests}
+                userStates={user?.states}
+                disabled={submitting}
               />
               <div className="col-12">
                 <label className="form-label">Motivo / cuerpo del mensaje</label>

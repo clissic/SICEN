@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { ErrorAlert } from "./ErrorAlert.jsx";
 import { CLASSIFICATION_SOCIETY_OPTIONS } from "../constants/classificationSocieties.js";
 import { FLAG_STATE_OPTIONS } from "../constants/flagStates.js";
 import {
@@ -62,7 +63,7 @@ export function ShipRegistrationForm({
       ) : null}
 
       {msg ? <div className="alert alert-success py-2">{msg}</div> : null}
-      {err ? <div className="alert alert-danger py-2">{err}</div> : null}
+      <ErrorAlert message={err} />
       {clientErr && !err ? (
         <div className="alert alert-warning py-2">{clientErr}</div>
       ) : null}

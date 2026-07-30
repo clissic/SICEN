@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
 import { getVesselForEdit, updateVessel } from "../api/client.js";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { ShipRegistrationForm } from "../components/ShipRegistrationForm.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { INITIAL_SHIP_REGISTRATION_FORM, RECREATIONAL_CATEGORY_FIXED_CONSTRUCCION } from "../constants/shipRegistrationFormDefaults.js";
@@ -176,7 +177,7 @@ export function EditShipPage() {
         <div className="card shadow-sm">
           <div className="card-body p-4">
             {loadErr ? (
-              <div className="alert alert-danger py-2">{loadErr}</div>
+              <ErrorAlert message={loadErr} />
             ) : null}
             {loading ? (
               <p className="text-muted small mb-0">Cargando datos del buque…</p>

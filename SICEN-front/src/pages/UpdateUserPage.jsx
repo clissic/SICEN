@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { userForUpdate, userUpdate } from "../api/client.js";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { UserAvatarFileInput } from "../components/UserAvatarFileInput.jsx";
 import { UserUnitSelect } from "../components/UserUnitSelect.jsx";
@@ -137,11 +138,7 @@ export function UpdateUserPage() {
         </div>
 
         <div id="update-user-feedback" aria-live="polite">
-          {err ? (
-            <div className="alert alert-danger py-2 mb-0" role="alert">
-              {err}
-            </div>
-          ) : null}
+          <ErrorAlert message={err} className="alert alert-danger py-2 mb-0" />
           {msg ? (
             <div className="alert alert-success py-2 mb-0" role="alert">
               {msg}

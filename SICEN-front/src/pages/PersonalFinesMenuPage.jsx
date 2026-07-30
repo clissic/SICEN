@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { personalFinesStats } from "../api/client.js";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 
 const ICON_TILE = { fontSize: "0.95rem", marginTop: "0.15rem" };
@@ -197,7 +198,7 @@ export function PersonalFinesMenuPage() {
               className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
               onClick={loadStats}
               disabled={statsLoading}
-              title="Actualizar estadísticas"
+              data-sicen-popover="Actualizar estadísticas"
             >
               <i
                 className={`bi ${
@@ -212,7 +213,7 @@ export function PersonalFinesMenuPage() {
           </div>
 
           {statsErr ? (
-            <div className="alert alert-danger py-2 small mb-3">{statsErr}</div>
+            <ErrorAlert message={statsErr} className="alert alert-danger py-2 small mb-3" />
           ) : null}
 
           <div className="card shadow-sm">

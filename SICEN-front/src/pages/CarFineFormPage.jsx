@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { carFineCreateAndRender } from "../api/client.js";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { CarBrandCombobox } from "../components/CarBrandCombobox.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { OTHER_CAR_BRAND } from "../constants/carBrands.js";
@@ -128,9 +129,7 @@ export function CarFineFormPage() {
           {msg ? (
             <div className="alert alert-success py-2">{msg}</div>
           ) : null}
-          {err ? (
-            <div className="alert alert-danger py-2">{err}</div>
-          ) : null}
+          <ErrorAlert message={err} />
         </div>
 
         <div className="card shadow-sm">

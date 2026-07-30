@@ -1,33 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useDocumentSicenPopovers } from "../hooks/useDocumentSicenPopovers.js";
 import { AnniversaryModal } from "./AnniversaryModal.jsx";
 import { IframeModal } from "./IframeModal.jsx";
+import { NotificationsBell } from "./NotificationsBell.jsx";
 import { ThemeToggle, useBootstrapTheme } from "./ThemeToggle.jsx";
 
 const JPC_SITE_URL = "https://jpc-dev.uy";
 
-function LogoutPowerButton({ onLogout }) {
-  const btnRef = useRef(null);
-
-  useEffect(() => {
-    const el = btnRef.current;
-    const Popover = globalThis.bootstrap?.Popover;
-    if (!el || !Popover) return;
-
-    const popover = new Popover(el, {
-      content: "Cerrar sesión",
-      trigger: "hover focus",
-      placement: "bottom",
-      customClass: "popover-cerrar-sesion",
-    });
-
-    return () => {
-      popover.dispose();
-    };
-  }, []);
-
+function LogoutPowerButton({ onLogout, showLabel = false }) {
   async function handleClick() {
     const result = await Swal.fire({
       title: "Cerrar sesión",
@@ -47,13 +30,21 @@ function LogoutPowerButton({ onLogout }) {
 
   return (
     <button
-      ref={btnRef}
       type="button"
-      className="btn btn-sm btn-outline-secondary btn-logout-power d-flex align-items-center justify-content-center px-2"
+      className={`btn btn-sm btn-outline-secondary btn-logout-power d-flex align-items-center justify-content-center px-2 ${
+        showLabel ? "w-100 gap-2" : ""
+      }`}
       onClick={handleClick}
       aria-label="Cerrar sesión"
+      {...(showLabel
+        ? {}
+        : {
+            "data-sicen-popover": "Cerrar sesión",
+            "data-sicen-popover-placement": "bottom",
+          })}
     >
       <i className="bi bi-power" style={{ fontSize: "1.1rem" }} aria-hidden />
+      {showLabel ? <span>Cerrar sesión</span> : null}
     </button>
   );
 }
@@ -73,20 +64,14 @@ function NavbarToolbar({ user, onLogout }) {
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
-  const actions = (
-    <>
-      <ThemeToggle />
-      {user ? <LogoutPowerButton onLogout={onLogout} /> : null}
-    </>
-  );
-
   if (compactNav) {
     return (
-      <div className="dropdown ms-auto" data-bs-auto-close="outside">
+      <div className="dropdown ms-auto">
         <button
           type="button"
           className="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center px-2"
           data-bs-toggle="dropdown"
+          data-bs-auto-close="outside"
           data-bs-display="static"
           aria-expanded="false"
           aria-label="Tema y sesión"
@@ -95,7 +80,11 @@ function NavbarToolbar({ user, onLogout }) {
         </button>
         <div className="dropdown-menu dropdown-menu-end p-3 shadow">
           <div className="d-flex flex-column align-items-center gap-3">
-            {actions}
+            <ThemeToggle />
+            {user ? <NotificationsBell embedded /> : null}
+            {user ? (
+              <LogoutPowerButton onLogout={onLogout} showLabel />
+            ) : null}
           </div>
         </div>
       </div>
@@ -104,7 +93,9 @@ function NavbarToolbar({ user, onLogout }) {
 
   return (
     <div className="d-flex flex-column flex-sm-row align-items-sm-center gap-2 gap-sm-3 ms-auto text-end">
-      {actions}
+      <ThemeToggle />
+      {user ? <NotificationsBell /> : null}
+      {user ? <LogoutPowerButton onLogout={onLogout} /> : null}
     </div>
   );
 }
@@ -113,6 +104,7 @@ export function Layout({ children }) {
   const { user, logout } = useAuth();
   const bsTheme = useBootstrapTheme();
   const [jpcModalOpen, setJpcModalOpen] = useState(false);
+  useDocumentSicenPopovers();
   const navbarEmblemSrc =
     bsTheme === "dark"
       ? "/img/Franja-PNN-CUADRADO-Blanco.png"
@@ -170,12 +162,6 @@ export function Layout({ children }) {
           color: var(--bs-danger) !important;
           border-color: var(--bs-danger) !important;
           background-color: transparent;
-        }
-        .popover-cerrar-sesion .popover-header {
-          display: none;
-        }
-        .popover-cerrar-sesion .popover-body {
-          padding: 0.4rem 0.65rem;
         }
         .navbar-brand-emblem {
           height: 2.5rem;

@@ -466,11 +466,34 @@ export function vesselsAllPaginated(params) {
  * Lista buques por tipo (Ultramar / Cabotaje / Deportivo) para alimentar
  * comboboxes. Devuelve `{ ok, vessels: [{ _id, vesselType, name, imoNumber,
  * nationalRegistryNumber, flagState, portOfRegistry }] }`. Hasta 500 buques;
- * pensado para pickers, no para listados completos.
+ * pensado para pickers chicos (p. ej. Ultramar). Para Deportivo / catálogos
+ * grandes usar `vesselsByTypeSearch`.
  */
 export function vesselsByType(vesselType) {
   const t = encodeURIComponent(String(vesselType ?? "").trim());
   return apiFetch(`/api/vessels/by-type/${t}`);
+}
+
+/**
+ * Búsqueda parcial de buques por tipo + nombre y/o matrícula (JWT).
+ * Params: `{ vesselType, name?, nationalRegistryNumber?, limit? }`.
+ * El backend exige ≥ 2 caracteres en al menos un filtro; default limit 15.
+ */
+export function vesselsByTypeSearch(params = {}) {
+  const t = encodeURIComponent(String(params.vesselType ?? "").trim());
+  const q = new URLSearchParams();
+  if (params.name) q.set("name", String(params.name).trim());
+  if (params.nationalRegistryNumber) {
+    q.set(
+      "nationalRegistryNumber",
+      String(params.nationalRegistryNumber).trim()
+    );
+  }
+  if (params.limit != null) q.set("limit", String(params.limit));
+  const qs = q.toString();
+  return apiFetch(
+    `/api/vessels/by-type/${t}/search${qs ? `?${qs}` : ""}`
+  );
 }
 
 /** Datos del buque para la vista de certificados (JWT). */
@@ -1117,4 +1140,137 @@ export function createUserAdmin(body, avatarFile) {
       avatar: "/img/avatar.png",
     }),
   });
+}
+
+/* ——— Movimientos deportivos ——— */
+
+/** Alta de movimiento deportivo (JWT). */
+export function createSportMovement(payload) {
+  return apiFetch("/api/sportMovements", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * ¿El buque tiene movimiento abierto?
+ * Respuesta: `{ available, msg?, openMovement? }`.
+ */
+export function checkSportMovementVesselAvailable(vesselId) {
+  const enc = encodeURIComponent(String(vesselId || ""));
+  return apiFetch(`/api/sportMovements/availability/vessel/${enc}`);
+}
+
+/** Despachos de la unidad del usuario (standBy + expired). */
+export function sportMovementsDispatches(params) {
+  const q = new URLSearchParams(params || {});
+  return apiFetch(`/api/sportMovements/dispatches?${q}`);
+}
+
+/** Despachos confirmados (inTransit) de la unidad origen. */
+export function sportMovementsConfirmedDispatches(params) {
+  const q = new URLSearchParams(params || {});
+  return apiFetch(`/api/sportMovements/dispatches/confirmed?${q}`);
+}
+
+/** Arribos esperados (inTransit, ETA futura) para la unidad del usuario. */
+export function sportMovementsArrivals(params) {
+  const q = new URLSearchParams(params || {});
+  return apiFetch(`/api/sportMovements/arrivals?${q}`);
+}
+
+/** Demorados (inTransit, ETA pasada) para la unidad del usuario. */
+export function sportMovementsDelayed(params) {
+  const q = new URLSearchParams(params || {});
+  return apiFetch(`/api/sportMovements/delayed?${q}`);
+}
+
+/** Casos cerrados (buques arribados) para la unidad destino.
+ *  Pasar `onlyDelayed: true` para el historial de demorados resueltos
+ *  (excluye arribos cerrados antes de la ETA).
+ */
+export function sportMovementsClosed(params) {
+  const q = new URLSearchParams();
+  const src = params || {};
+  Object.entries(src).forEach(([k, v]) => {
+    if (v === undefined || v === null || v === "") return;
+    q.set(k, String(v));
+  });
+  return apiFetch(`/api/sportMovements/closed?${q}`);
+}
+
+/** Alerta breve de demorados (legado; la UI usa `/api/notifications`). */
+export function sportMovementsDelayedAlert() {
+  return apiFetch("/api/sportMovements/delayed/alert");
+}
+
+export function getSportMovement(id) {
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/sportMovements/${enc}`);
+}
+
+export function updateSportMovement(id, payload) {
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/sportMovements/${enc}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function confirmSportMovement(id) {
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/sportMovements/${enc}/confirm`, { method: "POST" });
+}
+
+export function renewSportMovement(id) {
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/sportMovements/${enc}/renew`, { method: "POST" });
+}
+
+/** Cierra un demorado: outcome `arrived` | `maritimeIncident`. */
+export function closeSportMovement(id, payload) {
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/sportMovements/${enc}/close`, {
+    method: "POST",
+    body: JSON.stringify(payload || {}),
+  });
+}
+
+/**
+ * Anula un movimiento confirmado (inTransit) con motivo.
+ * Body: `{ reason }`.
+ */
+export function cancelConfirmedSportMovement(id, payload) {
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/sportMovements/${enc}/cancel`, {
+    method: "POST",
+    body: JSON.stringify(payload || {}),
+  });
+}
+
+export function deleteSportMovement(id) {
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/sportMovements/${enc}`, { method: "DELETE" });
+}
+
+/* ——— Notificaciones (inbox) ——— */
+
+/** Listado paginado de notificaciones del usuario. */
+export function listNotifications(params) {
+  const q = new URLSearchParams(params || {});
+  return apiFetch(`/api/notifications?${q}`);
+}
+
+/** Conteo de no leídas (también materializa demorados en el backend). */
+export function notificationsUnreadCount() {
+  return apiFetch("/api/notifications/unread-count");
+}
+
+export function markNotificationRead(id) {
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/notifications/${enc}/read`, { method: "PATCH" });
+}
+
+export function markAllNotificationsRead() {
+  return apiFetch("/api/notifications/read-all", { method: "POST" });
 }

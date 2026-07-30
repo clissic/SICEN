@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { useBootstrapTheme } from "../components/ThemeToggle.jsx";
 
@@ -48,7 +49,7 @@ export function LoginPage() {
                   <img src={logoSrc} alt="Logo PNN" className="img-fluid w-25 m-auto" />
                   <h4 className="my-2 text-start">Ingrese sus credenciales:</h4>
                 </div>
-                {err ? <div className="alert alert-danger py-2">{err}</div> : null}
+                <ErrorAlert message={err} />
 
                 <form onSubmit={onSubmit} className="vstack gap-3">
                   <div>

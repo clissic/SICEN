@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
 import { getUnit, listUnitsRegistered } from "../api/client.js";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -56,6 +57,18 @@ function buildUnitDetailHtml(unit) {
     ? `<div class="sicen-unit-section"><div class="sicen-unit-section__title">Heráldica</div><div class="sicen-unit-herald border rounded-2 px-2 py-2 small text-break">${escapeHtml(heraldRaw)}</div></div>`
     : `<div class="sicen-unit-section">${cell("Heráldica", "")}</div>`;
 
+  const ports = Array.isArray(unit.portsUnderJurisdiction)
+    ? unit.portsUnderJurisdiction
+        .map((p) => String(p ?? "").trim())
+        .filter(Boolean)
+    : [];
+  const portsBlock =
+    ports.length > 0
+      ? `<div class="sicen-unit-section"><div class="sicen-unit-section__title">Puertos en jurisdicción</div><ul class="sicen-unit-ports mb-0 ps-3">${ports
+          .map((p) => `<li class="text-break">${escapeHtml(p)}</li>`)
+          .join("")}</ul></div>`
+      : `<div class="sicen-unit-section">${cell("Puertos en jurisdicción", "")}</div>`;
+
   return `
 <style>
 .sicen-unit-modal{font-size:0.875rem;line-height:1.35;margin:0;padding:0}
@@ -69,6 +82,9 @@ function buildUnitDetailHtml(unit) {
 .sicen-unit-section{border-top:1px solid var(--bs-border-color-translucent,#dee2e6);margin-top:0.45rem;padding-top:0.45rem}
 .sicen-unit-section__title{color:#6c757d;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 0.3rem;font-weight:600}
 .sicen-unit-herald{white-space:pre-wrap;max-height:10rem;overflow-y:auto;line-height:1.35;background:#f8f9fa;border-color:#e9ecef!important}
+.sicen-unit-ports{font-size:0.84rem;font-weight:500;line-height:1.4;max-height:8rem;overflow-y:auto}
+.sicen-unit-ports li{margin-bottom:0.15rem}
+.sicen-unit-ports li:last-child{margin-bottom:0}
 </style>
 <div class="sicen-unit-modal">
   <div class="sicen-unit-head">
@@ -87,6 +103,7 @@ function buildUnitDetailHtml(unit) {
     <div class="sicen-unit-section__title">Correos electrónicos</div>
     <div class="row g-1 gx-2">${emailsRows}</div>
   </div>
+  ${portsBlock}
   ${heraldBlock}
 </div>`;
 }
@@ -305,7 +322,7 @@ export function GestionUnidadesPage() {
         {unitsState.loading ? (
           <p className="text-muted mb-0">Cargando unidades…</p>
         ) : unitsState.error ? (
-          <div className="alert alert-danger mb-0">{unitsState.error}</div>
+          <ErrorAlert message={unitsState.error} className="alert alert-danger mb-0" />
         ) : unitsState.units.length === 0 ? (
           <div className="alert alert-secondary mb-0">
             No hay unidades registradas en la base de datos.
@@ -337,7 +354,7 @@ export function GestionUnidadesPage() {
                     tabIndex={0}
                     className="cursor-pointer"
                     style={{ cursor: "pointer" }}
-                    title="Ver datos completos"
+                    data-sicen-popover="Ver datos completos"
                     onClick={() => openUnitDetailModal(u.acronym)}
                     onKeyDown={(ev) => {
                       if (ev.key === "Enter" || ev.key === " ") {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ErrorAlert } from "../ErrorAlert.jsx";
 import "../../styles/seafarer-consult-sections.css";
 import {
   confirmDelete as confirmDeleteAlert,
@@ -58,7 +59,7 @@ function SectionCard({ title, children, addLabel, onAdd, adding, addErr, addOk, 
         <h5 className="card-title mb-3">{title}</h5>
         {children}
         {addErr ? (
-          <div className="alert alert-danger py-2 mt-3 mb-0 small">{addErr}</div>
+          <ErrorAlert message={addErr} className="alert alert-danger py-2 mt-3 mb-0 small" />
         ) : null}
         {addOk ? (
           <div className="alert alert-success py-2 mt-3 mb-0 small">{addOk}</div>
@@ -335,7 +336,7 @@ export function SeafarerHeldTitlesSection({
                         <button
                           type="button"
                           className="btn btn-link btn-sm text-body p-1 me-1"
-                          title="Modificar"
+                          data-sicen-popover="Modificar"
                           aria-label="Modificar"
                           disabled={adding}
                           onClick={() => startEdit(r)}
@@ -345,7 +346,7 @@ export function SeafarerHeldTitlesSection({
                         <button
                           type="button"
                           className="btn btn-link btn-sm text-danger p-1"
-                          title="Eliminar"
+                          data-sicen-popover="Eliminar"
                           aria-label="Eliminar"
                           disabled={adding}
                           onClick={() => confirmDelete(r)}
@@ -727,7 +728,7 @@ export function SeafarerLicenseTableSection({
                         <button
                           type="button"
                           className="btn btn-link btn-sm text-body p-1 me-1"
-                          title="Modificar"
+                          data-sicen-popover="Modificar"
                           aria-label="Modificar"
                           disabled={adding}
                           onClick={() => startEdit(r)}
@@ -737,7 +738,7 @@ export function SeafarerLicenseTableSection({
                         <button
                           type="button"
                           className="btn btn-link btn-sm text-danger p-1"
-                          title="Eliminar"
+                          data-sicen-popover="Eliminar"
                           aria-label="Eliminar"
                           disabled={adding}
                           onClick={() => confirmDelete(r)}

@@ -12,6 +12,10 @@ import { MiUnidadPage } from "./pages/MiUnidadPage.jsx";
 import { MiUnidadDivisionPage } from "./pages/MiUnidadDivisionPage.jsx";
 import { MiUnidadDivisionMenuItemPage } from "./pages/MiUnidadDivisionMenuItemPage.jsx";
 import { MiUnidadAreaPage } from "./pages/MiUnidadAreaPage.jsx";
+import { SportMovementsMenuPage } from "./pages/SportMovementsMenuPage.jsx";
+import { SportMovementsDispatchesPage } from "./pages/SportMovementsDispatchesPage.jsx";
+import { SportMovementsArrivalsPage } from "./pages/SportMovementsArrivalsPage.jsx";
+import { SportMovementsDelayedPage } from "./pages/SportMovementsDelayedPage.jsx";
 import { BuquesMenuPage } from "./pages/BuquesMenuPage.jsx";
 import { NewShipPage } from "./pages/NewShipPage.jsx";
 import { AllShipsPage } from "./pages/AllShipsPage.jsx";
@@ -153,6 +157,49 @@ export default function App() {
         element={
           <ProtectedRoute>
             <MiUnidadPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mi-unidad/areas/movimientos-deportivos/despachos"
+        element={
+          <ProtectedRoute>
+            <SportMovementsDispatchesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mi-unidad/areas/movimientos-deportivos/arribos"
+        element={
+          <ProtectedRoute>
+            <SportMovementsArrivalsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mi-unidad/areas/movimientos-deportivos/demorados"
+        element={
+          <ProtectedRoute>
+            <SportMovementsDelayedPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mi-unidad/areas/movimientos-deportivos/arribados"
+        element={
+          <ProtectedRoute>
+            <Navigate
+              to="/mi-unidad/areas/movimientos-deportivos/arribos"
+              replace
+            />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mi-unidad/areas/movimientos-deportivos"
+        element={
+          <ProtectedRoute>
+            <SportMovementsMenuPage />
           </ProtectedRoute>
         }
       />

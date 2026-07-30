@@ -319,6 +319,7 @@ export function deleteX(id) {
 | Gente de mar | `seafarers.mongoose.js` | `seafarers.service.js` | `seafarers.controller.js` | `seafarers.router.js` |
 | Unidades | `units.mongoose.js` | `units.service.js` | `units.controller.js` | `units.router.js` |
 | Inspecciones de buques | `vesselInspections.mongoose.js` | `vesselInspections.service.js` | `vesselInspections.controller.js` | `vesselInspections.router.js` |
+| Movimientos deportivos | `sportMovements.mongoose.js` | `sportMovements.service.js` | `sportMovements.controller.js` | `sportMovements.router.js` |
 
 Las **multas** (`carFines`, `shipFines`, `personalFines`) siguen un patrón
 **legacy** con DAO/Model wrapper y respuestas `{ status, payload }`. **No

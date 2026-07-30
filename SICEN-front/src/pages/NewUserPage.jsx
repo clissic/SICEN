@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { createUserAdmin } from "../api/client.js";
+import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { UserUnitSelect } from "../components/UserUnitSelect.jsx";
 import { UserAvatarFileInput } from "../components/UserAvatarFileInput.jsx";
@@ -74,7 +75,7 @@ export function NewUserPage() {
             </div>
 
             {msg ? <div className="alert alert-success py-2">{msg}</div> : null}
-            {err ? <div className="alert alert-danger py-2">{err}</div> : null}
+            <ErrorAlert message={err} />
 
             <form onSubmit={onSubmit} className="row g-3">
               <div className="col-12 col-md-6">

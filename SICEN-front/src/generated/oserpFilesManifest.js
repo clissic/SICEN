@@ -100,8 +100,8 @@ export default {
       "modifiedAt": "2026-06-09T01:51:04.309Z"
     },
     {
-      "name": "09.- Código Internacional para la Construcción y el Equipo de buques que Transporten Productos Químicos Peligrosos a Granel (Código CIQ). (Convenio SOLAS, Enmienda MSC.4(48))..pdf",
-      "url": "/files/OSERP/Internacionales/09.-%20C%C3%B3digo%20Internacional%20para%20la%20Construcci%C3%B3n%20y%20el%20Equipo%20de%20buques%20que%20Transporten%20Productos%20Qu%C3%ADmicos%20Peligrosos%20a%20Granel%20(C%C3%B3digo%20CIQ).%20(Convenio%20SOLAS%2C%20Enmienda%20MSC.4(48))..pdf",
+      "name": "09.- Código Internacional para la Construcción y el Equipo de buques que Transporten Productos Químicos Peligrosos a Granel (Código CIQ)..pdf",
+      "url": "/files/OSERP/Internacionales/09.-%20C%C3%B3digo%20Internacional%20para%20la%20Construcci%C3%B3n%20y%20el%20Equipo%20de%20buques%20que%20Transporten%20Productos%20Qu%C3%ADmicos%20Peligrosos%20a%20Granel%20(C%C3%B3digo%20CIQ)..pdf",
       "kind": "pdf",
       "sizeBytes": 3161305,
       "modifiedAt": "2026-06-09T01:51:17.832Z"
@@ -137,8 +137,8 @@ export default {
       "modifiedAt": "2026-06-09T02:15:03.138Z"
     },
     {
-      "name": "DISMAR 129 Criterio de implantación del Capítulo XI-2 del Convenio SOLAS74 en su forma enmendada y del código de protección del buque y de las instalaciones portuarias (PBIP).pdf",
-      "url": "/files/OSERP/Nacionales/DISMAR%20129%20Criterio%20de%20implantaci%C3%B3n%20del%20Cap%C3%ADtulo%20XI-2%20del%20Convenio%20SOLAS74%20en%20su%20forma%20enmendada%20y%20del%20c%C3%B3digo%20de%20protecci%C3%B3n%20del%20buque%20y%20de%20las%20instalaciones%20portuarias%20(PBIP).pdf",
+      "name": "DISMAR 129 Criterio de implantación del Capítulo XI-2 del Convenio SOLAS74 (PBIP).pdf",
+      "url": "/files/OSERP/Nacionales/DISMAR%20129%20Criterio%20de%20implantaci%C3%B3n%20del%20Cap%C3%ADtulo%20XI-2%20del%20Convenio%20SOLAS74%20(PBIP).pdf",
       "kind": "pdf",
       "sizeBytes": 39627,
       "modifiedAt": "2026-06-09T02:17:46.301Z"
@@ -172,8 +172,8 @@ export default {
       "modifiedAt": "2026-06-09T02:08:01.149Z"
     },
     {
-      "name": "DISMAR 52 Informar a la Prefectura Nacional Naval por responsables de buques cuando ingresen en aguas nacionales en condiciones inseguras por deficiencias del buque..pdf",
-      "url": "/files/OSERP/Nacionales/DISMAR%2052%20Informar%20a%20la%20Prefectura%20Nacional%20Naval%20por%20responsables%20de%20buques%20cuando%20ingresen%20en%20aguas%20nacionales%20en%20condiciones%20inseguras%20por%20deficiencias%20del%20buque..pdf",
+      "name": "DISMAR 52 Responsables de buques cuando ingresen en aguas nacionales en condiciones inseguras por deficiencias del buque..pdf",
+      "url": "/files/OSERP/Nacionales/DISMAR%2052%20Responsables%20de%20buques%20cuando%20ingresen%20en%20aguas%20nacionales%20en%20condiciones%20inseguras%20por%20deficiencias%20del%20buque..pdf",
       "kind": "pdf",
       "sizeBytes": 27301,
       "modifiedAt": "2026-06-09T02:09:56.493Z"

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as api from "../api/client.js";
+import { ErrorAlert } from "./ErrorAlert.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useUnitFromApi } from "../hooks/useUnitFromApi.js";
 import { confirmDelete, escapeHtml } from "../utils/confirmDelete.js";
@@ -214,7 +215,7 @@ export function ProcedimientosFilesList({
   }
 
   if (state.error) {
-    return <div className="alert alert-danger mb-0">{state.error}</div>;
+    return <ErrorAlert message={state.error} className="alert alert-danger mb-0" />;
   }
 
   return (
@@ -335,14 +336,14 @@ export function ProcedimientosFilesList({
                 >
                   <i
                     className={`bi ${className} fs-3 flex-shrink-0`}
-                    title={label}
+                    data-sicen-popover={label}
                     aria-hidden
                   />
                   <div className="min-w-0 flex-grow-1">
                     <div className="fw-medium text-break">{f.name}</div>
                     <div
                       className="small text-muted text-break"
-                      title={f.relativePath}
+                      data-sicen-popover={f.relativePath}
                     >
                       {f.modifiedAt != null ||
                       (typeof f.sizeBytes === "number" &&
@@ -366,7 +367,7 @@ export function ProcedimientosFilesList({
                       <button
                         type="button"
                         className="btn btn-sm btn-outline-danger"
-                        title="Eliminar archivo"
+                        data-sicen-popover="Eliminar archivo"
                         aria-label={`Eliminar ${f.name}`}
                         disabled={
                           deletingRelativePath !== null || uploading
