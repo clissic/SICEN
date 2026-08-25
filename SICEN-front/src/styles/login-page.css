@@ -1,0 +1,221 @@
+/* Página de login: pantalla propia, sin navbar ni footer. */
+
+.login-page {
+  --login-fade-a: var(--bs-body-bg);
+  --login-fade-b: var(--bs-tertiary-bg);
+  --login-fade-c: var(--bs-secondary-bg);
+
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  color: var(--bs-body-color);
+  background:
+    radial-gradient(
+      ellipse 70% 55% at 18% 42%,
+      var(--login-fade-b) 0%,
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 55% 50% at 88% 18%,
+      var(--login-fade-c) 0%,
+      transparent 58%
+    ),
+    radial-gradient(
+      ellipse 45% 40% at 72% 88%,
+      var(--login-fade-b) 0%,
+      transparent 55%
+    ),
+    linear-gradient(
+      155deg,
+      var(--login-fade-a) 0%,
+      var(--login-fade-b) 48%,
+      var(--login-fade-a) 100%
+    );
+}
+
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.75rem;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  background: transparent;
+}
+
+.login-brand__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.5rem;
+  max-width: min(28rem, 100%);
+}
+
+.login-brand__logo-wrap {
+  display: grid;
+  place-items: center;
+  width: min(22rem, 72vw);
+  aspect-ratio: 1;
+}
+
+.login-brand__logo {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+
+.login-brand__copy h1 {
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 0;
+  color: var(--bs-body-color);
+}
+
+.login-brand__copy p {
+  margin: 0.4rem 0 0;
+  font-size: clamp(0.95rem, 1.4vw, 1.1rem);
+  font-weight: 500;
+  color: var(--bs-secondary-color);
+}
+
+.login-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+  background: transparent;
+}
+
+.login-panel__theme {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+}
+
+.login-panel__inner {
+  width: 100%;
+  max-width: 24rem;
+  margin-inline: auto;
+}
+
+.login-panel__title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+}
+
+.login-panel__subtitle {
+  color: var(--bs-secondary-color);
+  margin: 0 0 1.5rem;
+  font-size: 0.95rem;
+}
+
+.login-panel__links {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.login-panel__links .btn {
+  justify-content: center;
+}
+
+.login-panel__meta {
+  margin-top: 1.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--bs-border-color-translucent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.65rem;
+  line-height: 1.35;
+  color: var(--bs-secondary-color);
+  opacity: 0.72;
+  text-align: center;
+}
+
+.login-panel__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem 0.4rem;
+}
+
+.login-panel__meta-pnn {
+  height: 0.85rem;
+  width: auto;
+  object-fit: contain;
+  opacity: 0.85;
+}
+
+.login-panel__meta-jpc {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: -0.15em;
+  padding: 0;
+  margin: 0 0 0 0.5em;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.login-panel__meta-jpc:hover,
+.login-panel__meta-jpc:focus-visible {
+  opacity: 1;
+}
+
+.login-panel__meta-jpc:focus-visible {
+  outline: 1px solid var(--bs-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.login-panel__meta-jpc img {
+  height: 1.15em;
+  width: auto;
+  display: block;
+}
+
+html[data-bs-theme="dark"] .login-panel__meta-jpc img {
+  filter: brightness(0) invert(1);
+}
+
+.login-page--loading {
+  place-items: center;
+  grid-template-columns: 1fr;
+}
+
+@media (max-width: 991.98px) {
+  .login-page {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .login-brand {
+    min-height: auto;
+    padding: 2rem 1.25rem 1.5rem;
+  }
+
+  .login-brand__logo-wrap {
+    width: min(11rem, 42vw);
+  }
+
+  .login-brand__copy h1 {
+    font-size: 1.35rem;
+  }
+
+  .login-panel {
+    padding-top: 2.5rem;
+    padding-bottom: 2.5rem;
+  }
+}

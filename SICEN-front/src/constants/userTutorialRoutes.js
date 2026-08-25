@@ -1,5 +1,6 @@
 /** Rutas del menú principal y áreas de gestión que exigen `userTutorial`. */
 export const MAIN_MENU_ROUTE_PREFIXES = [
+  "/centinela",
   "/estado-rector-puertos",
   "/mi-unidad",
   "/base-buques",

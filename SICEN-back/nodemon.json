@@ -1,6 +1,6 @@
 {
-  "watch": ["src", "public"],
-  "ignore": ["node_modules", "public/**/*.map"],
-  "ext": "js,yaml,css,html",
+  "watch": ["src"],
+  "ignore": ["node_modules"],
+  "ext": "js,yaml",
   "delay": 800
 }

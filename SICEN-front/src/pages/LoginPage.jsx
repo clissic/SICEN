@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { ErrorAlert } from "../components/ErrorAlert.jsx";
-import { Layout } from "../components/Layout.jsx";
-import { useBootstrapTheme } from "../components/ThemeToggle.jsx";
+import { IframeModal } from "../components/IframeModal.jsx";
+import { ThemeToggle, useBootstrapTheme } from "../components/ThemeToggle.jsx";
+
+const JPC_SITE_URL = "https://jpc-dev.uy";
 
 export function LoginPage() {
   const { user, loading, login } = useAuth();
@@ -11,6 +13,7 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [err, setErr] = useState("");
+  const [jpcModalOpen, setJpcModalOpen] = useState(false);
   const loc = useLocation();
   const from = loc.state?.from?.pathname || "/home";
   const bsTheme = useBootstrapTheme();
@@ -29,9 +32,9 @@ export function LoginPage() {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="container py-5 text-center text-muted">Cargando…</div>
-      </Layout>
+      <div className="login-page login-page--loading">
+        <div className="text-muted">Cargando…</div>
+      </div>
     );
   }
   if (user) {
@@ -39,86 +42,147 @@ export function LoginPage() {
   }
 
   return (
-    <Layout>
-      <div className="container py-5">
-        <div className="row justify-content-center">
-          <div className="col-12 col-md-8 col-lg-4">
-            <div className="card shadow-sm">
-              <div className="card-body p-4">
-                <div className="text-center">
-                  <img src={logoSrc} alt="Logo PNN" className="img-fluid w-25 m-auto" />
-                  <h4 className="my-2 text-start">Ingrese sus credenciales:</h4>
-                </div>
-                <ErrorAlert message={err} />
-
-                <form onSubmit={onSubmit} className="vstack gap-3">
-                  <div>
-                    <label className="form-label">Email</label>
-                    <input
-                      className="form-control"
-                      type="email"
-                      autoComplete="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="form-label">Contraseña</label>
-                    <div className="input-group">
-                      <input
-                        className="form-control"
-                        type={showPassword ? "text" : "password"}
-                        autoComplete="current-password"
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-outline-secondary"
-                        onClick={() => setShowPassword((v) => !v)}
-                        aria-label={
-                          showPassword
-                            ? "Ocultar contraseña"
-                            : "Mostrar contraseña"
-                        }
-                      >
-                        <i
-                          className={
-                            showPassword ? "bi bi-eye-slash" : "bi bi-eye"
-                          }
-                          aria-hidden
-                        />
-                      </button>
-                    </div>
-                  </div>
-                  <button type="submit" className="btn btn-primary w-100">
-                    Ingresar
-                  </button>
-                </form>
-
-                <hr className="my-4" />
-
-                <div className="d-grid gap-2">
-                  <Link
-                    className="btn btn-outline-secondary w-100"
-                    to="/solicitar-cuenta"
-                  >
-                    Solicitar cuenta
-                  </Link>
-                  <Link
-                    className="btn btn-outline-secondary w-100"
-                    to="/forgot-password"
-                  >
-                    Recuperar contraseña
-                  </Link>
-                </div>
-              </div>
-            </div>
+    <div className="login-page">
+      <aside className="login-brand" aria-label="Marca Prefectura Nacional Naval">
+        <div className="login-brand__inner">
+          <div className="login-brand__logo-wrap">
+            <img
+              className="login-brand__logo"
+              src={logoSrc}
+              alt="Logo Prefectura Nacional Naval — anclas cruzadas"
+              width="512"
+              height="512"
+              decoding="async"
+            />
+          </div>
+          <div className="login-brand__copy">
+            <h1>Sistema Centinela</h1>
+            <p>Prefectura Nacional Naval</p>
           </div>
         </div>
-      </div>
-    </Layout>
+      </aside>
+
+      <section className="login-panel">
+        <div className="login-panel__theme">
+          <ThemeToggle />
+        </div>
+
+        <div className="login-panel__inner">
+          <h2 className="login-panel__title">Ingresar</h2>
+          <p className="login-panel__subtitle">
+            Ingrese sus credenciales para continuar.
+          </p>
+
+          <ErrorAlert message={err} className="alert alert-danger py-2 mb-3" />
+
+          <form onSubmit={onSubmit} className="vstack gap-3">
+            <div>
+              <label className="form-label" htmlFor="login-email">
+                Email
+              </label>
+              <input
+                id="login-email"
+                className="form-control"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="form-label" htmlFor="login-password">
+                Contraseña
+              </label>
+              <div className="input-group">
+                <input
+                  id="login-password"
+                  className="form-control"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={
+                    showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                  }
+                >
+                  <i
+                    className={showPassword ? "bi bi-eye-slash" : "bi bi-eye"}
+                    aria-hidden
+                  />
+                </button>
+              </div>
+            </div>
+            <button type="submit" className="btn btn-primary w-100">
+              Ingresar
+            </button>
+          </form>
+
+          <div className="login-panel__links">
+            <Link
+              className="btn btn-outline-secondary"
+              to="/solicitar-cuenta"
+            >
+              Solicitar cuenta
+            </Link>
+            <Link className="btn btn-outline-secondary" to="/forgot-password">
+              Recuperar contraseña
+            </Link>
+          </div>
+
+          <footer className="login-panel__meta">
+            <div className="login-panel__meta-row">
+              <img
+                className="login-panel__meta-pnn"
+                src={logoSrc}
+                alt=""
+                width="48"
+                height="20"
+                loading="lazy"
+                aria-hidden="true"
+              />
+              <span>Sistema Centinela - 2026</span>
+              <span aria-hidden="true">·</span>
+              <span>Versión de DESARROLLO</span>
+            </div>
+            <div className="login-panel__meta-row">
+              <span>
+                Desarrollado por
+                <button
+                  type="button"
+                  className="login-panel__meta-jpc"
+                  onClick={() => setJpcModalOpen(true)}
+                  aria-label="Abrir sitio de JPC en una vista previa"
+                >
+                  <img
+                    src="/img/LogoJPC.svg"
+                    alt=""
+                    aria-hidden="true"
+                    decoding="async"
+                  />
+                </button>
+              </span>
+              <span aria-hidden="true">·</span>
+              <span>Montevideo - 25/09/2023</span>
+            </div>
+          </footer>
+        </div>
+      </section>
+
+      <IframeModal
+        open={jpcModalOpen}
+        onClose={() => setJpcModalOpen(false)}
+        url={JPC_SITE_URL}
+        titleText="JPC — jpc-dev.uy"
+        logoSrc="/img/LogoJPC.svg"
+        ariaLabel="Sitio de JPC en una vista previa"
+      />
+    </div>
   );
 }

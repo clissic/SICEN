@@ -1,0 +1,442 @@
+/* El Centinela — mapa a pantalla completa + panel glass / drawer. */
+
+.centinela-page {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--bs-body-bg);
+}
+
+.centinela-page__map {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.centinela-map {
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* —— Liquid glass compartido —— */
+.centinela-glass {
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.05rem;
+  color: var(--bs-body-color);
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 8px 32px rgba(15, 23, 42, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(22px) saturate(165%);
+  -webkit-backdrop-filter: blur(22px) saturate(165%);
+  overflow: auto;
+}
+
+html[data-bs-theme="dark"] .centinela-glass {
+  background: rgba(16, 20, 28, 0.52);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 10px 36px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.centinela-glass.is-collapsed {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Desktop: tarjeta flotante */
+.centinela-glass--float {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  width: min(20rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  border-radius: 1rem;
+}
+
+.centinela-glass--float.is-collapsed {
+  /* Oculto; queda el FAB */
+}
+
+/* Ícono para reabrir (desktop y mobile) */
+.centinela-fab {
+  position: absolute;
+  z-index: 1001;
+  top: 1rem;
+  left: 1rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  color: var(--bs-body-color);
+  background: rgba(255, 255, 255, 0.42);
+  box-shadow:
+    0 8px 28px rgba(15, 23, 42, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  cursor: pointer;
+}
+
+html[data-bs-theme="dark"] .centinela-fab {
+  background: rgba(16, 20, 28, 0.55);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+.centinela-fab:hover {
+  filter: brightness(1.05);
+}
+
+.centinela-fab .bi {
+  font-size: 1.25rem;
+}
+
+.centinela-glass__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.centinela-glass__title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.centinela-glass__subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--bs-secondary-color);
+}
+
+.centinela-glass__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.centinela-glass__collapse,
+.centinela-glass__home {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(var(--bs-body-color-rgb), 0.18);
+  background: rgba(var(--bs-body-bg-rgb), 0.35);
+  color: inherit;
+  text-decoration: none;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.centinela-glass__collapse {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+}
+
+.centinela-glass__home {
+  display: flex;
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.centinela-glass__collapse:hover,
+.centinela-glass__home:hover {
+  background: rgba(var(--bs-body-bg-rgb), 0.55);
+  color: inherit;
+}
+
+.centinela-page__layers-title {
+  font-size: 0.8rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+  opacity: 0.85;
+}
+
+.centinela-page__layer-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.45rem;
+  cursor: pointer;
+}
+
+.centinela-page__layer-item .form-check-input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.centinela-zones {
+  margin-bottom: 0.35rem;
+}
+
+.centinela-zones__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.centinela-zones__master {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 0.2rem;
+  margin: 0;
+  cursor: pointer;
+}
+
+.centinela-zones__master .form-check-input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.centinela-zones__toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.2rem 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.centinela-zones__toggle:hover {
+  opacity: 0.9;
+}
+
+.centinela-zones__count {
+  margin-left: auto;
+  font-size: 0.72rem;
+  color: var(--bs-secondary-color);
+  opacity: 0.9;
+}
+
+.centinela-zones__list {
+  padding: 0.35rem 0 0.15rem 1.55rem;
+  margin-bottom: 0.25rem;
+  border-left: 2px solid rgba(var(--bs-body-color-rgb), 0.12);
+  margin-left: 0.35rem;
+}
+
+.centinela-zones__list .centinela-page__layer-item {
+  font-size: 0.82rem;
+  margin-bottom: 0.4rem;
+}
+
+.centinela-page__status {
+  line-height: 1.35;
+  font-size: 0.8rem;
+}
+
+.centinela-page__hint {
+  line-height: 1.35;
+  font-size: 0.72rem;
+  opacity: 0.8;
+}
+
+.centinela-page .leaflet-top.leaflet-right {
+  top: 1rem;
+  right: 1rem;
+}
+
+.centinela-page .leaflet-control-zoom {
+  border: none !important;
+  border-radius: 0.65rem;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.18);
+}
+
+html[data-bs-theme="dark"] .centinela-page .leaflet-control-zoom {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.centinela-page .leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.55) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  max-width: min(28rem, 70vw);
+}
+
+html[data-bs-theme="dark"] .centinela-page .leaflet-control-attribution {
+  background: rgba(16, 20, 28, 0.65) !important;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+html[data-bs-theme="dark"] .centinela-page .leaflet-control-attribution a {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.centinela-seamarks-layer {
+  z-index: 450 !important;
+  pointer-events: none;
+}
+
+.centinela-ais-marker {
+  background: transparent;
+  border: none;
+}
+
+.centinela-ais-marker__body {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  transform-origin: 50% 55%;
+}
+
+.centinela-ais-popup {
+  min-width: 10rem;
+}
+
+.centinela-graticule-line {
+  stroke: rgba(71, 85, 105, 0.4) !important;
+}
+
+html[data-bs-theme="dark"] .centinela-graticule-line {
+  stroke: rgba(226, 232, 240, 0.28) !important;
+}
+
+.centinela-graticule-edge {
+  position: absolute;
+  inset: 0;
+  z-index: 550;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.centinela-graticule-edge__label {
+  position: absolute;
+  padding: 0.12rem 0.35rem;
+  border-radius: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: rgba(15, 23, 42, 0.92);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.16);
+  line-height: 1.2;
+}
+
+.centinela-graticule-edge__label--lat {
+  left: 0.4rem;
+  transform: translateY(-50%);
+}
+
+.centinela-graticule-edge__label--lng {
+  bottom: 1.65rem; /* encima de la atribución Leaflet */
+  transform: translateX(-50%);
+}
+
+html[data-bs-theme="dark"] .centinela-graticule-edge__label {
+  color: rgba(248, 250, 252, 0.95);
+  background: rgba(15, 23, 42, 0.82);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.centinela-coords-popup .leaflet-popup-content-wrapper {
+  border-radius: 0.65rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+}
+
+.centinela-coords-popup__body {
+  font-size: 0.85rem;
+  line-height: 1.45;
+  min-width: 9.5rem;
+}
+
+.centinela-coords-popup__title {
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.centinela-coords-popup__label {
+  display: inline-block;
+  min-width: 1.75rem;
+  font-weight: 650;
+  opacity: 0.75;
+}
+
+.centinela-coords-popup__decimal {
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+
+/* —— Mobile: menú lateral desde la izquierda —— */
+@media (max-width: 767.98px) {
+  .centinela-fab {
+    top: 50%;
+    left: 0.5rem;
+    transform: translateY(-50%);
+    border-radius: 0.75rem 0.85rem 0.85rem 0.75rem;
+  }
+
+  .centinela-drawer-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 999;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+  }
+
+  .centinela-glass--drawer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(19.5rem, 86vw);
+    max-height: none;
+    height: 100%;
+    border-radius: 0 1rem 1rem 0;
+    border-left: none;
+    transition: transform 0.28s ease;
+    /* No usar visibility:hidden del float: el drawer anima off-canvas */
+    visibility: visible !important;
+  }
+
+  .centinela-glass--drawer.is-collapsed {
+    transform: translateX(-105%);
+    pointer-events: none;
+  }
+
+  .centinela-glass--drawer.is-open {
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+}

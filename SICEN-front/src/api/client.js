@@ -1274,3 +1274,102 @@ export function markNotificationRead(id) {
 export function markAllNotificationsRead() {
   return apiFetch("/api/notifications/read-all", { method: "POST" });
 }
+
+/** Estado del bridge AIS (El Centinela). */
+export function aisStatus() {
+  return apiFetch("/api/ais/status");
+}
+
+/** Snapshot de buques AIS en el bbox configurado. */
+export function aisVessels() {
+  return apiFetch("/api/ais/vessels");
+}
+
+/**
+ * Abre un stream SSE autenticado hacia `/api/ais/stream`.
+ * Usa fetch + ReadableStream (EventSource no envía Authorization).
+ * @param {{
+ *   onSnapshot?: (vessels: object[]) => void,
+ *   onUpdate?: (vessel: object) => void,
+ *   onRemove?: (payload: { mmsi: string }) => void,
+ *   onStatus?: (status: object) => void,
+ *   onError?: (err: Error) => void,
+ *   signal?: AbortSignal,
+ * }} handlers
+ */
+export async function openAisStream(handlers = {}) {
+  const token = getAuthToken();
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch("/api/ais/stream", {
+    method: "GET",
+    credentials: "include",
+    headers,
+    signal: handlers.signal,
+  });
+
+  if (!res.ok) {
+    let msg = res.statusText;
+    try {
+      const data = await res.json();
+      if (data?.msg) msg = data.msg;
+    } catch {
+      /* ignore */
+    }
+    const err = new Error(msg || "No se pudo abrir el stream AIS");
+    err.status = res.status;
+    throw err;
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) {
+    throw new Error("El navegador no soporta streaming de respuesta.");
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  function dispatchEvent(eventName, dataRaw) {
+    let data;
+    try {
+      data = JSON.parse(dataRaw);
+    } catch {
+      return;
+    }
+    if (eventName === "snapshot") handlers.onSnapshot?.(data);
+    else if (eventName === "update") handlers.onUpdate?.(data);
+    else if (eventName === "remove") handlers.onRemove?.(data);
+    else if (eventName === "status") handlers.onStatus?.(data);
+  }
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const chunks = buffer.split("\n\n");
+      buffer = chunks.pop() || "";
+      for (const chunk of chunks) {
+        if (!chunk.trim() || chunk.startsWith(":")) continue;
+        let eventName = "message";
+        const dataLines = [];
+        for (const line of chunk.split("\n")) {
+          if (line.startsWith("event:")) {
+            eventName = line.slice(6).trim();
+          } else if (line.startsWith("data:")) {
+            dataLines.push(line.slice(5).trim());
+          }
+        }
+        if (dataLines.length) {
+          dispatchEvent(eventName, dataLines.join("\n"));
+        }
+      }
+    }
+  } catch (e) {
+    if (e?.name === "AbortError") return;
+    /* Corte de red / reinicio del API: el hook reintenta. */
+    const err = e instanceof Error ? e : new Error(String(e));
+    handlers.onError?.(err);
+  }
+}

@@ -11,6 +11,8 @@ import "./styles/vessel-combobox.css";
 import "./styles/inspector-badge.css";
 import "./styles/car-fine-card.css";
 import "./styles/mi-unidad.css";
+import "./styles/login-page.css";
+import "./styles/centinela-map.css";
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 

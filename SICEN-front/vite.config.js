@@ -48,6 +48,26 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      /* SSE de AIS: sin timeout; regla antes que /api genérico. */
+      "/api/ais/stream": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        timeout: 0,
+        proxyTimeout: 0,
+        configure(proxy) {
+          proxy.on("proxyReq", (proxyReq) => {
+            proxyReq.setHeader("Connection", "keep-alive");
+            proxyReq.setHeader("Cache-Control", "no-cache");
+          });
+          proxy.on("error", (err, _req, res) => {
+            console.warn(`[vite] AIS stream proxy: ${err.message}`);
+            if (res && !res.headersSent && typeof res.writeHead === "function") {
+              res.writeHead(502, { "Content-Type": "text/plain" });
+              res.end("AIS stream unavailable");
+            }
+          });
+        },
+      },
       "/api": {
         target: "http://localhost:3000",
         changeOrigin: true,

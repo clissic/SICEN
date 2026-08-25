@@ -56,6 +56,7 @@ import { UpdateUserPage } from "./pages/UpdateUserPage.jsx";
 import { DeleteUserPage } from "./pages/DeleteUserPage.jsx";
 import { NotFoundPage } from "./pages/NotFoundPage.jsx";
 import { EstadoRectorPuertosPage } from "./pages/EstadoRectorPuertosPage.jsx";
+import { CentinelaPage } from "./pages/CentinelaPage.jsx";
 import { InspectionsMenuPage } from "./pages/InspectionsMenuPage.jsx";
 import { ConsultInspectionsListPage } from "./pages/ConsultInspectionsListPage.jsx";
 import { DeleteInspectionPage } from "./pages/DeleteInspectionPage.jsx";
@@ -456,6 +457,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <DeleteCarFinePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/centinela"
+        element={
+          <ProtectedRoute>
+            <CentinelaPage />
           </ProtectedRoute>
         }
       />

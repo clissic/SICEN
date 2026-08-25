@@ -39,6 +39,8 @@ import { licencesRouter } from "./routes/licences.router.js";
 import { titlesRouter } from "./routes/titles.router.js";
 import { sportMovementsRouter } from "./routes/sportMovements.router.js";
 import { notificationsRouter } from "./routes/notifications.router.js";
+import { aisRouter } from "./routes/ais.router.js";
+import { warmAisBridge } from "./services/aisBridge.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -84,7 +86,14 @@ app.use(
   })
 );
 
-app.use(compression());
+app.use(
+  compression({
+    filter(req, res) {
+      if (req.originalUrl?.startsWith("/api/ais/stream")) return false;
+      return compression.filter(req, res);
+    },
+  })
+);
 app.use(express.json({ limit: "3mb" }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -121,6 +130,10 @@ app.use("/api/licences", licencesRouter);
 app.use("/api/titles", titlesRouter);
 app.use("/api/sportMovements", sportMovementsRouter);
 app.use("/api/notifications", notificationsRouter);
+app.use("/api/ais", aisRouter);
+
+warmAisBridge();
+
 
 if (hasSpaBuild) {
   app.use(express.static(CLIENT_DIST));

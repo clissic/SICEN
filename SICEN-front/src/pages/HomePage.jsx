@@ -147,13 +147,8 @@ export function HomePage() {
             <h4 className={SECTION_TITLE_CLASS}>Menú principal</h4>
             <div className="row row-cols-1 row-cols-md-2 row-cols-lg-1 row-cols-xl-3 g-3 mb-5">
               <div className="col">
-                <div
-                  className="centinela-desarrollo-tile position-relative h-100"
-                  tabIndex={0}
-                  role="status"
-                  aria-label="El Centinela. EN DESARROLLO."
-                >
-                  <div className="card h-100 shadow-sm user-select-none">
+                <MainMenuLink className="text-decoration-none" to="/centinela">
+                  <div className="card h-100 shadow-sm">
                     <img
                       src="/img/centinelaMenu.jpg"
                       alt="El Centinela"
@@ -176,10 +171,7 @@ export function HomePage() {
                       </div>
                     </div>
                   </div>
-                  <div className="centinela-desarrollo-overlay" aria-hidden="true">
-                    EN DESARROLLO
-                  </div>
-                </div>
+                </MainMenuLink>
               </div>
 
               <div className="col">

@@ -60,4 +60,8 @@ export default {
   apiUrl: process.env.API_URL,
   publicAppUrl,
   emailAssetsBaseUrl,
+  /** API key de https://aisstream.io (capa AIS de El Centinela). Vacío = capa deshabilitada. */
+  aisStreamApiKey: process.env.AIS_STREAM_API_KEY || "",
+  /** Bounding box AIS: latMin,lonMin,latMax,lonMax (default Río de la Plata; AISStream cubre poco MVD). */
+  aisBbox: process.env.AIS_BBOX || "",
 };
