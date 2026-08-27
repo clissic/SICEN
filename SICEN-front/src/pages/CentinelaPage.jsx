@@ -7,25 +7,58 @@ import { AisVesselLayer } from "../components/centinela/AisVesselLayer.jsx";
 import { GraticuleLayer } from "../components/centinela/GraticuleLayer.jsx";
 import { MapClickCoords } from "../components/centinela/MapClickCoords.jsx";
 import { SeamarksLayer } from "../components/centinela/SeamarksLayer.jsx";
+import { BathymetryLayer } from "../components/centinela/BathymetryLayer.jsx";
+import { BathymetryLegend } from "../components/centinela/BathymetryLegend.jsx";
+import { CurrentsLayer } from "../components/centinela/CurrentsLayer.jsx";
+import { CurrentsLegend } from "../components/centinela/CurrentsLegend.jsx";
+import { WavesLayer } from "../components/centinela/WavesLayer.jsx";
+import { WavesLegend } from "../components/centinela/WavesLegend.jsx";
+import { WindLayer } from "../components/centinela/WindLayer.jsx";
+import { WindLegend } from "../components/centinela/WindLegend.jsx";
 import { ZonesLayer } from "../components/centinela/ZonesLayer.jsx";
+import {
+  CENTINELA_BREVET_CATEGORIES,
+  CENTINELA_BREVET_MAP_CATEGORIES,
+} from "../constants/centinelaBrevetCategories.js";
 import { CENTINELA_ZONES } from "../constants/centinelaZones.js";
+import {
+  getSportPortById,
+  sportPortsBySector,
+  SPORT_PORT_SECTOR_LABELS,
+  SPORT_PORT_SECTOR_ORDER,
+} from "../constants/sportPorts.js";
 import { useAisVessels } from "../hooks/useAisVessels.js";
+import { useDocumentSicenPopovers } from "../hooks/useDocumentSicenPopovers.js";
+import { circlePolygonLatLon } from "../utils/mergeCirclesPolygon.js";
 import "leaflet/dist/leaflet.css";
+
+const SPORT_PORTS_BY_SECTOR = sportPortsBySector();
 
 const MONTEVIDEO = [-34.9, -56.2];
 const DEFAULT_ZOOM = 11;
 const MOBILE_MQ = "(max-width: 767.98px)";
 
+/** Key de tiles CARTO (`VITE_CARTO_API_KEY`); quita el watermark. */
+const CARTO_API_KEY = String(import.meta.env.VITE_CARTO_API_KEY || "").trim();
+
+function cartoTileUrl(stylePath) {
+  const base = `https://{s}.basemaps.cartocdn.com/${stylePath}/{z}/{x}/{y}.png`;
+  return CARTO_API_KEY
+    ? `${base}?key=${encodeURIComponent(CARTO_API_KEY)}`
+    : base;
+}
+
+const CARTO_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>';
+
 const BASE_TILES = {
   light: {
-    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    url: cartoTileUrl("rastertiles/voyager"),
+    attribution: CARTO_ATTRIBUTION,
   },
   dark: {
-    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    url: cartoTileUrl("dark_all"),
+    attribution: CARTO_ATTRIBUTION,
   },
 };
 
@@ -64,19 +97,58 @@ export function CentinelaPage() {
   const isDark = bsTheme === "dark";
   const base = isDark ? BASE_TILES.dark : BASE_TILES.light;
   const isMobile = useIsMobile();
+  useDocumentSicenPopovers();
 
   const [panelOpen, setPanelOpen] = useState(() =>
     typeof window !== "undefined"
       ? !window.matchMedia(MOBILE_MQ).matches
       : true
   );
-  const [aisLayerOn, setAisLayerOn] = useState(true);
+  const [aisLayerOn, setAisLayerOn] = useState(false);
+  const [windLayerOn, setWindLayerOn] = useState(false);
+  const [windForecastHours, setWindForecastHours] = useState(0);
+  const [windStatus, setWindStatus] = useState({
+    loading: false,
+    error: null,
+    pointCount: 0,
+    time: null,
+  });
+  const [currentsLayerOn, setCurrentsLayerOn] = useState(false);
+  const [currentsForecastHours, setCurrentsForecastHours] = useState(0);
+  const [currentsStatus, setCurrentsStatus] = useState({
+    loading: false,
+    error: null,
+    pointCount: 0,
+    time: null,
+  });
+  const [wavesLayerOn, setWavesLayerOn] = useState(false);
+  const [wavesForecastHours, setWavesForecastHours] = useState(0);
+  const [wavesStatus, setWavesStatus] = useState({
+    loading: false,
+    error: null,
+    pointCount: 0,
+    time: null,
+  });
   const [seamarksOn, setSeamarksOn] = useState(true);
+  const [bathymetryOn, setBathymetryOn] = useState(false);
+  const [bathymetryStatus, setBathymetryStatus] = useState({
+    loading: false,
+    error: null,
+    pointCount: 0,
+  });
   const [graticuleOn, setGraticuleOn] = useState(true);
   const [zonesMenuOpen, setZonesMenuOpen] = useState(false);
   const [zoneVisibility, setZoneVisibility] = useState(() =>
-    Object.fromEntries(CENTINELA_ZONES.map((z) => [z.id, true]))
+    Object.fromEntries(CENTINELA_ZONES.map((z) => [z.id, false]))
   );
+  const [brevetsMenuOpen, setBrevetsMenuOpen] = useState(false);
+  const [brevetVisibility, setBrevetVisibility] = useState(() =>
+    Object.fromEntries(
+      CENTINELA_BREVET_MAP_CATEGORIES.map((c) => [c.id, false])
+    )
+  );
+  const [brevetCMenuOpen, setBrevetCMenuOpen] = useState(false);
+  const [selectedBrevetCPortId, setSelectedBrevetCPortId] = useState("");
 
   const { vessels, status, error, connected } = useAisVessels({
     enabled: aisLayerOn,
@@ -101,6 +173,81 @@ export function CentinelaPage() {
       document.body.style.overflow = prev;
     };
   }, [panelOpen, isMobile]);
+
+  const windStatusLine = useMemo(() => {
+    if (!windLayerOn) return "Capa de viento desactivada";
+    if (windStatus.error) return windStatus.error;
+    if (windStatus.loading) return "Consultando viento…";
+    if (windStatus.pointCount > 0) {
+      const n = windStatus.pointCount;
+      let line = `${n} punto${n === 1 ? "" : "s"} en pantalla`;
+      if (windStatus.time) {
+        try {
+          const t = new Date(windStatus.time).toLocaleString("es-UY", {
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          line += ` · ${t}`;
+        } catch {
+          /* ignore */
+        }
+      }
+      return line;
+    }
+    return "Sin datos de viento";
+  }, [windLayerOn, windStatus]);
+
+  const currentsStatusLine = useMemo(() => {
+    if (!currentsLayerOn) return "Capa de corrientes desactivada";
+    if (currentsStatus.error) return currentsStatus.error;
+    if (currentsStatus.loading) return "Consultando corrientes…";
+    if (currentsStatus.pointCount > 0) {
+      const n = currentsStatus.pointCount;
+      let line = `${n} punto${n === 1 ? "" : "s"} en pantalla`;
+      if (currentsStatus.time) {
+        try {
+          const t = new Date(currentsStatus.time).toLocaleString("es-UY", {
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          line += ` · ${t}`;
+        } catch {
+          /* ignore */
+        }
+      }
+      return line;
+    }
+    return "Sin datos de corrientes";
+  }, [currentsLayerOn, currentsStatus]);
+
+  const wavesStatusLine = useMemo(() => {
+    if (!wavesLayerOn) return "Capa de oleaje desactivada";
+    if (wavesStatus.error) return wavesStatus.error;
+    if (wavesStatus.loading) return "Consultando oleaje…";
+    if (wavesStatus.pointCount > 0) {
+      const n = wavesStatus.pointCount;
+      let line = `${n} punto${n === 1 ? "" : "s"} en pantalla`;
+      if (wavesStatus.time) {
+        try {
+          const t = new Date(wavesStatus.time).toLocaleString("es-UY", {
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          line += ` · ${t}`;
+        } catch {
+          /* ignore */
+        }
+      }
+      return line;
+    }
+    return "Sin datos de oleaje";
+  }, [wavesLayerOn, wavesStatus]);
 
   const statusLine = useMemo(() => {
     if (!aisLayerOn) return "Capa AIS desactivada";
@@ -127,6 +274,37 @@ export function CentinelaPage() {
     [zoneVisibility]
   );
 
+  const selectedBrevetCPort = useMemo(
+    () => getSportPortById(selectedBrevetCPortId),
+    [selectedBrevetCPortId]
+  );
+
+  const visibleBrevetZones = useMemo(() => {
+    const zones = [];
+    for (const c of CENTINELA_BREVET_MAP_CATEGORIES) {
+      if (!brevetVisibility[c.id]) continue;
+      if (c.portPicker) {
+        if (!selectedBrevetCPort) continue;
+        zones.push({
+          id: `brevet-c-${selectedBrevetCPort.id}`,
+          name: `Categoría C · ${selectedBrevetCPort.name} (${selectedBrevetCPort.radiusNm} MN)`,
+          color: c.color,
+          borderColor: c.borderColor,
+          infoText: c.infoText,
+          positions: circlePolygonLatLon(
+            [selectedBrevetCPort.lat, selectedBrevetCPort.lon],
+            selectedBrevetCPort.radiusNm
+          ),
+        });
+        continue;
+      }
+      if (Array.isArray(c.positions) && c.positions.length >= 3) {
+        zones.push(c);
+      }
+    }
+    return zones;
+  }, [brevetVisibility, selectedBrevetCPort]);
+
   function toggleZoneVisibility(id) {
     setZoneVisibility((prev) => ({ ...prev, [id]: !prev[id] }));
   }
@@ -140,6 +318,32 @@ export function CentinelaPage() {
     );
   }
 
+  const visibleBrevetCount = useMemo(
+    () =>
+      CENTINELA_BREVET_MAP_CATEGORIES.filter((c) => brevetVisibility[c.id])
+        .length,
+    [brevetVisibility]
+  );
+
+  function toggleBrevetVisibility(id) {
+    setBrevetVisibility((prev) => ({ ...prev, [id]: !prev[id] }));
+  }
+
+  const brevetsAllOn = CENTINELA_BREVET_MAP_CATEGORIES.every(
+    (c) => brevetVisibility[c.id]
+  );
+  const brevetsSomeOn = CENTINELA_BREVET_MAP_CATEGORIES.some(
+    (c) => brevetVisibility[c.id]
+  );
+
+  function toggleAllBrevets(checked) {
+    setBrevetVisibility(
+      Object.fromEntries(
+        CENTINELA_BREVET_MAP_CATEGORIES.map((c) => [c.id, checked])
+      )
+    );
+  }
+
   const panelClass = [
     "centinela-glass",
     panelOpen ? "is-open" : "is-collapsed",
@@ -148,6 +352,13 @@ export function CentinelaPage() {
 
   return (
     <div className="centinela-page">
+      <img
+        className="centinela-page__brand"
+        src="/img/Logo-PNN-Blanco.png"
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+      />
       <div className="centinela-page__map">
         <MapContainer
           center={MONTEVIDEO}
@@ -157,7 +368,15 @@ export function CentinelaPage() {
           attributionControl
         >
           <MapInvalidateSize />
-          <MapClickCoords />
+          <MapClickCoords
+            windLayerOn={windLayerOn}
+            windForecastHoursOffset={windForecastHours}
+            currentsLayerOn={currentsLayerOn}
+            currentsForecastHoursOffset={currentsForecastHours}
+            wavesLayerOn={wavesLayerOn}
+            wavesForecastHoursOffset={wavesForecastHours}
+            bathymetryLayerOn={bathymetryOn}
+          />
           <ZoomControl position="topright" />
           <TileLayer
             key={isDark ? "dark" : "light"}
@@ -166,11 +385,53 @@ export function CentinelaPage() {
             maxZoom={19}
           />
 
+          <BathymetryLayer
+            enabled={bathymetryOn}
+            onStatusChange={setBathymetryStatus}
+          />
           <GraticuleLayer enabled={graticuleOn} />
           <SeamarksLayer enabled={seamarksOn} />
           <ZonesLayer zones={visibleZones} />
+          <ZonesLayer zones={visibleBrevetZones} />
           {aisLayerOn ? <AisVesselLayer vessels={vessels} /> : null}
+          <WavesLayer
+            enabled={wavesLayerOn}
+            forecastHoursOffset={wavesForecastHours}
+            isDark={isDark}
+            onStatusChange={setWavesStatus}
+          />
+          <CurrentsLayer
+            enabled={currentsLayerOn}
+            forecastHoursOffset={currentsForecastHours}
+            isDark={isDark}
+            onStatusChange={setCurrentsStatus}
+          />
+          <WindLayer
+            enabled={windLayerOn}
+            forecastHoursOffset={windForecastHours}
+            isDark={isDark}
+            onStatusChange={setWindStatus}
+          />
         </MapContainer>
+      </div>
+
+      <div className="centinela-env-legends">
+        <BathymetryLegend visible={bathymetryOn} />
+        <WavesLegend
+          visible={wavesLayerOn}
+          forecastHours={wavesForecastHours}
+          onForecastHoursChange={setWavesForecastHours}
+        />
+        <CurrentsLegend
+          visible={currentsLayerOn}
+          forecastHours={currentsForecastHours}
+          onForecastHoursChange={setCurrentsForecastHours}
+        />
+        <WindLegend
+          visible={windLayerOn}
+          forecastHours={windForecastHours}
+          onForecastHoursChange={setWindForecastHours}
+        />
       </div>
 
       {!panelOpen ? (
@@ -206,6 +467,18 @@ export function CentinelaPage() {
         aria-hidden={!panelOpen}
         inert={!panelOpen ? true : undefined}
       >
+        <button
+          type="button"
+          className="centinela-glass__collapse"
+          onClick={() => setPanelOpen(false)}
+          aria-label={isMobile ? "Cerrar menú" : "Achicar panel de capas"}
+        >
+          <i
+            className={isMobile ? "bi bi-x-lg" : "bi bi-chevron-left"}
+            aria-hidden
+          />
+        </button>
+        <div className="centinela-glass__body">
         <div className="centinela-glass__header">
           <div className="min-w-0">
             <h1 className="centinela-glass__title">El Centinela</h1>
@@ -215,21 +488,6 @@ export function CentinelaPage() {
             </p>
           </div>
           <div className="centinela-glass__actions">
-            <button
-              type="button"
-              className="centinela-glass__collapse"
-              onClick={() => setPanelOpen(false)}
-              aria-label={
-                isMobile ? "Cerrar menú" : "Achicar panel de capas"
-              }
-            >
-              <i
-                className={
-                  isMobile ? "bi bi-x-lg" : "bi bi-chevron-left"
-                }
-                aria-hidden
-              />
-            </button>
             <ThemeToggle />
           </div>
         </div>
@@ -243,7 +501,7 @@ export function CentinelaPage() {
               checked={graticuleOn}
               onChange={(e) => setGraticuleOn(e.target.checked)}
             />
-            <span>Grilla (coordenadas)</span>
+            <span>Coordenadas</span>
           </label>
           <label className="centinela-page__layer-item">
             <input
@@ -258,11 +516,115 @@ export function CentinelaPage() {
             <input
               type="checkbox"
               className="form-check-input"
-              checked={aisLayerOn}
-              onChange={(e) => setAisLayerOn(e.target.checked)}
+              checked={bathymetryOn}
+              onChange={(e) => setBathymetryOn(e.target.checked)}
             />
-            <span>AIS (experimental)</span>
+            <span>Batimetría</span>
           </label>
+          <div className="centinela-ais-layer">
+            <div className="centinela-zones__header">
+              <label className="centinela-zones__master">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  checked={windLayerOn}
+                  onChange={(e) => setWindLayerOn(e.target.checked)}
+                  aria-label="Mostrar u ocultar capa de viento"
+                />
+              </label>
+              <div className="centinela-ais-layer__body">
+                <span className="centinela-ais-layer__name">Viento</span>
+                <span
+                  className="centinela-zones__count centinela-ais-layer__status"
+                  data-sicen-popover={windStatusLine}
+                  data-sicen-popover-placement="top"
+                >
+                  {windStatusLine}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="centinela-ais-layer">
+            <div className="centinela-zones__header">
+              <label className="centinela-zones__master">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  checked={currentsLayerOn}
+                  onChange={(e) => setCurrentsLayerOn(e.target.checked)}
+                  aria-label="Mostrar u ocultar capa de corrientes"
+                />
+              </label>
+              <div className="centinela-ais-layer__body">
+                <span className="centinela-ais-layer__name">Corrientes</span>
+                <span
+                  className="centinela-zones__count centinela-ais-layer__status"
+                  data-sicen-popover={currentsStatusLine}
+                  data-sicen-popover-placement="top"
+                >
+                  {currentsStatusLine}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="centinela-ais-layer">
+            <div className="centinela-zones__header">
+              <label className="centinela-zones__master">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  checked={wavesLayerOn}
+                  onChange={(e) => setWavesLayerOn(e.target.checked)}
+                  aria-label="Mostrar u ocultar capa de oleaje"
+                />
+              </label>
+              <div className="centinela-ais-layer__body">
+                <span className="centinela-ais-layer__name">Olas</span>
+                <span
+                  className="centinela-zones__count centinela-ais-layer__status"
+                  data-sicen-popover={wavesStatusLine}
+                  data-sicen-popover-placement="top"
+                >
+                  {wavesStatusLine}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="centinela-ais-layer">
+            <div className="centinela-zones__header">
+              <label className="centinela-zones__master">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  checked={aisLayerOn}
+                  onChange={(e) => setAisLayerOn(e.target.checked)}
+                  aria-label="Mostrar u ocultar capa AIS"
+                />
+              </label>
+              <div className="centinela-ais-layer__body">
+                <span className="centinela-ais-layer__name">
+                  AIS{" "}
+                  <span
+                    className="centinela-ais-layer__experimental"
+                    data-sicen-popover="El feed libre (AISStream) tiene poca cobertura en Montevideo; la mayor parte de los blancos suele verse del lado argentino del Río."
+                    data-sicen-popover-placement="top"
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Información sobre cobertura AIS experimental"
+                  >
+                    EXPERIMENTAL
+                  </span>
+                </span>
+                <span
+                  className="centinela-zones__count centinela-ais-layer__status"
+                  data-sicen-popover={statusLine}
+                  data-sicen-popover-placement="top"
+                >
+                  {statusLine}
+                </span>
+              </div>
+            </div>
+          </div>
 
           <div className="centinela-zones">
             <div className="centinela-zones__header">
@@ -318,13 +680,178 @@ export function CentinelaPage() {
               </div>
             ) : null}
           </div>
+
+          <div className="centinela-zones">
+            <div className="centinela-zones__header">
+              <label className="centinela-zones__master">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  checked={brevetsAllOn}
+                  ref={(el) => {
+                    if (el) el.indeterminate = brevetsSomeOn && !brevetsAllOn;
+                  }}
+                  onChange={(e) => toggleAllBrevets(e.target.checked)}
+                  aria-label="Mostrar u ocultar todos los brevets deportivos"
+                />
+              </label>
+              <button
+                type="button"
+                className="centinela-zones__toggle"
+                aria-expanded={brevetsMenuOpen}
+                aria-controls="centinela-brevets-list"
+                onClick={() => setBrevetsMenuOpen((o) => !o)}
+              >
+                <i
+                  className={`bi ${
+                    brevetsMenuOpen ? "bi-chevron-down" : "bi-chevron-right"
+                  }`}
+                  aria-hidden
+                />
+                <span>Brevets deportivos</span>
+                <span className="centinela-zones__count">
+                  {visibleBrevetCount}/{CENTINELA_BREVET_MAP_CATEGORIES.length}
+                </span>
+              </button>
+            </div>
+            {brevetsMenuOpen ? (
+              <div
+                id="centinela-brevets-list"
+                className="centinela-zones__list"
+                role="group"
+                aria-label="Categorías de brevets deportivos"
+              >
+                {CENTINELA_BREVET_CATEGORIES.map((c) => {
+                  if (c.infoOnly) {
+                    return (
+                      <div key={c.id} className="centinela-brevet-info">
+                        {c.infoText ? (
+                          <span
+                            className="centinela-brevet-info-icon"
+                            data-sicen-popover={c.infoText}
+                            data-sicen-popover-placement="top"
+                            role="img"
+                            aria-label={`Información de ${c.name}`}
+                          >
+                            <i className="bi bi-info-circle" aria-hidden />
+                          </span>
+                        ) : null}
+                        <span>{c.name}</span>
+                      </div>
+                    );
+                  }
+
+                  const infoIcon = c.infoText ? (
+                    <span
+                      className="centinela-brevet-info-icon"
+                      data-sicen-popover={c.infoText}
+                      data-sicen-popover-placement="top"
+                      role="img"
+                      aria-label={`Información de ${c.name}`}
+                    >
+                      <i className="bi bi-info-circle" aria-hidden />
+                    </span>
+                  ) : null;
+
+                  const row = (
+                    <div className="centinela-brevet-row">
+                      <label className="centinela-brevet-row__check">
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          checked={Boolean(brevetVisibility[c.id])}
+                          onChange={() => toggleBrevetVisibility(c.id)}
+                          aria-label={`Mostrar u ocultar ${c.name}`}
+                        />
+                      </label>
+                      {infoIcon}
+                      {c.portPicker ? (
+                        <button
+                          type="button"
+                          className="centinela-brevet-row__name-btn"
+                          aria-expanded={brevetCMenuOpen}
+                          aria-controls="centinela-brevet-c-ports"
+                          onClick={() => setBrevetCMenuOpen((o) => !o)}
+                        >
+                          <span>{c.name}</span>
+                          <i
+                            className={`bi ${
+                              brevetCMenuOpen
+                                ? "bi-chevron-down"
+                                : "bi-chevron-right"
+                            }`}
+                            aria-hidden
+                          />
+                          {selectedBrevetCPort ? (
+                            <span className="centinela-zones__count">
+                              {selectedBrevetCPort.name}
+                            </span>
+                          ) : null}
+                        </button>
+                      ) : (
+                        <span className="centinela-brevet-row__name">
+                          {c.name}
+                        </span>
+                      )}
+                    </div>
+                  );
+
+                  if (c.portPicker) {
+                    return (
+                      <div key={c.id} className="centinela-brevet-c">
+                        {row}
+                        {brevetCMenuOpen ? (
+                          <div
+                            id="centinela-brevet-c-ports"
+                            className="centinela-brevet-c__picker"
+                          >
+                            <label
+                              className="centinela-brevet-c__label"
+                              htmlFor="centinela-brevet-c-select"
+                            >
+                              Puerto
+                            </label>
+                            <select
+                              id="centinela-brevet-c-select"
+                              className="form-select form-select-sm centinela-brevet-c__select"
+                              value={selectedBrevetCPortId}
+                              onChange={(e) =>
+                                setSelectedBrevetCPortId(e.target.value)
+                              }
+                            >
+                              <option value="">Elegí un puerto…</option>
+                              {SPORT_PORT_SECTOR_ORDER.map((sector) => (
+                                <optgroup
+                                  key={sector}
+                                  label={SPORT_PORT_SECTOR_LABELS[sector]}
+                                >
+                                  {(SPORT_PORTS_BY_SECTOR[sector] || []).map(
+                                    (port) => (
+                                      <option key={port.id} value={port.id}>
+                                        {port.name} ({port.radiusNm} MN)
+                                      </option>
+                                    )
+                                  )}
+                                </optgroup>
+                              ))}
+                            </select>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={c.id} className="centinela-brevet-row-wrap">
+                      {row}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
         </div>
 
-        <div className="centinela-page__status">{statusLine}</div>
-        <p className="centinela-page__hint mb-0">
-          El feed libre (AISStream) tiene poca cobertura en Montevideo; la mayor
-          parte de los blancos suele verse del lado argentino del Río.
-        </p>
         {error && aisLayerOn ? (
           <ErrorAlert
             message={error}
@@ -332,10 +859,73 @@ export function CentinelaPage() {
           />
         ) : null}
 
-        <Link className="centinela-glass__home" to="/home">
-          <i className="bi bi-house" aria-hidden />
-          Inicio
-        </Link>
+        {windStatus.error && windLayerOn ? (
+          <ErrorAlert
+            message={windStatus.error}
+            className="alert alert-danger py-2 small mb-0"
+          />
+        ) : null}
+
+        {currentsStatus.error && currentsLayerOn ? (
+          <ErrorAlert
+            message={currentsStatus.error}
+            className="alert alert-danger py-2 small mb-0"
+          />
+        ) : null}
+
+        {wavesStatus.error && wavesLayerOn ? (
+          <ErrorAlert
+            message={wavesStatus.error}
+            className="alert alert-danger py-2 small mb-0"
+          />
+        ) : null}
+
+        {bathymetryStatus.error && bathymetryOn ? (
+          <ErrorAlert
+            message={bathymetryStatus.error}
+            className="alert alert-danger py-2 small mb-0"
+          />
+        ) : null}
+
+        <div className="centinela-glass__footer-actions">
+          <div className="centinela-glass__sim-row">
+            <span
+              className="centinela-glass__action-wrap"
+              data-sicen-popover="Simular incidente de HC"
+              data-sicen-popover-placement="top"
+            >
+              <button
+                type="button"
+                className="centinela-glass__action-btn"
+                disabled
+                aria-disabled="true"
+                aria-label="Simular incidente de HC"
+              >
+                <i className="bi bi-droplet-half" aria-hidden />
+              </button>
+            </span>
+            <span
+              className="centinela-glass__action-wrap"
+              data-sicen-popover="Pronosticar deriva de objeto"
+              data-sicen-popover-placement="top"
+            >
+              <button
+                type="button"
+                className="centinela-glass__action-btn"
+                disabled
+                aria-disabled="true"
+                aria-label="Pronosticar deriva de objeto"
+              >
+                <i className="bi bi-compass" aria-hidden />
+              </button>
+            </span>
+          </div>
+          <Link className="centinela-glass__home" to="/home">
+            <i className="bi bi-house" aria-hidden />
+            Inicio
+          </Link>
+        </div>
+        </div>
       </aside>
     </div>
   );

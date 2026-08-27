@@ -6,6 +6,7 @@ import {
   sicenCalloutHtml,
   sicenEmailBodyStyles,
   sicenEmailLayout,
+  mergeSicenEmailAttachments,
 } from "../utils/emailTemplates.js";
 import { transport } from "../utils/nodemailer.js";
 import { logger } from "../utils/logger.js";
@@ -199,6 +200,7 @@ ${sicenCalloutHtml(`<p style="${S.justification}">${escapeHtml(newAccBody)}</p>`
           footerNote:
             "Mensaje automático de SICEN · Gestione la solicitud desde el panel de administración.",
         }),
+        attachments: mergeSicenEmailAttachments(),
       });
     } catch (error) {
       logger.error(`Email could not be sent successfully: ` + error);
@@ -289,6 +291,7 @@ ${specsBlock}
 <p style="${S.sectionHeading}">Justificación</p>
 ${sicenCalloutHtml(`<p style="${S.justification}">${escapeHtml(newDataBody)}</p>`, "muted")}
 `;
+      const mailAttachments = mergeSicenEmailAttachments(attachments);
       await transport.sendMail({
         from: env.googleEmail,
         to: env.googleEmail,
@@ -301,7 +304,7 @@ ${sicenCalloutHtml(`<p style="${S.justification}">${escapeHtml(newDataBody)}</p>
           footerNote:
             "Revise la solicitud en el panel de administración antes de aplicar cambios en la base de datos.",
         }),
-        ...(attachments.length ? { attachments } : {}),
+        attachments: mailAttachments,
       });
     } catch (error) {
       logger.error("Email could not be sent successfully: " + error);
@@ -339,6 +342,7 @@ ${sicenButtonPrimaryHtml(loginUrl, "Ingresar a SICEN")}
           footerNote:
             "Correo automático de bienvenida · Si no esperaba este mensaje, ignore este correo.",
         }),
+        attachments: mergeSicenEmailAttachments(),
       });
       return true;
     } catch (error) {

@@ -37,7 +37,7 @@ const publicAppUrl = stripTrailingSlash(
 );
 
 /**
- * Base URL para assets servidos en correos (`{emailAssetsBaseUrl}/img/Logo-PNN.png`).
+ * Base URL para assets servidos en correos (`{emailAssetsBaseUrl}/img/Logo-PNN-Blanco.png`).
  * Definí `EMAIL_LOGO_BASE_URL` si el logo debe resolverse desde otro origen (CDN/subdominio).
  * Si está vacío, usa la misma base que la app (`PUBLIC_APP_URL` / `API_URL` / localhost).
  */
@@ -64,4 +64,13 @@ export default {
   aisStreamApiKey: process.env.AIS_STREAM_API_KEY || "",
   /** Bounding box AIS: latMin,lonMin,latMax,lonMax (default Río de la Plata; AISStream cubre poco MVD). */
   aisBbox: process.env.AIS_BBOX || "",
+  /** TTL cache proxy viento Open-Meteo (ms). Default 10 min. */
+  windCacheTtlMs: Number(process.env.WIND_CACHE_TTL_MS) || 600_000,
+  /** TTL cache proxy corrientes Open-Meteo Marine (ms). Default 10 min. */
+  currentsCacheTtlMs: Number(process.env.CURRENTS_CACHE_TTL_MS) || 600_000,
+  /** TTL cache proxy oleaje Open-Meteo Marine (ms). Default 10 min. */
+  wavesCacheTtlMs: Number(process.env.WAVES_CACHE_TTL_MS) || 600_000,
+  /** TTL cache batimetría GEBCO (ms). Default 7 días (dato estático). */
+  bathymetryCacheTtlMs:
+    Number(process.env.BATHYMETRY_CACHE_TTL_MS) || 604_800_000,
 };

@@ -4,9 +4,16 @@
  */
 
 import env from "../config/env.config.js";
+import {
+  getSicenEmailLogoAttachment,
+  mergeSicenEmailAttachments,
+  SICEN_EMAIL_LOGO_CID,
+} from "./emailLogo.js";
 
-/** Ruta bajo `public/` — express.static sirve `/img/Logo-PNN.png`. */
-const EMAIL_HEADER_LOGO_PATH = "/img/Logo-PNN.png";
+export { mergeSicenEmailAttachments };
+
+/** Ruta bajo `public/` — fallback si no hay adjunto CID embebido. */
+const EMAIL_HEADER_LOGO_PATH = "/img/Logo-PNN-Blanco.png";
 
 function emailHeaderLogoAbsoluteUrl() {
   const base = String(env.emailAssetsBaseUrl || "").replace(/\/+$/, "");
@@ -68,7 +75,10 @@ export const sicenEmailBodyStyles = {
 };
 
 function headerLogoImgHtml() {
-  const src = escapeHtml(emailHeaderLogoAbsoluteUrl());
+  const logoAtt = getSicenEmailLogoAttachment();
+  const src = logoAtt
+    ? `cid:${SICEN_EMAIL_LOGO_CID}`
+    : escapeHtml(emailHeaderLogoAbsoluteUrl());
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;border-collapse:collapse;">
   <tr>
     <td align="center" style="padding:0 0 14px;">

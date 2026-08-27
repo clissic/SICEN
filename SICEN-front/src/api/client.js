@@ -1280,6 +1280,69 @@ export function aisStatus() {
   return apiFetch("/api/ais/status");
 }
 
+/**
+ * Viento a 10 m (proxy Open-Meteo + cache en backend).
+ * @param {{ lat: number, lon: number }[]} points
+ * @param {number} forecastHoursOffset
+ */
+export function windFetchPoints(
+  points,
+  forecastHoursOffset = 0,
+  { signal } = {}
+) {
+  return apiFetch("/api/wind/points", {
+    method: "POST",
+    body: JSON.stringify({ points, forecastHoursOffset }),
+    signal,
+  });
+}
+
+/**
+ * Corrientes superficiales (proxy Open-Meteo Marine + cache).
+ * @param {{ lat: number, lon: number }[]} points
+ * @param {number} forecastHoursOffset
+ */
+export function currentsFetchPoints(
+  points,
+  forecastHoursOffset = 0,
+  { signal } = {}
+) {
+  return apiFetch("/api/currents/points", {
+    method: "POST",
+    body: JSON.stringify({ points, forecastHoursOffset }),
+    signal,
+  });
+}
+
+/**
+ * Oleaje Hs + período (proxy Open-Meteo Marine + cache).
+ * @param {{ lat: number, lon: number }[]} points
+ * @param {number} forecastHoursOffset
+ */
+export function wavesFetchPoints(
+  points,
+  forecastHoursOffset = 0,
+  { signal } = {}
+) {
+  return apiFetch("/api/waves/points", {
+    method: "POST",
+    body: JSON.stringify({ points, forecastHoursOffset }),
+    signal,
+  });
+}
+
+/**
+ * Batimetría GEBCO (profundidad; proxy + cache).
+ * @param {{ lat: number, lon: number }[]} points
+ */
+export function bathymetryFetchPoints(points, { signal } = {}) {
+  return apiFetch("/api/bathymetry/points", {
+    method: "POST",
+    body: JSON.stringify({ points }),
+    signal,
+  });
+}
+
 /** Snapshot de buques AIS en el bbox configurado. */
 export function aisVessels() {
   return apiFetch("/api/ais/vessels");

@@ -88,7 +88,7 @@ cd ../SICEN-front && npm install
 
 ## Variables de entorno
 
-Solo hace falta configurar archivos en **`SICEN-back/`** (no en la raíz ni en `SICEN-front` para el flujo actual). El servidor carga:
+Solo hace falta configurar archivos en **`SICEN-back/`** (API) y, para El Centinela sin watermark CARTO, también en **`SICEN-front/`** (`VITE_CARTO_API_KEY`). El servidor carga:
 
 - **`SICEN-back/.env.development`** cuando corrés en modo desarrollo (`npm run dev` → `--mode DEVELOPMENT`).
 - **`SICEN-back/.env.production`** cuando corrés **`npm start`** (`--mode PRODUCTION`).
@@ -114,7 +114,15 @@ Luego completá los valores según tu entorno (y recordá que **`JWT_SECRET` es 
 | `PUBLIC_APP_URL` | Opcional; si existe, tiene prioridad sobre `API_URL` para la URL pública de la app (sin barra final). |
 | `GOOGLE_EMAIL` / `GOOGLE_PASS` | Credenciales Nodemailer (p. ej. Gmail con app password). |
 | `CORS_ORIGIN` | Opcional. Orígenes permitidos separados por **coma**. Si no se define, se usan por defecto el propio servidor (`localhost`/`127.0.0.1` al `PORT`) y `http://localhost:5173` (Vite). |
+| `AIS_STREAM_API_KEY` | API key de AISStream para la capa AIS de El Centinela (solo backend). |
+| `AIS_BBOX` | Opcional; bbox `latMin,lonMin,latMax,lonMax` (default Río de la Plata). |
 | `GITHUB_LOGIN_SECRET`, `PERSISTENCE`, variables Twilio | Declaradas en `env.config.js`; reservadas u opcionales según evolución del proyecto. |
+
+**Frontend (`SICEN-front/`):** Vite solo expone variables `VITE_*` (ver `.env.example`). Se incrustan al hacer `npm run dev` / `npm run build`.
+
+| Variable | Uso |
+|----------|-----|
+| `VITE_CARTO_API_KEY` | Key de basemaps CARTO. Se agrega como `?key=` a las URLs Voyager / `dark_all` de El Centinela y quita el watermark. Visible en el navegador. |
 
 ## Desarrollo
 
@@ -258,7 +266,12 @@ Módulo principal del menú (`HomePage` → tile *El Centinela*). Carta náutica
 - Variables: `AIS_STREAM_API_KEY` (obligatoria para datos en vivo) y opcional `AIS_BBOX=latMin,lonMin,latMax,lonMax` (default Río de la Plata). **Nota:** el feed libre de AISStream cubre mal Montevideo; la densidad suele estar del lado argentino.
 - Skill: `.cursor/skills/centinela-map-pattern/SKILL.md`.
 
-**Pendiente / fase 2:** más capas (meteo, catastro), tracks históricos, correlación MMSI ↔ colección `vessels`, receptor AIS propio / AISHub como fuente alternativa del mismo bridge.
+**Pendiente / fase 2:**
+
+- Más capas (meteo, catastro), tracks históricos, correlación MMSI ↔ colección `vessels`, receptor AIS propio / AISHub como fuente alternativa del mismo bridge.
+- **Simular incidente de hidrocarburo (HC):** botón deshabilitado en el pie del panel (`Simular incidente de HC`). Motor previsto: servicio Python con **OpenDrift/OpenOil** o **PyGNOME** (NOAA); el front envía punto/volumen/tipo/horizonte y pinta GeoJSON (mancha/trayectorias) en Leaflet. Requiere forzado de corrientes + viento (CMEMS/HYCOM u otra fuente regional). Disclaimer: apoyo operativo, no sustituye modelo oficial.
+- **Pronosticar deriva de objeto (SAR):** botón deshabilitado (`Pronosticar deriva de objeto`). Mismo stack OpenDrift, módulo **Leeway** (coeficientes USCG / Breivik & Allen: persona en el agua, balsas, embarcaciones, etc.). Entrada: última posición (+ incertidumbre), hora, tipo de objeto, horizonte; salida: nube Monte Carlo / área probable de búsqueda en el mapa. Misma arquitectura (worker Python → API autenticada → capa Leaflet).
+- Detalle técnico y checklist de implementación: skill `centinela-map-pattern` → sección *Incorporaciones pendientes*.
 
 ### 4) Manual usuario — contenido real del curso (`/manual-usuario`)
 
@@ -342,6 +355,7 @@ Para mantener consistencia entre módulos, el repo guarda guías reutilizables e
 | `sport-movements-pattern` | Módulo movimientos deportivos (estados, DESPACHOS/ARRIBOS/DEMORADOS, formulario, unicidad abierta, notificaciones de demora vía `delayedNotifiedAt`). |
 | `notifications-pattern` | Inbox `notifications`, `notifyAudience`, campanita `NotificationsBell`, dedupe y fan-out por unidad/usuario. |
 | `popover-pattern` | Tooltips nativos → `data-sicen-popover` + `useDocumentSicenPopovers` (solo hover). No convertir props `title` ni iframes. |
+| `centinela-map-pattern` | Mapa `/centinela` (Leaflet, capas, AIS, brevets, puertos C). Incluye incorporaciones pendientes HC/OpenOil y deriva SAR/Leeway. |
 | `error-alert-scroll-pattern` | Alertas de error con scroll automático (`ErrorAlert` + `scrollErrorAlertIntoView`). |
 
 Cuando el cambio introduce una nueva convención reutilizable, registrá el skill (o ampliá uno existente) antes de cerrar la tarea.

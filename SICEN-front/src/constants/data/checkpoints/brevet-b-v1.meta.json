@@ -1,0 +1,9 @@
+{
+  "id": "v1",
+  "savedAt": "2026-08-25",
+  "label": "Cortes 1–12 (270→090, queda S) y 212–219 (315→135, queda S/O)",
+  "files": {
+    "cuts": "brevetBStripCuts.v1.js",
+    "polygon": "brevetBStripPolygon.v1.js"
+  }
+}

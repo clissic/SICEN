@@ -40,6 +40,10 @@ import { titlesRouter } from "./routes/titles.router.js";
 import { sportMovementsRouter } from "./routes/sportMovements.router.js";
 import { notificationsRouter } from "./routes/notifications.router.js";
 import { aisRouter } from "./routes/ais.router.js";
+import { windRouter } from "./routes/wind.router.js";
+import { currentsRouter } from "./routes/currents.router.js";
+import { wavesRouter } from "./routes/waves.router.js";
+import { bathymetryRouter } from "./routes/bathymetry.router.js";
 import { warmAisBridge } from "./services/aisBridge.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -131,6 +135,10 @@ app.use("/api/titles", titlesRouter);
 app.use("/api/sportMovements", sportMovementsRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/ais", aisRouter);
+app.use("/api/wind", windRouter);
+app.use("/api/currents", currentsRouter);
+app.use("/api/waves", wavesRouter);
+app.use("/api/bathymetry", bathymetryRouter);
 
 warmAisBridge();
 

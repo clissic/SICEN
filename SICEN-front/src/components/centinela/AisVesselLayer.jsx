@@ -54,13 +54,20 @@ export function AisVesselLayer({ vessels }) {
             position={[v.lat, v.lon]}
             icon={icons.get(mmsi)}
           >
-            <Popup>
+            <Popup className="centinela-ais-leaflet-popup">
               <div className="centinela-ais-popup">
-                <div className="fw-semibold">
+                <div className="centinela-ais-popup__name">
                   {v.name?.trim() || "Buque sin nombre"}
                 </div>
-                <div className="small text-muted">MMSI {mmsi}</div>
-                <ul className="list-unstyled small mb-0 mt-2">
+                <div className="centinela-ais-popup__ids">
+                  <div>MMSI {mmsi}</div>
+                  {v.imo != null && Number(v.imo) > 0 ? (
+                    <div>OMI {v.imo}</div>
+                  ) : (
+                    <div>OMI no disponible</div>
+                  )}
+                </div>
+                <ul className="centinela-ais-popup__meta list-unstyled mb-0">
                   {typeof v.sog === "number" ? (
                     <li>SOG: {(v.sog * 1).toFixed(1)} kn</li>
                   ) : null}

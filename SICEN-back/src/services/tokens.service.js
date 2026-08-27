@@ -6,6 +6,7 @@ import {
   sicenCalloutHtml,
   sicenEmailBodyStyles,
   sicenEmailLayout,
+  mergeSicenEmailAttachments,
 } from "../utils/emailTemplates.js";
 import { logger } from "../utils/logger.js";
 import { transport } from "../utils/nodemailer.js";
@@ -80,6 +81,7 @@ ${sicenButtonPrimaryHtml(recoveryHref, "Restablecer contraseña")}
           footerNote:
             "Por seguridad no comparta este código ni el enlace con terceros.",
         }),
+        attachments: mergeSicenEmailAttachments(),
       });
     } else {
       logger.error(`Email ${email} does not exist in DB`);

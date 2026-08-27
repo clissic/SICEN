@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { IframeModal } from "../components/IframeModal.jsx";
+import { NewAccountRequestModal } from "../components/NewAccountRequestModal.jsx";
+import { ForgotPasswordModal } from "../components/ForgotPasswordModal.jsx";
 import { ThemeToggle, useBootstrapTheme } from "../components/ThemeToggle.jsx";
 
 const JPC_SITE_URL = "https://jpc-dev.uy";
@@ -14,11 +16,18 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [err, setErr] = useState("");
   const [jpcModalOpen, setJpcModalOpen] = useState(false);
+  const [newAccountOpen, setNewAccountOpen] = useState(false);
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const loc = useLocation();
   const from = loc.state?.from?.pathname || "/home";
   const bsTheme = useBootstrapTheme();
   const logoSrc =
     bsTheme === "dark" ? "/img/Logo-PNN-Blanco.png" : "/img/Logo-PNN.png";
+
+  useEffect(() => {
+    if (loc.state?.openNewAccount) setNewAccountOpen(true);
+    if (loc.state?.openForgotPassword) setForgotPasswordOpen(true);
+  }, [loc.state?.openNewAccount, loc.state?.openForgotPassword]);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -56,7 +65,10 @@ export function LoginPage() {
             />
           </div>
           <div className="login-brand__copy">
-            <h1>Sistema Centinela</h1>
+            <h1 className="login-brand__title">
+              <span className="login-brand__title-system">Sistema</span>
+              <span className="login-brand__title-name">Centinela</span>
+            </h1>
             <p>Prefectura Nacional Naval</p>
           </div>
         </div>
@@ -125,15 +137,20 @@ export function LoginPage() {
           </form>
 
           <div className="login-panel__links">
-            <Link
+            <button
+              type="button"
               className="btn btn-outline-secondary"
-              to="/solicitar-cuenta"
+              onClick={() => setNewAccountOpen(true)}
             >
               Solicitar cuenta
-            </Link>
-            <Link className="btn btn-outline-secondary" to="/forgot-password">
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={() => setForgotPasswordOpen(true)}
+            >
               Recuperar contraseña
-            </Link>
+            </button>
           </div>
 
           <footer className="login-panel__meta">
@@ -182,6 +199,16 @@ export function LoginPage() {
         titleText="JPC — jpc-dev.uy"
         logoSrc="/img/LogoJPC.svg"
         ariaLabel="Sitio de JPC en una vista previa"
+      />
+
+      <NewAccountRequestModal
+        open={newAccountOpen}
+        onClose={() => setNewAccountOpen(false)}
+      />
+
+      <ForgotPasswordModal
+        open={forgotPasswordOpen}
+        onClose={() => setForgotPasswordOpen(false)}
       />
     </div>
   );
