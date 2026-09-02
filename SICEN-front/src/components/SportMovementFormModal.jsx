@@ -26,18 +26,22 @@ function portsOfUnit(units, acronym) {
     .filter(Boolean);
 }
 
-function seafarerHasSportBrevet(seafarer) {
+function extractSportBrevetFromSeafarer(seafarer) {
   const held = Array.isArray(seafarer?.heldLicenses)
     ? seafarer.heldLicenses
     : [];
   for (const hl of held) {
-    const code =
-      hl?.licenseId && typeof hl.licenseId === "object"
-        ? String(hl.licenseId.code || "")
-        : "";
-    if (code.toUpperCase() === "UY_BD") return true;
+    const lic =
+      hl?.licenseId && typeof hl.licenseId === "object" ? hl.licenseId : null;
+    const code = String(lic?.code || "").toUpperCase();
+    if (code !== "UY_BD") continue;
+    const cat = String(hl?.category || lic?.category || "").trim();
+    const letter =
+      cat.match(/^([A-D])$/i)?.[1] ||
+      cat.match(/categor[ií]a\s*([A-D])/i)?.[1];
+    return letter ? letter.toUpperCase() : "OK";
   }
-  return false;
+  return null;
 }
 
 function seafarerFullName(seafarer) {
@@ -66,10 +70,15 @@ export function SportMovementFormModal({
   initialMovement = null,
   onSubmit,
   saving = false,
+  mode = "unit",
 }) {
   const { user } = useAuth();
+  const isSkipperMode = mode === "skipper";
   const isEdit = Boolean(initialMovement?._id);
-  const originUnitAcronym = String(user?.unit || "").trim().toUpperCase();
+  const [dispatchUnit, setDispatchUnit] = useState("");
+  const originUnitAcronym = isSkipperMode
+    ? String(dispatchUnit || "").trim().toUpperCase()
+    : String(user?.unit || "").trim().toUpperCase();
   const [departureDate, setDepartureDate] = useState("");
   const [departureTime, setDepartureTime] = useState("");
   const [departurePort, setDeparturePort] = useState("");
@@ -155,6 +164,7 @@ export function SportMovementFormModal({
       setEta("");
       setDestinationUnit("");
       setInformedUnits([emptyInformedUnit()]);
+      setDispatchUnit("");
       setSkipperCi("");
       setSkipper(null);
       setPassengers([emptyPassenger()]);
@@ -179,7 +189,8 @@ export function SportMovementFormModal({
         setSkipperErr("No se encontró un náuta con esa cédula.");
         return;
       }
-      if (!seafarerHasSportBrevet(seafarer)) {
+      const brevetCategory = extractSportBrevetFromSeafarer(seafarer);
+      if (!brevetCategory) {
         setSkipperErr(
           "El náuta encontrado no tiene Brevet Deportivo registrado."
         );
@@ -188,6 +199,7 @@ export function SportMovementFormModal({
       setSkipper({
         fullName: seafarerFullName(seafarer),
         documentNumber: ci,
+        brevetCategory: brevetCategory === "OK" ? "" : brevetCategory,
         seafarer,
       });
     } catch (e) {
@@ -246,6 +258,11 @@ export function SportMovementFormModal({
     setDestinationPort("");
   }
 
+  function handleDispatchUnitChange(value) {
+    setDispatchUnit(value);
+    setDeparturePort("");
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setFormErr("");
@@ -267,6 +284,10 @@ export function SportMovementFormModal({
     }
     if (!destinationUnit) {
       setFormErr("Seleccione la prefectura de destino.");
+      return;
+    }
+    if (isSkipperMode && !dispatchUnit) {
+      setFormErr("Seleccione la prefectura de despacho.");
       return;
     }
     const selectedInformedUnits = informedUnits.filter(Boolean);
@@ -294,14 +315,18 @@ export function SportMovementFormModal({
       eta: new Date(eta).toISOString(),
       destinationUnit,
       informedUnits: selectedInformedUnits,
+      passengers: passengers.filter(
+        (p) => p.fullName.trim() || p.documentNumber.trim()
+      ),
       skipper: {
         documentType: "DNI",
         documentNumber: skipper.documentNumber || skipperCi,
       },
-      passengers: passengers.filter(
-        (p) => p.fullName.trim() || p.documentNumber.trim()
-      ),
     };
+
+    if (isSkipperMode) {
+      payload.originUnit = dispatchUnit;
+    }
 
     try {
       await onSubmit(payload);
@@ -346,7 +371,11 @@ export function SportMovementFormModal({
           >
             <div className="modal-header">
               <h5 className="modal-title">
-                {isEdit ? "Modificar movimiento" : "Registrar movimiento"}
+                {isEdit
+                  ? "Modificar movimiento"
+                  : isSkipperMode
+                    ? "Solicitar despacho"
+                    : "Registrar movimiento"}
               </h5>
               <button
                 type="button"
@@ -428,6 +457,31 @@ export function SportMovementFormModal({
                     })}
                   </select>
                 </div>
+                {isSkipperMode ? (
+                  <div className="col-md-6">
+                    <label className="form-label">Prefectura de despacho</label>
+                    <select
+                      className="form-select"
+                      required
+                      value={dispatchUnit}
+                      onChange={(e) =>
+                        handleDispatchUnitChange(e.target.value)
+                      }
+                      disabled={saving}
+                    >
+                      <option value="">Seleccione…</option>
+                      {units.map((u) => {
+                        const acr = String(u.acronym || "").toUpperCase();
+                        return (
+                          <option key={`dispatch-${acr}`} value={acr}>
+                            {acr}
+                            {u.name ? ` — ${u.name}` : ""}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                ) : null}
                 <div className="col-md-6">
                   <label className="form-label">Puerto despacho</label>
                   <select
@@ -435,12 +489,20 @@ export function SportMovementFormModal({
                     required
                     value={departurePort}
                     onChange={(e) => setDeparturePort(e.target.value)}
-                    disabled={saving || departurePorts.length === 0}
+                    disabled={
+                      saving ||
+                      departurePorts.length === 0 ||
+                      (isSkipperMode && !dispatchUnit)
+                    }
                   >
                     <option value="">
-                      {departurePorts.length === 0
-                        ? "Sin puertos en su unidad"
-                        : "Seleccione…"}
+                      {isSkipperMode && !dispatchUnit
+                        ? "Elija primero la prefectura de despacho"
+                        : departurePorts.length === 0
+                          ? isSkipperMode
+                            ? "Sin puertos en esa prefectura"
+                            : "Sin puertos en su unidad"
+                          : "Seleccione…"}
                     </option>
                     {departurePorts.map((port) => (
                       <option key={port} value={port}>
@@ -557,39 +619,52 @@ export function SportMovementFormModal({
 
               <hr className="my-3" />
               <h6 className="mb-2">Patrón</h6>
-              <div className="row g-2 align-items-end">
-                <div className="col-md-8">
-                  <label className="form-label">Cédula (CI)</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={skipperCi}
-                    onChange={(e) => {
-                      setSkipperCi(e.target.value);
-                      setSkipper(null);
-                      setSkipperErr("");
-                    }}
-                    disabled={saving || skipperLoading}
-                    inputMode="numeric"
-                  />
-                </div>
-                <div className="col-md-4">
-                  <button
-                    type="button"
-                    className="btn btn-outline-primary w-100"
-                    onClick={searchSkipper}
-                    disabled={saving || skipperLoading}
-                  >
-                    {skipperLoading ? "Buscando…" : "Buscar patrón"}
-                  </button>
-                </div>
+              <p className="form-text small mb-2">
+                Busque en Gente de Mar por cédula. El patrón no tiene que ser el
+                propietario del buque, pero debe tener Brevet Deportivo vigente.
+              </p>
+              <div className="input-group">
+                <input
+                  type="text"
+                  className="form-control"
+                  value={skipperCi}
+                  onChange={(e) => {
+                    setSkipperCi(e.target.value);
+                    setSkipper(null);
+                    setSkipperErr("");
+                  }}
+                  disabled={saving || skipperLoading}
+                  inputMode="numeric"
+                  placeholder="Cédula (CI)"
+                  aria-label="Cédula del patrón"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      searchSkipper();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline-primary"
+                  onClick={searchSkipper}
+                  disabled={saving || skipperLoading}
+                >
+                  {skipperLoading ? "Buscando…" : "Buscar patrón"}
+                </button>
               </div>
               {skipperErr ? (
                 <div className="text-danger small mt-2">{skipperErr}</div>
               ) : null}
               {skipper ? (
                 <div className="alert alert-success py-2 mt-2 mb-0 small">
-                  {skipper.fullName}
+                  <strong>{skipper.fullName}</strong>
+                  {skipper.documentNumber ? (
+                    <>
+                      {" "}
+                      · CI: <strong>{skipper.documentNumber}</strong>
+                    </>
+                  ) : null}
                   {skipper.brevetCategory
                     ? ` · Brevet ${skipper.brevetCategory}`
                     : " · Brevet Deportivo OK"}
@@ -662,7 +737,11 @@ export function SportMovementFormModal({
                 className="btn btn-primary"
                 disabled={saving}
               >
-                {saving ? "Guardando…" : "Guardar movimiento"}
+                {saving
+                  ? "Guardando…"
+                  : isSkipperMode
+                    ? "Solicitar despacho"
+                    : "Guardar movimiento"}
               </button>
             </div>
           </form>

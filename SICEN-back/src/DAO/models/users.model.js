@@ -51,8 +51,11 @@ class UsersModel {
   }
 
   async findByEmail(email) {
+    const normalized = String(email ?? "").trim();
+    if (!normalized) return null;
+    const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const user = await UserMongoose.findOne(
-      { email: email },
+      { email: { $regex: new RegExp(`^${escaped}$`, "i") } },
       {
         _id: true,
         avatar: true,
@@ -69,14 +72,28 @@ class UsersModel {
     return user;
   }
 
-  async create({ avatar, first_name, last_name, rank, unit, email, password, role, fines, states }) {
+  async create({
+    avatar,
+    first_name,
+    last_name,
+    rank,
+    unit,
+    email,
+    password,
+    role,
+    fines,
+    states,
+    documentId,
+    phone,
+    FN,
+  }) {
     const userCreated = await UserMongoose.create({
       avatar,
       first_name,
       last_name,
       rank,
       unit,
-      email,
+      email: String(email ?? "").trim().toLowerCase(),
       password,
       role,
       fines: fines ?? [],
@@ -84,6 +101,11 @@ class UsersModel {
         Array.isArray(states) && states.length > 0
           ? states
           : buildDefaultUserStates(),
+      ...(documentId != null && documentId !== ""
+        ? { documentId: String(documentId).trim() }
+        : {}),
+      ...(phone != null && phone !== "" ? { phone: String(phone).trim() } : {}),
+      ...(FN ? { FN } : {}),
     });
     return userCreated;
   }

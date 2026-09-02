@@ -1,9 +1,16 @@
 import { Link, Navigate, useParams } from "react-router-dom";
 import { Layout } from "../components/Layout.jsx";
 import { getMiUnidadDivision } from "../constants/miUnidadDivisions.js";
+import { getMiUnidadEmpreDivision } from "../constants/miUnidadEmpreDivisiones.js";
+import { MiUnidadEmpreDivisionPage } from "./MiUnidadEmpreDivisionPage.jsx";
 
 export function MiUnidadDivisionPage() {
   const { divisionSlug } = useParams();
+
+  if (getMiUnidadEmpreDivision(divisionSlug)) {
+    return <MiUnidadEmpreDivisionPage />;
+  }
+
   const division = getMiUnidadDivision(divisionSlug);
 
   if (!division) {

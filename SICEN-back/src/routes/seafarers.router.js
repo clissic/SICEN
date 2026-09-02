@@ -22,6 +22,7 @@ seafarersRouter.get(
   checkLogin,
   seafarersController.metadataSanctions,
 );
+seafarersRouter.get("/:id", ...guarded, seafarersController.getById);
 seafarersRouter.post("/", ...guarded, seafarersController.create);
 seafarersRouter.patch(
   "/:id/basic-data",

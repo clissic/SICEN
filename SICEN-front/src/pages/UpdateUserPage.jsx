@@ -5,7 +5,7 @@ import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { UserAvatarFileInput } from "../components/UserAvatarFileInput.jsx";
 import { UserUnitSelect } from "../components/UserUnitSelect.jsx";
-import { ADMIN_EDIT_ROLES, normalizeRoleForSelect } from "../constants/userRoles.js";
+import { ADMIN_EDIT_ROLES, normalizeRoleForSelect, userRoleLabel } from "../constants/userRoles.js";
 import {
   mergeUserStatesForForm,
   userStatesForApi,
@@ -60,6 +60,9 @@ export function UpdateUserPage() {
         originalRole: r,
         avatar: u.avatar ?? "",
         states: mergeUserStatesForForm(u.states),
+        identityLocked:
+          u.seafarerLink?.status === "linked" ||
+          u.seafarerLink?.status === "pending_unlink",
       });
     } catch (ex) {
       setErr(ex.message);
@@ -76,6 +79,7 @@ export function UpdateUserPage() {
         originalRole,
         avatar: _avatarDrop,
         states,
+        identityLocked: _identityLockedDrop,
         ...rest
       } = form;
       const payload = {
@@ -102,6 +106,7 @@ export function UpdateUserPage() {
   }
 
   const isSuperAdminTarget = form?.originalRole === "superAdmin";
+  const identityLocked = Boolean(form?.identityLocked);
 
   return (
     <Layout>
@@ -150,11 +155,21 @@ export function UpdateUserPage() {
           <div className="card shadow-sm">
             <div className="card-body p-4">
               <form onSubmit={save} className="row g-3">
+                {identityLocked ? (
+                  <div className="col-12">
+                    <div className="alert alert-warning py-2 small mb-0">
+                      Nombres y apellidos están bloqueados porque la cuenta está
+                      vinculada a un perfil de náuta. Desvincule el perfil
+                      antes de editarlos.
+                    </div>
+                  </div>
+                ) : null}
                 <div className="col-12 col-md-6">
                   <label className="form-label">Nombre</label>
                   <input
                     className="form-control"
                     value={form.first_name}
+                    disabled={identityLocked}
                     onChange={(e) => set("first_name", e.target.value)}
                   />
                 </div>
@@ -163,6 +178,7 @@ export function UpdateUserPage() {
                   <input
                     className="form-control"
                     value={form.last_name}
+                    disabled={identityLocked}
                     onChange={(e) => set("last_name", e.target.value)}
                   />
                 </div>
@@ -196,7 +212,7 @@ export function UpdateUserPage() {
                         className="form-control"
                         disabled
                         readOnly
-                        value="superAdmin"
+                        value={userRoleLabel("superAdmin")}
                       />
                       <div className="form-text">
                         Este rol no puede modificarse desde este formulario.

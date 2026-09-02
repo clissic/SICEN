@@ -35,16 +35,23 @@ export function NewShipPage() {
         next.netTonnage = "";
         next.deadweight = "";
       } else if (v === "Ultramar") {
+        next.ownerSkipper = null;
+        next.administratorSkippers = [];
         next.nationalRegistryNumber = "";
         next.recreationalDocType = "";
         next.recreationalCategory = "";
         next.grossTonnage = "";
         if (wasDeportivo) next.shipType = "";
       } else if (v === "Cabotaje") {
+        next.ownerSkipper = null;
+        next.administratorSkippers = [];
         next.recreationalDocType = "";
         next.recreationalCategory = "";
         next.grossTonnage = "";
         if (wasDeportivo) next.shipType = "";
+      } else {
+        next.ownerSkipper = null;
+        next.administratorSkippers = [];
       }
       if (v !== "Deportivo" && wasDeportivo) {
         next.puntal = "";
@@ -119,7 +126,19 @@ export function NewShipPage() {
     }
     setSubmitting(true);
     try {
-      const data = await createVessel(form);
+      const {
+        ownerSkipper,
+        administratorSkippers,
+        ...rest
+      } = form;
+      const payload = {
+        ...rest,
+        ownerSkipperUserId: ownerSkipper?._id || "",
+        administratorSkipperUserIds: (administratorSkippers || []).map(
+          (a) => a._id
+        ),
+      };
+      const data = await createVessel(payload);
       setMsg(data?.msg || "Buque registrado.");
       setForm(INITIAL_SHIP_REGISTRATION_FORM);
       scrollPageToTop();
@@ -152,6 +171,7 @@ export function NewShipPage() {
               msg={msg}
               err={err}
               clientErr={clientErr}
+              enableSkipperOwnershipLinking
             />
           </div>
         </div>

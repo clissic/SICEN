@@ -2,12 +2,15 @@ import env from "../config/env.config.js";
 import { usersModel } from "../DAO/models/users.model.js";
 import {
   escapeHtml,
+  sicenButtonDangerHtml,
   sicenButtonPrimaryHtml,
   sicenCalloutHtml,
   sicenEmailBodyStyles,
   sicenEmailLayout,
   mergeSicenEmailAttachments,
 } from "../utils/emailTemplates.js";
+import { buildCreateUserFromRequestHref } from "../utils/newUserPrefill.js";
+import { buildRejectAccountRequestHref } from "../utils/accountRequestReject.js";
 import { transport } from "../utils/nodemailer.js";
 import { logger } from "../utils/logger.js";
 
@@ -70,7 +73,19 @@ class UserService {
     }
   }
 
-  async create({ avatar, first_name, last_name, rank, unit, email, password, role }) {
+  async create({
+    avatar,
+    first_name,
+    last_name,
+    rank,
+    unit,
+    email,
+    password,
+    role,
+    documentId,
+    phone,
+    FN,
+  }) {
     try {
       return await usersModel.create({
         avatar,
@@ -81,6 +96,9 @@ class UserService {
         email,
         password,
         role,
+        documentId,
+        phone,
+        FN,
       });
     } catch (error) {
       throw new Error("Failed to create a user: " + error);
@@ -137,6 +155,19 @@ class UserService {
     }
   }
 
+  /** Email normalizado (trim + minúsculas). */
+  normalizeEmail(email) {
+    return String(email ?? "").trim().toLowerCase();
+  }
+
+  /** ¿Ya hay un usuario con ese email (sin distinguir mayúsculas)? */
+  async isEmailInUse(email) {
+    const normalized = this.normalizeEmail(email);
+    if (!normalized) return false;
+    const found = await this.findByEmail(normalized);
+    return Boolean(found);
+  }
+
   async updatePassword({ email, newPassword }) {
     try {
       const userUpdated = await usersModel.updatePassword({ email, password: newPassword });
@@ -162,24 +193,76 @@ class UserService {
     position,
     email,
     newAccBody,
+    accountType,
+    documentId,
+    birthDate,
   }) {
     try {
       const S = sicenEmailBodyStyles;
       const unitText = unit != null ? String(unit).trim() : "";
       const positionText = position != null ? String(position).trim() : "";
+      const documentText =
+        documentId != null ? String(documentId).trim() : "";
+      const birthText = birthDate != null ? String(birthDate).trim() : "";
+      const isNauta = accountType === "nauta-deportivo";
+      const typeLabel =
+        accountType === "pnn-funcionario"
+          ? "Funcionario PNN"
+          : accountType === "nauta-deportivo"
+            ? "Náuta deportivo"
+            : accountType === "agente-maritimo"
+              ? "Agente Marítimo"
+              : accountType === "gente-de-mar"
+                ? "Gente de mar"
+                : "Solicitud de cuenta";
       const metaParts = [];
+      if (documentText) {
+        metaParts.push(
+          `DNI / Pasaporte: <strong>${escapeHtml(documentText)}</strong>`
+        );
+      }
+      if (birthText) {
+        const birthDisplay = (() => {
+          const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthText);
+          if (!m) return birthText;
+          return `${m[3]}/${m[2]}/${m[1]}`;
+        })();
+        metaParts.push(
+          `Fecha de nacimiento: <strong>${escapeHtml(birthDisplay)}</strong>`
+        );
+      }
       if (unitText) {
         metaParts.push(`Unidad: <strong>${escapeHtml(unitText)}</strong>`);
       }
       if (positionText) {
         metaParts.push(
-          `Cargo: <strong>${escapeHtml(positionText)}</strong>`
+          `${isNauta ? "Teléfono" : "Cargo"}: <strong>${escapeHtml(positionText)}</strong>`
         );
       }
       const metaHtml = metaParts.length
         ? `<p style="${S.metaLine}">${metaParts.join(" · ")}</p>`
         : "";
+      const createHref = buildCreateUserFromRequestHref({
+        accountType,
+        first_name,
+        last_name,
+        rank,
+        unit,
+        position,
+        email,
+        documentId,
+        birthDate,
+        newAccBody,
+      });
+      const rejectHref = buildRejectAccountRequestHref({
+        accountType,
+        first_name,
+        last_name,
+        email,
+      });
       const bodyHtml = `
+<p style="${S.paragraph}"><strong>Tipo de cuenta</strong></p>
+<p style="${S.metaLine}">${escapeHtml(typeLabel)}</p>
 <p style="${S.paragraph}"><strong>Solicitante</strong></p>
 <p style="${S.leadStrong}"><strong>${escapeHtml(rank)} ${escapeHtml(first_name)} ${escapeHtml(last_name)}</strong></p>
 ${metaHtml}
@@ -187,23 +270,73 @@ ${metaHtml}
 <p style="${S.metaLine}"><a href="mailto:${encodeURIComponent(String(email).trim())}" style="${S.link}">${escapeHtml(email)}</a></p>
 <p style="${S.sectionHeading}">Justificación</p>
 ${sicenCalloutHtml(`<p style="${S.justification}">${escapeHtml(newAccBody)}</p>`, "muted")}
+<p style="${S.paragraphAfterBlock}">Acciones (requieren iniciar sesión como <strong>administrador</strong> o <strong>super administrador</strong>):</p>
+${sicenButtonPrimaryHtml(createHref, "Crear cuenta con estos datos")}
+${sicenButtonDangerHtml(rejectHref, "Rechazar solicitud")}
+<p style="${S.recoveryUrl}"><strong>Crear:</strong> ${escapeHtml(createHref)}</p>
+<p style="${S.recoveryUrl}"><strong>Rechazar:</strong> ${escapeHtml(rejectHref)}</p>
 `;
       await transport.sendMail({
         from: env.googleEmail,
         to: env.googleEmail,
-        subject: "[SICEN] Solicitud de creación de cuenta",
+        subject: `[SICEN] Solicitud de cuenta — ${typeLabel}`,
         html: sicenEmailLayout({
           title: "Nueva solicitud de cuenta",
           introLine:
             "Un usuario ha solicitado alta en el sistema a través del formulario público.",
           bodyHtml,
           footerNote:
-            "Mensaje automático de SICEN · Gestione la solicitud desde el panel de administración.",
+            "Mensaje automático de SICEN · Los enlaces abren el panel de administración (crear o rechazar).",
         }),
         attachments: mergeSicenEmailAttachments(),
       });
     } catch (error) {
       logger.error(`Email could not be sent successfully: ` + error);
+    }
+  }
+
+  /**
+   * Avisa al solicitante que la solicitud no fue aprobada.
+   */
+  async sendAccountRequestRejectedEmail({
+    first_name,
+    last_name,
+    email,
+    typeLabel,
+  }) {
+    try {
+      const S = sicenEmailBodyStyles;
+      const name = [first_name, last_name].filter(Boolean).join(" ").trim();
+      const greeting = name
+        ? `Estimado/a <strong>${escapeHtml(name)}</strong>,`
+        : "Estimado/a,";
+      const typeLine = typeLabel
+        ? `<p style="${S.metaLine}">Tipo solicitado: <strong>${escapeHtml(typeLabel)}</strong></p>`
+        : "";
+      const bodyHtml = `
+<p style="${S.paragraph}">${greeting}</p>
+<p style="${S.paragraph}">Le informamos que su solicitud de cuenta en <strong>SICEN</strong> no fue aprobada. No se procedió a la creación de la cuenta con los datos enviados.</p>
+${typeLine}
+<p style="${S.paragraph}">Si cree que se trata de un error, comuníquese con el administrador del sistema.</p>
+`;
+      await transport.sendMail({
+        from: env.googleEmail,
+        to: String(email).trim(),
+        subject: "[SICEN] Solicitud de cuenta no aprobada",
+        html: sicenEmailLayout({
+          title: "Solicitud no aprobada",
+          introLine: "Respuesta a su solicitud de alta en el Sistema Centinela.",
+          bodyHtml,
+          footerNote:
+            "Si usted no solicitó una cuenta en SICEN, ignore este mensaje.",
+        }),
+        attachments: mergeSicenEmailAttachments(),
+      });
+    } catch (error) {
+      logger.error(
+        `Rejection email could not be sent successfully: ` + error
+      );
+      throw error;
     }
   }
 

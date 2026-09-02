@@ -19,7 +19,11 @@ export function LoginPage() {
   const [newAccountOpen, setNewAccountOpen] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const loc = useLocation();
-  const from = loc.state?.from?.pathname || "/home";
+  const fromLocation = loc.state?.from;
+  const from =
+    fromLocation && typeof fromLocation.pathname === "string"
+      ? `${fromLocation.pathname}${fromLocation.search || ""}${fromLocation.hash || ""}`
+      : "/home";
   const bsTheme = useBootstrapTheme();
   const logoSrc =
     bsTheme === "dark" ? "/img/Logo-PNN-Blanco.png" : "/img/Logo-PNN.png";

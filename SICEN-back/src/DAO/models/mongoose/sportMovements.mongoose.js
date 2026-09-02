@@ -128,6 +128,49 @@ const schema = new Schema(
       createdBy: { type: String, default: "" },
       lastModifiedBy: { type: String, default: "" },
     },
+
+    /** true si la solicitud fue creada por un náuta (rol skipper) desde el menú principal. */
+    requestedBySkipper: { type: Boolean, default: false, index: true },
+
+    tracking: {
+      active: { type: Boolean, default: false, index: true },
+      startedAt: { type: Date, default: null },
+      stoppedAt: { type: Date, default: null },
+      stoppedBy: {
+        userId: { type: Schema.Types.ObjectId, ref: "users", default: null },
+        email: { type: String, default: "", trim: true },
+        reason: {
+          type: String,
+          enum: ["", "confirm", "arrival", "close", "cancel"],
+          default: "",
+        },
+      },
+      communicationState: {
+        type: String,
+        enum: ["normal", "no_signal_3", "no_signal_5"],
+        default: "normal",
+      },
+      etaOverdueAlertAt: { type: Date, default: null },
+      arrivalAlertAt: { type: Date, default: null },
+      arrivalEmailsSentAt: { type: Date, default: null },
+      /** Último bucket de 5 min alertado en el episodio actual (sin señal). */
+      noSignal5LastBucket: { type: Number, default: 0 },
+      lastNoSignal5AlertAt: { type: Date, default: null },
+      lastPosition: {
+        positionId: {
+          type: Schema.Types.ObjectId,
+          ref: "sportMovementPositions",
+          default: null,
+        },
+        latitude: { type: Number, default: null },
+        longitude: { type: Number, default: null },
+        accuracy: { type: Number, default: null },
+        positionTimestamp: { type: Date, default: null },
+        receivedAt: { type: Date, default: null },
+        userId: { type: Schema.Types.ObjectId, ref: "users", default: null },
+        source: { type: String, default: "", trim: true },
+      },
+    },
   },
   { timestamps: true }
 );

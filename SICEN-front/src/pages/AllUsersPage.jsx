@@ -5,13 +5,10 @@ import { UserUnitSelect } from "../components/UserUnitSelect.jsx";
 import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { RANK_OPTIONS } from "../constants/ranks.js";
-
-const ROLE_FILTER_OPTIONS = [
-  { value: "", label: "Todos los roles" },
-  { value: "user", label: "Usuario" },
-  { value: "admin", label: "Administrador" },
-  { value: "superAdmin", label: "Super administrador" },
-];
+import {
+  ROLE_FILTER_OPTIONS,
+  userRoleLabel,
+} from "../constants/userRoles.js";
 
 export function AllUsersPage() {
   const [page, setPage] = useState(1);
@@ -212,7 +209,7 @@ export function AllUsersPage() {
                     <td>{r.rank}</td>
                     <td>{r.unit ? String(r.unit) : "—"}</td>
                     <td>{r.email}</td>
-                    <td>{r.role}</td>
+                    <td>{userRoleLabel(r.role)}</td>
                   </tr>
                 ))}
                 {rows.length === 0 && !loading ? (

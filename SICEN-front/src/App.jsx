@@ -4,6 +4,9 @@ import { ProtectedRoute } from "./components/ProtectedRoute.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
 import { SignupPage } from "./pages/SignupPage.jsx";
 import { HomePage } from "./pages/HomePage.jsx";
+import { SkipperDispatchPage } from "./pages/SkipperDispatchPage.jsx";
+import { SkipperMyDocumentationPage } from "./pages/SkipperMyDocumentationPage.jsx";
+import { SkipperMyVesselsPage } from "./pages/SkipperMyVesselsPage.jsx";
 import { GestionUnidadesPage } from "./pages/GestionUnidadesPage.jsx";
 import { SumarUnidadPage } from "./pages/SumarUnidadPage.jsx";
 import { ModificarUnidadPage } from "./pages/ModificarUnidadPage.jsx";
@@ -11,6 +14,7 @@ import { BorrarUnidadPage } from "./pages/BorrarUnidadPage.jsx";
 import { MiUnidadPage } from "./pages/MiUnidadPage.jsx";
 import { MiUnidadDivisionPage } from "./pages/MiUnidadDivisionPage.jsx";
 import { MiUnidadDivisionMenuItemPage } from "./pages/MiUnidadDivisionMenuItemPage.jsx";
+import { MiUnidadEmpreDivisionItemPage } from "./pages/MiUnidadEmpreDivisionItemPage.jsx";
 import { MiUnidadAreaPage } from "./pages/MiUnidadAreaPage.jsx";
 import { SportMovementsMenuPage } from "./pages/SportMovementsMenuPage.jsx";
 import { SportMovementsDispatchesPage } from "./pages/SportMovementsDispatchesPage.jsx";
@@ -51,6 +55,7 @@ import { ToolsMenuPage } from "./pages/ToolsMenuPage.jsx";
 import { ToolEmbedPage } from "./pages/ToolEmbedPage.jsx";
 import { UsersMenuPage } from "./pages/UsersMenuPage.jsx";
 import { NewUserPage } from "./pages/NewUserPage.jsx";
+import { RejectAccountRequestPage } from "./pages/RejectAccountRequestPage.jsx";
 import { AllUsersPage } from "./pages/AllUsersPage.jsx";
 import { UpdateUserPage } from "./pages/UpdateUserPage.jsx";
 import { DeleteUserPage } from "./pages/DeleteUserPage.jsx";
@@ -102,6 +107,30 @@ export default function App() {
         element={
           <ProtectedRoute>
             <HomePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/skipper/solicitar-despacho"
+        element={
+          <ProtectedRoute>
+            <SkipperDispatchPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/skipper/mi-documentacion"
+        element={
+          <ProtectedRoute>
+            <SkipperMyDocumentationPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/skipper/mis-barcos"
+        element={
+          <ProtectedRoute>
+            <SkipperMyVesselsPage />
           </ProtectedRoute>
         }
       />
@@ -209,6 +238,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <MiUnidadAreaPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mi-unidad/:divisionSlug/:itemSlug"
+        element={
+          <ProtectedRoute>
+            <MiUnidadEmpreDivisionItemPage />
           </ProtectedRoute>
         }
       />
@@ -593,6 +630,14 @@ export default function App() {
         element={
           <ProtectedRoute admin>
             <NewUserPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/usuarios/rechazar-solicitud"
+        element={
+          <ProtectedRoute admin>
+            <RejectAccountRequestPage />
           </ProtectedRoute>
         }
       />

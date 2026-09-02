@@ -11,6 +11,7 @@ import {
   deleteSeafarerHeldLicense,
   deleteSeafarerHeldTitle,
   findSeafarerByDocument,
+  getSeafarerById,
   getSeafarerStatsForDashboard,
   updateSeafarerBasicData,
   updateSeafarerHeldLicense,
@@ -77,6 +78,19 @@ export const seafarersController = {
       return res.json({ ok: true, seafarer });
     } catch (e) {
       return handleError(res, e, "No se pudo consultar el registro.");
+    }
+  },
+
+  async getById(req, res) {
+    try {
+      const seafarer = await getSeafarerById(req.params.id);
+      return res.status(200).json({ ok: true, seafarer });
+    } catch (e) {
+      return handleError(
+        res,
+        e,
+        "No se pudo obtener el registro de gente de mar.",
+      );
     }
   },
 

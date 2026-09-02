@@ -1,22 +1,16 @@
 import { BATHYMETRY_DEPTH_LEGEND } from "../../api/gebcoBathymetry.js";
 
-/**
- * Leyenda de bandas de color por profundidad.
- */
-export function BathymetryLegend({ visible }) {
-  if (!visible) return null;
-
+export function BathymetryLegendSection() {
   return (
-    <div
-      className="centinela-wind-legend centinela-bathymetry-legend"
-      role="region"
+    <section
+      className="centinela-env-legends-panel__section"
       aria-label="Leyenda de batimetría"
     >
       <div className="centinela-wind-legend__body">
         <span className="centinela-wind-legend__title">
-          Batimetría · profundidad (m)
+          Batimetría · prof. (m)
         </span>
-        <ul className="centinela-wind-legend__list">
+        <ul className="centinela-wind-legend__list centinela-wind-legend__list--compact">
           {BATHYMETRY_DEPTH_LEGEND.map((item) => (
             <li key={item.className} className="centinela-wind-legend__item">
               <span
@@ -27,10 +21,17 @@ export function BathymetryLegend({ visible }) {
             </li>
           ))}
         </ul>
-        <p className="centinela-bathymetry-legend__note">
-          GEBCO · solo agua · no sustituye carta SOHMA
-        </p>
       </div>
+    </section>
+  );
+}
+
+/** @deprecated Usar `CentinelaEnvLegendsPanel`. */
+export function BathymetryLegend({ visible }) {
+  if (!visible) return null;
+  return (
+    <div className="centinela-wind-legend centinela-bathymetry-legend">
+      <BathymetryLegendSection />
     </div>
   );
 }

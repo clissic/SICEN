@@ -1,10 +1,23 @@
 import { Link } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import Swal from "sweetalert2";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { useBootstrapTheme } from "../components/ThemeToggle.jsx";
 import { useUnitFromApi } from "../hooks/useUnitFromApi.js";
 import { UserStateBadges } from "../components/UserStateBadges.jsx";
 import { MainMenuLink } from "../components/MainMenuLink.jsx";
+import { userRoleLabel, isSkipperRole } from "../constants/userRoles.js";
+import {
+  skipperMovementStatus,
+  skipperReportArrival,
+  skipperTrackingStatus,
+} from "../api/client.js";
+import { SkipperReportArrivalModal } from "../components/SkipperReportArrivalModal.jsx";
+import {
+  stopSportMovementPositionEmitter,
+  useSportMovementPositionEmitter,
+} from "../hooks/useSportMovementPositionEmitter.js";
 
 const ICON_TILE = { fontSize: "0.95rem", marginTop: "0.15rem" };
 
@@ -37,10 +50,86 @@ export function HomePage() {
       ? `${ESCUDO_BASE}/${encodeURIComponent(unitCodeUpper)}.png`
       : ESCUDO_PRENA;
   const isAdmin = user?.role === "admin" || user?.role === "superAdmin";
+  const isSkipper = isSkipperRole(user?.role);
+  const [skipperStatus, setSkipperStatus] = useState(null);
+  const [skipperStatusLoading, setSkipperStatusLoading] = useState(isSkipper);
+  const [trackingStatus, setTrackingStatus] = useState(null);
+  const [arrivalModalOpen, setArrivalModalOpen] = useState(false);
+  const [arrivalSaving, setArrivalSaving] = useState(false);
+
+  useSportMovementPositionEmitter({
+    enabled: Boolean(trackingStatus?.shouldEmit),
+    movementId: trackingStatus?.movementId,
+  });
+
+  const loadSkipperStatus = useCallback(async () => {
+    if (!isSkipper) return;
+    setSkipperStatusLoading(true);
+    try {
+      const [data, tracking] = await Promise.all([
+        skipperMovementStatus(),
+        skipperTrackingStatus().catch(() => null),
+      ]);
+      setSkipperStatus(data);
+      setTrackingStatus(tracking);
+    } catch {
+      setSkipperStatus(null);
+      setTrackingStatus(null);
+    } finally {
+      setSkipperStatusLoading(false);
+    }
+  }, [isSkipper]);
+
+  useEffect(() => {
+    loadSkipperStatus();
+  }, [loadSkipperStatus]);
+
+  async function handleReportArrival(payload) {
+    const movementId = skipperStatus?.movement?._id;
+    if (!movementId) return;
+    setArrivalSaving(true);
+    try {
+      stopSportMovementPositionEmitter();
+      const data = await skipperReportArrival(movementId, payload);
+      setArrivalModalOpen(false);
+      await Swal.fire({
+        icon: "success",
+        title: "Arribo informado",
+        text:
+          data?.msg ||
+          "Se notificó a las prefecturas involucradas.",
+        confirmButtonText: "Aceptar",
+      });
+      await loadSkipperStatus();
+    } finally {
+      setArrivalSaving(false);
+    }
+  }
+
+  const canRequestDispatch =
+    !skipperStatusLoading && skipperStatus?.canRequestDispatch !== false;
+  const hasPendingDispatch =
+    !skipperStatusLoading && skipperStatus?.canCancelDispatchRequest === true;
+  const canReportArrival =
+    !skipperStatusLoading && skipperStatus?.canReportArrival === true;
+  const shouldEmitGps =
+    !skipperStatusLoading && trackingStatus?.shouldEmit === true;
 
   return (
     <Layout>
       <div className="container py-4">
+        {shouldEmitGps ? (
+          <div
+            className="alert alert-info d-flex align-items-center gap-2 mb-3"
+            role="status"
+          >
+            <i className="bi bi-geo-alt-fill" aria-hidden />
+            <span>
+              Seguimiento GPS activo — SICEN está registrando la posición de su
+              buque mientras navega. Mantenga esta sesión abierta si puede.
+            </span>
+          </div>
+        ) : null}
         <div className="row g-3">
           <div className="col-12 col-lg-3">
             <div className="card shadow-sm">
@@ -134,7 +223,7 @@ export function HomePage() {
                 <div className="d-flex flex-wrap gap-2 justify-content-center justify-content-xl-start mt-3">
                   <p className="mb-0">Rol:</p>
                   <span className="badge text-bg-secondary">
-                    {user?.role ?? "—"}
+                    {userRoleLabel(user?.role)}
                   </span>
                 </div>
               </div>
@@ -144,6 +233,260 @@ export function HomePage() {
           <div className="col-12 col-lg-9">
             <h3 className="visually-hidden">Menú principal</h3>
 
+            {isSkipper ? (
+              <>
+                <h4 className={SECTION_TITLE_CLASS}>Menú principal</h4>
+                <div className="row row-cols-1 row-cols-md-2 g-3 mb-5">
+                  <div className="col">
+                    {canRequestDispatch ? (
+                      <MainMenuLink
+                        className="text-decoration-none"
+                        to="/skipper/solicitar-despacho"
+                      >
+                        <div className="card h-100 shadow-sm">
+                          <img
+                            src="/img/salidasDepo.png"
+                            alt="Solicitar despacho"
+                            className="card-img-top"
+                            loading="lazy"
+                          />
+                          <div className="card-body">
+                            <div className="d-flex align-items-start gap-2">
+                              <i
+                                className="menu-tile-icon bi bi-send-check me-1 px-2 py-1 border border-secondary rounded-1 bg-secondary text-white flex-shrink-0"
+                                style={ICON_TILE}
+                                aria-hidden
+                              />
+                              <div className="min-w-0">
+                                <div className="fw-semibold text-body">
+                                  SOLICITAR DESPACHO
+                                </div>
+                                <div className="text-muted small">
+                                  {hasPendingDispatch
+                                    ? "Tiene una solicitud pendiente. Puede gestionarla o cancelarla."
+                                    : "Solicite autorización de salida a la prefectura de despacho."}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </MainMenuLink>
+                    ) : (
+                      <div
+                        className="card h-100 shadow-sm opacity-50"
+                        data-sicen-popover="Ya tiene un despacho autorizado en curso."
+                      >
+                        <img
+                          src="/img/salidasDepo.png"
+                          alt=""
+                          className="card-img-top"
+                          loading="lazy"
+                        />
+                        <div className="card-body">
+                          <div className="d-flex align-items-start gap-2">
+                            <i
+                              className="menu-tile-icon bi bi-send-check me-1 px-2 py-1 border border-secondary rounded-1 bg-secondary text-white flex-shrink-0"
+                              style={ICON_TILE}
+                              aria-hidden
+                            />
+                            <div className="min-w-0">
+                              <div className="fw-semibold text-body">
+                                SOLICITAR DESPACHO
+                              </div>
+                              <div className="text-muted small">
+                                No disponible mientras el despacho esté
+                                autorizado y en tránsito.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="col">
+                    {canReportArrival ? (
+                      <button
+                        type="button"
+                        className="btn btn-link text-decoration-none p-0 border-0 w-100 text-start h-100"
+                        onClick={() => setArrivalModalOpen(true)}
+                      >
+                        <div className="card h-100 shadow-sm">
+                          <img
+                            src="/img/ingresosDepo.png"
+                            alt="Informar arribo"
+                            className="card-img-top"
+                            loading="lazy"
+                          />
+                          <div className="card-body">
+                            <div className="d-flex align-items-start gap-2">
+                              <i
+                                className="menu-tile-icon bi bi-flag-fill me-1 px-2 py-1 border border-secondary rounded-1 bg-secondary text-white flex-shrink-0"
+                                style={ICON_TILE}
+                                aria-hidden
+                              />
+                              <div className="min-w-0">
+                                <div className="fw-semibold text-body">
+                                  INFORMAR ARRIBO
+                                </div>
+                                <div className="text-muted small">
+                                  Informe el arribo y notifique a las
+                                  prefecturas involucradas.
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    ) : (
+                      <div
+                        className="card h-100 shadow-sm opacity-50"
+                        data-sicen-popover="Disponible cuando la prefectura autorice su despacho."
+                      >
+                        <img
+                          src="/img/ingresosDepo.png"
+                          alt=""
+                          className="card-img-top"
+                          loading="lazy"
+                        />
+                        <div className="card-body">
+                          <div className="d-flex align-items-start gap-2">
+                            <i
+                              className="menu-tile-icon bi bi-flag-fill me-1 px-2 py-1 border border-secondary rounded-1 bg-secondary text-white flex-shrink-0"
+                              style={ICON_TILE}
+                              aria-hidden
+                            />
+                            <div className="min-w-0">
+                              <div className="fw-semibold text-body">
+                                INFORMAR ARRIBO
+                              </div>
+                              <div className="text-muted small">
+                                Aguarde la autorización del despacho.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <h4 className={SECTION_TITLE_CLASS}>Áreas de Gestión</h4>
+                <div className="row row-cols-1 row-cols-md-2 g-3 mb-5">
+                  <div className="col">
+                    <MainMenuLink
+                      className="text-decoration-none"
+                      to="/skipper/mi-documentacion"
+                    >
+                      <div className="card h-100 shadow-sm">
+                        <img
+                          src="/img/ppldb.jpg"
+                          alt="Mi documentación"
+                          className="card-img-top"
+                          loading="lazy"
+                        />
+                        <div className="card-body">
+                          <div className="d-flex align-items-start gap-2">
+                            <i
+                              className="menu-tile-icon bi bi-person-vcard me-1 px-2 py-1 border border-secondary rounded-1 bg-secondary text-white flex-shrink-0"
+                              style={ICON_TILE}
+                              aria-hidden
+                            />
+                            <div className="min-w-0">
+                              <div className="fw-semibold text-body">
+                                MI DOCUMENTACIÓN
+                              </div>
+                              <div className="text-muted small">
+                                Brevet, certificados y documentación náutica
+                                asociada a su perfil.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </MainMenuLink>
+                  </div>
+                  <div className="col">
+                    <MainMenuLink
+                      className="text-decoration-none"
+                      to="/skipper/mis-barcos"
+                    >
+                      <div className="card h-100 shadow-sm">
+                        <img
+                          src="/img/shipdb.jpg"
+                          alt="Mis barcos"
+                          className="card-img-top"
+                          loading="lazy"
+                        />
+                        <div className="card-body">
+                          <div className="d-flex align-items-start gap-2">
+                            <i
+                              className="menu-tile-icon bi bi-life-preserver me-1 px-2 py-1 border border-secondary rounded-1 bg-secondary text-white flex-shrink-0"
+                              style={ICON_TILE}
+                              aria-hidden
+                            />
+                            <div className="min-w-0">
+                              <div className="fw-semibold text-body">
+                                MIS BARCOS
+                              </div>
+                              <div className="text-muted small">
+                                Embarcaciones deportivas registradas a su
+                                nombre.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </MainMenuLink>
+                  </div>
+                </div>
+
+                <h4 className={SECTION_TITLE_CLASS}>Ayudas al navegante</h4>
+                <div className="row row-cols-1 row-cols-md-2 g-3 mb-5">
+                  <div className="col">
+                    <MainMenuLink
+                      className="text-decoration-none"
+                      to="/herramientas"
+                    >
+                      <div className="card h-100 shadow-sm">
+                        <img
+                          src="/img/extSys.jpg"
+                          alt="Sistemas externos"
+                          className="card-img-top"
+                          loading="lazy"
+                        />
+                        <div className="card-body">
+                          <div className="d-flex align-items-start gap-2">
+                            <i
+                              className="menu-tile-icon bi bi-tools me-1 px-2 py-1 border border-secondary rounded-1 bg-secondary text-white flex-shrink-0"
+                              style={ICON_TILE}
+                              aria-hidden
+                            />
+                            <div className="min-w-0">
+                              <div className="fw-semibold text-body">
+                                SISTEMAS EXTERNOS
+                              </div>
+                              <div className="text-muted small">
+                                Aplicaciones de mapas, meteorología externa y
+                                otras herramientas.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </MainMenuLink>
+                  </div>
+                </div>
+
+                <SkipperReportArrivalModal
+                  open={arrivalModalOpen}
+                  movement={skipperStatus?.movement}
+                  onClose={() => setArrivalModalOpen(false)}
+                  onSubmit={handleReportArrival}
+                  saving={arrivalSaving}
+                />
+              </>
+            ) : (
+              <>
             <h4 className={SECTION_TITLE_CLASS}>Menú principal</h4>
             <div className="row row-cols-1 row-cols-md-2 row-cols-lg-1 row-cols-xl-3 g-3 mb-5">
               <div className="col">
@@ -475,6 +818,8 @@ export function HomePage() {
                 </MainMenuLink>
               </div>
             </div>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -10,6 +10,7 @@ import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { SportMovementCloseModal } from "../components/SportMovementCloseModal.jsx";
 import { SportMovementSkipperContactModal } from "../components/SportMovementSkipperContactModal.jsx";
+import { SportMovementTrackingPanel } from "../components/SportMovementTrackingPanel.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const MENU = "/mi-unidad/areas/movimientos-deportivos";
@@ -92,6 +93,7 @@ export function SportMovementsDelayedPage() {
   const [closing, setClosing] = useState(null);
   const [saving, setSaving] = useState(false);
   const [skipperMovement, setSkipperMovement] = useState(null);
+  const [trackingMovement, setTrackingMovement] = useState(null);
 
   const loadDelayed = useCallback(async (pageNum = 1) => {
     setLoading(true);
@@ -229,8 +231,23 @@ export function SportMovementsDelayedPage() {
                         <td className="small">{formatDateTime(m.eta)}</td>
                         <td>
                           <span className="badge text-bg-danger">Demorado</span>
+                          {(m.tracking?.communicationState === "no_signal_5" ||
+                            m.tracking?.communicationState === "no_signal_3") ? (
+                            <span className="badge text-bg-danger ms-1">
+                              Sin señal 5m
+                            </span>
+                          ) : null}
                         </td>
                         <td className="text-end text-nowrap">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary me-1"
+                            data-sicen-popover="Ver seguimiento GPS"
+                            aria-label="Ver seguimiento GPS"
+                            onClick={() => setTrackingMovement(m)}
+                          >
+                            <i className="bi bi-geo-alt" aria-hidden />
+                          </button>
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-secondary me-1"
@@ -368,6 +385,12 @@ export function SportMovementsDelayedPage() {
         open={Boolean(skipperMovement)}
         movement={skipperMovement}
         onClose={() => setSkipperMovement(null)}
+      />
+
+      <SportMovementTrackingPanel
+        open={Boolean(trackingMovement)}
+        movement={trackingMovement}
+        onClose={() => setTrackingMovement(null)}
       />
     </Layout>
   );

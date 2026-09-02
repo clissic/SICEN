@@ -94,3 +94,70 @@ export async function createUnitDocument(payload) {
   const doc = await UnitMongoose.create(payload);
   return doc.toObject();
 }
+
+/** True si el puerto pertenece a la jurisdicción de la unidad (comparación sin distinguir mayúsculas). */
+export function departurePortBelongsToUnit(unit, portName) {
+  const port = String(portName ?? "").trim();
+  if (!port || !unit) return false;
+  const ports = Array.isArray(unit.portsUnderJurisdiction)
+    ? unit.portsUnderJurisdiction
+    : [];
+  const needle = port.toLowerCase();
+  return ports.some((p) => String(p ?? "").trim().toLowerCase() === needle);
+}
+
+export async function assertDeparturePortInUnit(originAcronym, portName) {
+  const acronym = String(originAcronym ?? "")
+    .trim()
+    .toUpperCase();
+  if (!acronym) {
+    throw new Error("Indique la prefectura de despacho.");
+  }
+  const unit = await findUnitByAcronym(acronym);
+  if (!unit) {
+    const e = new Error("La prefectura de despacho no existe.");
+    e.status = 400;
+    throw e;
+  }
+  if (!departurePortBelongsToUnit(unit, portName)) {
+    const e = new Error(
+      "El puerto de despacho no pertenece a la prefectura indicada."
+    );
+    e.status = 400;
+    throw e;
+  }
+  return unit;
+}
+
+/** Emails de contacto de una unidad (deduplicados, solo direcciones válidas). */
+export function collectUnitContactEmails(unit) {
+  if (!unit || typeof unit !== "object") return [];
+  const fields = [
+    "emailSecretaria",
+    "emailRadio",
+    "emailMarinaMercante",
+    "emailPoliciaMaritima",
+    "emailApoyoLogistico",
+  ];
+  const seen = new Set();
+  const out = [];
+  for (const key of fields) {
+    const raw = String(unit[key] ?? "")
+      .trim()
+      .toLowerCase();
+    if (!raw || !raw.includes("@") || seen.has(raw)) continue;
+    seen.add(raw);
+    out.push(String(unit[key]).trim());
+  }
+  return out;
+}
+
+/** Solo emailMarinaMercante de la unidad (arribos náuta). */
+export function collectMarinaMercanteEmails(unit) {
+  if (!unit || typeof unit !== "object") return [];
+  const raw = String(unit.emailMarinaMercante ?? "")
+    .trim()
+    .toLowerCase();
+  if (!raw || !raw.includes("@")) return [];
+  return [String(unit.emailMarinaMercante).trim()];
+}

@@ -226,6 +226,8 @@
   font-size: 0.9rem;
   color: var(--bs-secondary-color);
   max-width: 28rem;
+  line-height: 1.45;
+  text-align: left;
 }
 
 .new-account-modal__footer {

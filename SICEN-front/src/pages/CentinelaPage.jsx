@@ -4,17 +4,16 @@ import { MapContainer, TileLayer, ZoomControl, useMap } from "react-leaflet";
 import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { ThemeToggle, useBootstrapTheme } from "../components/ThemeToggle.jsx";
 import { AisVesselLayer } from "../components/centinela/AisVesselLayer.jsx";
+import { SicenPositioningLayer } from "../components/centinela/SicenPositioningLayer.jsx";
 import { GraticuleLayer } from "../components/centinela/GraticuleLayer.jsx";
 import { MapClickCoords } from "../components/centinela/MapClickCoords.jsx";
 import { SeamarksLayer } from "../components/centinela/SeamarksLayer.jsx";
 import { BathymetryLayer } from "../components/centinela/BathymetryLayer.jsx";
-import { BathymetryLegend } from "../components/centinela/BathymetryLegend.jsx";
+import { CentinelaEnvLegendsPanel } from "../components/centinela/CentinelaEnvLegendsPanel.jsx";
+import { CentinelaGebcoAttribution } from "../components/centinela/CentinelaGebcoAttribution.jsx";
 import { CurrentsLayer } from "../components/centinela/CurrentsLayer.jsx";
-import { CurrentsLegend } from "../components/centinela/CurrentsLegend.jsx";
 import { WavesLayer } from "../components/centinela/WavesLayer.jsx";
-import { WavesLegend } from "../components/centinela/WavesLegend.jsx";
 import { WindLayer } from "../components/centinela/WindLayer.jsx";
-import { WindLegend } from "../components/centinela/WindLegend.jsx";
 import { ZonesLayer } from "../components/centinela/ZonesLayer.jsx";
 import {
   CENTINELA_BREVET_CATEGORIES,
@@ -22,12 +21,16 @@ import {
 } from "../constants/centinelaBrevetCategories.js";
 import { CENTINELA_ZONES } from "../constants/centinelaZones.js";
 import {
+  getCentinelaBaseTiles,
+} from "../constants/centinelaMapTiles.js";
+import {
   getSportPortById,
   sportPortsBySector,
   SPORT_PORT_SECTOR_LABELS,
   SPORT_PORT_SECTOR_ORDER,
 } from "../constants/sportPorts.js";
 import { useAisVessels } from "../hooks/useAisVessels.js";
+import { useSportMovementTrackingStream } from "../hooks/useSportMovementTrackingStream.js";
 import { useDocumentSicenPopovers } from "../hooks/useDocumentSicenPopovers.js";
 import { circlePolygonLatLon } from "../utils/mergeCirclesPolygon.js";
 import "leaflet/dist/leaflet.css";
@@ -37,30 +40,6 @@ const SPORT_PORTS_BY_SECTOR = sportPortsBySector();
 const MONTEVIDEO = [-34.9, -56.2];
 const DEFAULT_ZOOM = 11;
 const MOBILE_MQ = "(max-width: 767.98px)";
-
-/** Key de tiles CARTO (`VITE_CARTO_API_KEY`); quita el watermark. */
-const CARTO_API_KEY = String(import.meta.env.VITE_CARTO_API_KEY || "").trim();
-
-function cartoTileUrl(stylePath) {
-  const base = `https://{s}.basemaps.cartocdn.com/${stylePath}/{z}/{x}/{y}.png`;
-  return CARTO_API_KEY
-    ? `${base}?key=${encodeURIComponent(CARTO_API_KEY)}`
-    : base;
-}
-
-const CARTO_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>';
-
-const BASE_TILES = {
-  light: {
-    url: cartoTileUrl("rastertiles/voyager"),
-    attribution: CARTO_ATTRIBUTION,
-  },
-  dark: {
-    url: cartoTileUrl("dark_all"),
-    attribution: CARTO_ATTRIBUTION,
-  },
-};
 
 function MapInvalidateSize() {
   const map = useMap();
@@ -95,7 +74,7 @@ function useIsMobile() {
 export function CentinelaPage() {
   const bsTheme = useBootstrapTheme();
   const isDark = bsTheme === "dark";
-  const base = isDark ? BASE_TILES.dark : BASE_TILES.light;
+  const base = getCentinelaBaseTiles(isDark);
   const isMobile = useIsMobile();
   useDocumentSicenPopovers();
 
@@ -105,8 +84,9 @@ export function CentinelaPage() {
       : true
   );
   const [aisLayerOn, setAisLayerOn] = useState(false);
+  const [sicenPositioningOn, setSicenPositioningOn] = useState(true);
   const [windLayerOn, setWindLayerOn] = useState(false);
-  const [windForecastHours, setWindForecastHours] = useState(0);
+  const [envForecastHours, setEnvForecastHours] = useState(0);
   const [windStatus, setWindStatus] = useState({
     loading: false,
     error: null,
@@ -114,7 +94,6 @@ export function CentinelaPage() {
     time: null,
   });
   const [currentsLayerOn, setCurrentsLayerOn] = useState(false);
-  const [currentsForecastHours, setCurrentsForecastHours] = useState(0);
   const [currentsStatus, setCurrentsStatus] = useState({
     loading: false,
     error: null,
@@ -122,7 +101,6 @@ export function CentinelaPage() {
     time: null,
   });
   const [wavesLayerOn, setWavesLayerOn] = useState(false);
-  const [wavesForecastHours, setWavesForecastHours] = useState(0);
   const [wavesStatus, setWavesStatus] = useState({
     loading: false,
     error: null,
@@ -153,6 +131,11 @@ export function CentinelaPage() {
   const { vessels, status, error, connected } = useAisVessels({
     enabled: aisLayerOn,
   });
+  const {
+    items: trackingItems,
+    error: trackingError,
+    connected: trackingConnected,
+  } = useSportMovementTrackingStream({ enabled: sicenPositioningOn });
 
   useEffect(() => {
     /* Al pasar a mobile, cerrar el panel para no tapar el mapa. */
@@ -269,6 +252,23 @@ export function CentinelaPage() {
     return "Esperando datos AIS…";
   }, [aisLayerOn, status, error, connected, vessels.length]);
 
+  const sicenPositioningStatusLine = useMemo(() => {
+    if (!sicenPositioningOn) return "Capa desactivada";
+    if (trackingError) return trackingError;
+    const n = trackingItems.length;
+    if (n === 0) {
+      return trackingConnected
+        ? "Sin movimientos en seguimiento activo"
+        : "Conectando seguimiento SICEN…";
+    }
+    return `${n} buque${n === 1 ? "" : "s"} en seguimiento · en vivo`;
+  }, [
+    sicenPositioningOn,
+    trackingError,
+    trackingItems.length,
+    trackingConnected,
+  ]);
+
   const visibleZones = useMemo(
     () => CENTINELA_ZONES.filter((z) => zoneVisibility[z.id]),
     [zoneVisibility]
@@ -370,11 +370,9 @@ export function CentinelaPage() {
           <MapInvalidateSize />
           <MapClickCoords
             windLayerOn={windLayerOn}
-            windForecastHoursOffset={windForecastHours}
             currentsLayerOn={currentsLayerOn}
-            currentsForecastHoursOffset={currentsForecastHours}
             wavesLayerOn={wavesLayerOn}
-            wavesForecastHoursOffset={wavesForecastHours}
+            envForecastHoursOffset={envForecastHours}
             bathymetryLayerOn={bathymetryOn}
           />
           <ZoomControl position="topright" />
@@ -389,6 +387,10 @@ export function CentinelaPage() {
             enabled={bathymetryOn}
             onStatusChange={setBathymetryStatus}
           />
+          <CentinelaGebcoAttribution visible={bathymetryOn} />
+          {sicenPositioningOn ? (
+            <SicenPositioningLayer items={trackingItems} />
+          ) : null}
           <GraticuleLayer enabled={graticuleOn} />
           <SeamarksLayer enabled={seamarksOn} />
           <ZonesLayer zones={visibleZones} />
@@ -396,19 +398,19 @@ export function CentinelaPage() {
           {aisLayerOn ? <AisVesselLayer vessels={vessels} /> : null}
           <WavesLayer
             enabled={wavesLayerOn}
-            forecastHoursOffset={wavesForecastHours}
+            forecastHoursOffset={envForecastHours}
             isDark={isDark}
             onStatusChange={setWavesStatus}
           />
           <CurrentsLayer
             enabled={currentsLayerOn}
-            forecastHoursOffset={currentsForecastHours}
+            forecastHoursOffset={envForecastHours}
             isDark={isDark}
             onStatusChange={setCurrentsStatus}
           />
           <WindLayer
             enabled={windLayerOn}
-            forecastHoursOffset={windForecastHours}
+            forecastHoursOffset={envForecastHours}
             isDark={isDark}
             onStatusChange={setWindStatus}
           />
@@ -416,21 +418,13 @@ export function CentinelaPage() {
       </div>
 
       <div className="centinela-env-legends">
-        <BathymetryLegend visible={bathymetryOn} />
-        <WavesLegend
-          visible={wavesLayerOn}
-          forecastHours={wavesForecastHours}
-          onForecastHoursChange={setWavesForecastHours}
-        />
-        <CurrentsLegend
-          visible={currentsLayerOn}
-          forecastHours={currentsForecastHours}
-          onForecastHoursChange={setCurrentsForecastHours}
-        />
-        <WindLegend
-          visible={windLayerOn}
-          forecastHours={windForecastHours}
-          onForecastHoursChange={setWindForecastHours}
+        <CentinelaEnvLegendsPanel
+          bathymetryOn={bathymetryOn}
+          windLayerOn={windLayerOn}
+          currentsLayerOn={currentsLayerOn}
+          wavesLayerOn={wavesLayerOn}
+          forecastHours={envForecastHours}
+          onForecastHoursChange={setEnvForecastHours}
         />
       </div>
 
@@ -494,6 +488,31 @@ export function CentinelaPage() {
 
         <div>
           <div className="centinela-page__layers-title">Capas</div>
+          <div className="centinela-ais-layer">
+            <div className="centinela-zones__header">
+              <label className="centinela-zones__master">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  checked={sicenPositioningOn}
+                  onChange={(e) => setSicenPositioningOn(e.target.checked)}
+                  aria-label="Mostrar u ocultar Posicionamiento SICEN"
+                />
+              </label>
+              <div className="centinela-ais-layer__body">
+                <span className="centinela-ais-layer__name">
+                  Posicionamiento SICEN
+                </span>
+                <span
+                  className="centinela-zones__count centinela-ais-layer__status"
+                  data-sicen-popover={sicenPositioningStatusLine}
+                  data-sicen-popover-placement="top"
+                >
+                  {sicenPositioningStatusLine}
+                </span>
+              </div>
+            </div>
+          </div>
           <label className="centinela-page__layer-item">
             <input
               type="checkbox"

@@ -52,7 +52,17 @@ const CONSULT_TABLE_CLASS =
   "table table-sm table-bordered mb-0 seafarer-consult-table";
 const CONSULT_ADD_FORM_CLASS = "seafarer-consult-add-form";
 
-function SectionCard({ title, children, addLabel, onAdd, adding, addErr, addOk, domId }) {
+function SectionCard({
+  title,
+  children,
+  addLabel,
+  onAdd,
+  adding,
+  addErr,
+  addOk,
+  domId,
+  readOnly = false,
+}) {
   return (
     <div id={domId} className="card shadow-sm mb-4">
       <div className="card-body">
@@ -64,15 +74,18 @@ function SectionCard({ title, children, addLabel, onAdd, adding, addErr, addOk, 
         {addOk ? (
           <div className="alert alert-success py-2 mt-3 mb-0 small">{addOk}</div>
         ) : null}
-        <div className="mt-3">
-          <button
-            type="button"
-            className="btn btn-outline-primary btn-sm"
-            onClick={onAdd}
-          >
-            {addLabel}
-          </button>
-        </div>
+        {!readOnly && onAdd && addLabel ? (
+          <div className="mt-3">
+            <button
+              type="button"
+              className="btn btn-outline-primary btn-sm"
+              onClick={onAdd}
+              disabled={adding}
+            >
+              {addLabel}
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -162,6 +175,7 @@ export function SeafarerHeldTitlesSection({
   adding,
   addErr,
   addOk,
+  readOnly = false,
 }) {
   const [open, setOpen] = useState(false);
   const [dateErr, setDateErr] = useState("");
@@ -298,6 +312,7 @@ export function SeafarerHeldTitlesSection({
       adding={adding}
       addErr={addErr}
       addOk={addOk}
+      readOnly={readOnly}
     >
       <div className="table-responsive" ref={titlesTableRef}>
         <table className={CONSULT_TABLE_CLASS}>
@@ -310,12 +325,17 @@ export function SeafarerHeldTitlesSection({
               <th>Vencimiento</th>
               <th>Aplicación</th>
               <th>Estado</th>
-              <th className="text-center">Acciones</th>
+              {!readOnly ? (
+                <th className="text-center">Acciones</th>
+              ) : null}
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <EmptyRow cols={titleCols} text="Sin títulos registrados." />
+              <EmptyRow
+                cols={readOnly ? 7 : titleCols}
+                text="Sin títulos registrados."
+              />
             ) : (
               rows.map((r) => (
                 <tr key={r.rowKey}>
@@ -330,6 +350,7 @@ export function SeafarerHeldTitlesSection({
                   />
                   <td>{displaySeafarerText(r.catalogApplication)}</td>
                   <td>{displayHeldCredentialStatus(r.status)}</td>
+                  {!readOnly ? (
                   <td className="text-center text-nowrap">
                     {r.source === "held" && r.heldEntryId ? (
                       <>
@@ -358,13 +379,14 @@ export function SeafarerHeldTitlesSection({
                       <span className="text-muted small">—</span>
                     )}
                   </td>
+                  ) : null}
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
-      {open ? (
+      {open && !readOnly ? (
         <div className={CONSULT_ADD_FORM_CLASS}>
           <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
             <h6 className="mb-0">
@@ -538,6 +560,7 @@ export function SeafarerLicenseTableSection({
   adding,
   addErr,
   addOk,
+  readOnly = false,
 }) {
   const [open, setOpen] = useState(false);
   const [dateErr, setDateErr] = useState("");
@@ -684,6 +707,7 @@ export function SeafarerLicenseTableSection({
       adding={adding}
       addErr={addErr}
       addOk={addOk}
+      readOnly={readOnly}
     >
       <div className="table-responsive" ref={licensesTableRef}>
         <table className={CONSULT_TABLE_CLASS}>
@@ -697,12 +721,17 @@ export function SeafarerLicenseTableSection({
               <th>Vencimiento</th>
               <th>Estado</th>
               <th className="text-end">Renovaciones</th>
-              <th className="text-center">Acciones</th>
+              {!readOnly ? (
+                <th className="text-center">Acciones</th>
+              ) : null}
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <EmptyRow cols={licenseCols} text={emptyMessage} />
+              <EmptyRow
+                cols={readOnly ? 8 : licenseCols}
+                text={emptyMessage}
+              />
             ) : (
               rows.map((r) => (
                 <tr key={r.rowKey}>
@@ -722,6 +751,7 @@ export function SeafarerLicenseTableSection({
                       ? "—"
                       : String(r.renewalsCount)}
                   </td>
+                  {!readOnly ? (
                   <td className="text-center text-nowrap">
                     {r.source === "held" && r.heldEntryId ? (
                       <>
@@ -750,13 +780,14 @@ export function SeafarerLicenseTableSection({
                       <span className="text-muted small">—</span>
                     )}
                   </td>
+                  ) : null}
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
-      {open ? (
+      {open && !readOnly ? (
         <div className={CONSULT_ADD_FORM_CLASS}>
           <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
             <h6 className="mb-0">
@@ -942,7 +973,14 @@ export function SeafarerLicenseTableSection({
     </SectionCard>
   );
 }
-export function SeafarerCoursesSection({ seafarer, onAddCourse, adding, addErr, addOk }) {
+export function SeafarerCoursesSection({
+  seafarer,
+  onAddCourse,
+  adding,
+  addErr,
+  addOk,
+  readOnly = false,
+}) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(INITIAL_SEAFARER_COURSE_FORM);
   const rows = Array.isArray(seafarer?.courses) ? seafarer.courses : [];
@@ -967,6 +1005,7 @@ export function SeafarerCoursesSection({ seafarer, onAddCourse, adding, addErr, 
       adding={adding}
       addErr={addErr}
       addOk={addOk}
+      readOnly={readOnly}
     >
       <div className="table-responsive">
         <table className={CONSULT_TABLE_CLASS}>
@@ -1007,7 +1046,7 @@ export function SeafarerCoursesSection({ seafarer, onAddCourse, adding, addErr, 
           </tbody>
         </table>
       </div>
-      {open ? (
+      {open && !readOnly ? (
         <div className={CONSULT_ADD_FORM_CLASS}>
           <h6 className="mb-3">Nuevo curso</h6>
           <div className="row g-2">
@@ -1106,6 +1145,7 @@ export function SeafarerSanctionsSection({
   adding,
   addErr,
   addOk,
+  readOnly = false,
 }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(INITIAL_SEAFARER_SANCTION_FORM);
@@ -1131,6 +1171,7 @@ export function SeafarerSanctionsSection({
       adding={adding}
       addErr={addErr}
       addOk={addOk}
+      readOnly={readOnly}
     >
       <div className="table-responsive">
         <table className={CONSULT_TABLE_CLASS}>
@@ -1166,7 +1207,7 @@ export function SeafarerSanctionsSection({
           </tbody>
         </table>
       </div>
-      {open ? (
+      {open && !readOnly ? (
         <div className={CONSULT_ADD_FORM_CLASS}>
           <h6 className="mb-3">Nueva sanción</h6>
           <div className="row g-2">
@@ -1257,10 +1298,28 @@ export function SeafarerObservationsSection({
   adding,
   addErr,
   addOk,
+  readOnly = false,
 }) {
+  const PAGE_SIZE = 5;
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(INITIAL_SEAFARER_OBSERVATION_FORM);
+  const [page, setPage] = useState(1);
   const rows = Array.isArray(seafarer?.observations) ? seafarer.observations : [];
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return rows.slice(start, start + PAGE_SIZE);
+  }, [rows, currentPage]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [seafarer?._id]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   function set(k, v) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -1271,6 +1330,8 @@ export function SeafarerObservationsSection({
     if (ok) {
       setForm(INITIAL_SEAFARER_OBSERVATION_FORM);
       setOpen(false);
+      // Las nuevas se agregan al final: ir a la última página.
+      setPage(Math.max(1, Math.ceil((total + 1) / PAGE_SIZE)));
     }
   }
 
@@ -1282,6 +1343,7 @@ export function SeafarerObservationsSection({
       adding={adding}
       addErr={addErr}
       addOk={addOk}
+      readOnly={readOnly}
     >
       <div className="table-responsive">
         <table className={CONSULT_TABLE_CLASS}>
@@ -1294,11 +1356,11 @@ export function SeafarerObservationsSection({
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {total === 0 ? (
               <EmptyRow cols={4} text="Sin observaciones registradas." />
             ) : (
-              rows.map((r, i) => (
-                <tr key={`obs-${i}`}>
+              pageRows.map((r, i) => (
+                <tr key={`obs-${(currentPage - 1) * PAGE_SIZE + i}`}>
                   <td>{displaySeafarerDate(r.date)}</td>
                   <td>{displaySeafarerText(r.category)}</td>
                   <td>{displaySeafarerText(r.text)}</td>
@@ -1309,7 +1371,33 @@ export function SeafarerObservationsSection({
           </tbody>
         </table>
       </div>
-      {open ? (
+      {total > 0 ? (
+        <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
+          <div className="text-muted small">
+            Página {currentPage} de {totalPages} · {total} observación
+            {total !== 1 ? "es" : ""}
+          </div>
+          <div className="btn-group btn-group-sm" role="group">
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              disabled={currentPage <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              disabled={currentPage >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {open && !readOnly ? (
         <div className={CONSULT_ADD_FORM_CLASS}>
           <h6 className="mb-3">Nueva observación</h6>
           <div className="row g-2">

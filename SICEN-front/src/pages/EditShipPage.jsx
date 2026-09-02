@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import Swal from "sweetalert2";
-import { getVesselForEdit, updateVessel } from "../api/client.js";
+import {
+  getVesselForEdit,
+  updateVessel,
+  vesselAdminPreviewToken,
+} from "../api/client.js";
 import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { ShipRegistrationForm } from "../components/ShipRegistrationForm.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { INITIAL_SHIP_REGISTRATION_FORM, RECREATIONAL_CATEGORY_FIXED_CONSTRUCCION } from "../constants/shipRegistrationFormDefaults.js";
-import { scrollPageToTop } from "../utils/scrollPageToTop.js";
+import { scrollElementIntoViewById, scrollPageToTop } from "../utils/scrollPageToTop.js";
 import {
   deportivoGrossTonnageCoherent,
   getShipRegistrationClientErr,
@@ -15,6 +19,7 @@ import {
 
 export function EditShipPage() {
   const { vesselId: vesselIdParam } = useParams();
+  const [searchParams] = useSearchParams();
   const vesselId = String(vesselIdParam ?? "").trim();
 
   const [form, setForm] = useState(INITIAL_SHIP_REGISTRATION_FORM);
@@ -35,6 +40,14 @@ export function EditShipPage() {
     setLoadErr("");
     setLoading(true);
     try {
+      const token = String(searchParams.get("token") || "").trim();
+      if (token) {
+        try {
+          await vesselAdminPreviewToken(token);
+        } catch {
+          /* token inválido: igual cargamos la ficha */
+        }
+      }
       const data = await getVesselForEdit(vesselId);
       const f = data?.form;
       if (!f || typeof f !== "object") {
@@ -51,11 +64,21 @@ export function EditShipPage() {
     } finally {
       setLoading(false);
     }
-  }, [vesselId]);
+  }, [vesselId, searchParams]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (loading || loadErr || !isDeportivo) return;
+    const focus = String(searchParams.get("focus") || "").trim();
+    if (focus === "administradores") {
+      setTimeout(() => {
+        scrollElementIntoViewById("vessel-administradores");
+      }, 350);
+    }
+  }, [loading, loadErr, searchParams, isDeportivo]);
 
   function setVesselType(v) {
     setForm((f) => {
@@ -198,6 +221,8 @@ export function EditShipPage() {
                 msg={msg}
                 err={err}
                 clientErr={clientErr}
+                vesselId={vesselId}
+                enableVesselAdminManagement={isDeportivo}
               />
             ) : (
               <p className="mb-0">

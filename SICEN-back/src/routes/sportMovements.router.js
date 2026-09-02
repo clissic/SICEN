@@ -42,12 +42,69 @@ sportMovementsRouter.get(
 
 sportMovementsRouter.post("/", ...guarded, sportMovementsController.create);
 
+sportMovementsRouter.get(
+  "/skipper/status",
+  ...guarded,
+  sportMovementsController.skipperStatus
+);
+sportMovementsRouter.get(
+  "/skipper/tracking-status",
+  ...guarded,
+  sportMovementsController.skipperTrackingStatus
+);
+sportMovementsRouter.post(
+  "/skipper/request",
+  ...guarded,
+  sportMovementsController.skipperRequest
+);
+sportMovementsRouter.post(
+  "/skipper/cancel-request",
+  ...guarded,
+  sportMovementsController.skipperCancelRequest
+);
+
+sportMovementsRouter.get(
+  "/tracking/stream",
+  ...guarded,
+  sportMovementsController.trackingStream
+);
+sportMovementsRouter.get(
+  "/tracking/active-map",
+  ...guarded,
+  sportMovementsController.trackingActiveMap
+);
+
 sportMovementsRouter.get("/:id", ...guarded, sportMovementsController.getById);
 sportMovementsRouter.put("/:id", ...guarded, sportMovementsController.update);
 sportMovementsRouter.post(
   "/:id/confirm",
   ...guarded,
   sportMovementsController.confirm
+);
+sportMovementsRouter.post(
+  "/:id/report-arrival",
+  ...guarded,
+  sportMovementsController.reportArrival
+);
+sportMovementsRouter.post(
+  "/:id/positions",
+  ...guarded,
+  sportMovementsController.recordPosition
+);
+sportMovementsRouter.get(
+  "/:id/positions",
+  ...guarded,
+  sportMovementsController.listPositions
+);
+sportMovementsRouter.get(
+  "/:id/last-position",
+  ...guarded,
+  sportMovementsController.lastPosition
+);
+sportMovementsRouter.get(
+  "/:id/track",
+  ...guarded,
+  sportMovementsController.track
 );
 sportMovementsRouter.post(
   "/:id/renew",

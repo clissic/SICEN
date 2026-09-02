@@ -3,6 +3,7 @@
  */
 
 import { USER_STATE_OPTIONS } from "./userStates.js";
+import { USER_ROLES } from "./userRoles.js";
 
 /**
  * Filas ordenadas: sigla de unidad (mayúsculas); usuarios sin unidad como "(Sin unidad)", al final.
@@ -26,29 +27,28 @@ export function summarizeUsersByUnit(users) {
 }
 
 /**
- * Cantidades por rol conocido en el esquema (user, admin, superAdmin).
+ * Cantidades por rol conocido en el esquema.
  * Si hubiera otros valores en BD histórica, se agrupan en una fila opcional.
  * @returns {{ key: string, label: string, count: number }[]}
  */
 export function summarizeUsersByRole(users) {
-  let nUser = 0;
-  let nAdmin = 0;
-  let nSuper = 0;
+  const counts = Object.fromEntries(USER_ROLES.map((r) => [r.value, 0]));
   let nOther = 0;
   if (Array.isArray(users)) {
     for (const u of users) {
       const r = u?.role;
-      if (r === "user") nUser++;
-      else if (r === "admin") nAdmin++;
-      else if (r === "superAdmin") nSuper++;
-      else nOther++;
+      if (r != null && Object.prototype.hasOwnProperty.call(counts, r)) {
+        counts[r] += 1;
+      } else {
+        nOther += 1;
+      }
     }
   }
-  const base = [
-    { key: "user", label: "Usuario", count: nUser },
-    { key: "admin", label: "Administrador", count: nAdmin },
-    { key: "superAdmin", label: "Super administrador", count: nSuper },
-  ];
+  const base = USER_ROLES.map((r) => ({
+    key: r.value,
+    label: r.label,
+    count: counts[r.value],
+  }));
   if (nOther > 0) {
     base.push({ key: "other", label: "Otro rol", count: nOther });
   }

@@ -70,6 +70,38 @@ const schema = new Schema(
       owner: { type: String, default: "", trim: true },
       operator: { type: String, default: "", trim: true },
       companyAddress: { type: String, default: "", trim: true },
+      /**
+       * Cuentas SICEN (skipper) autorizadas a administrar el buque.
+       * claimType owner = propietario; admin = carta poder / usufructo.
+       */
+      administrators: {
+        type: [
+          new Schema(
+            {
+              userId: {
+                type: Schema.Types.ObjectId,
+                ref: "users",
+                required: true,
+              },
+              claimType: {
+                type: String,
+                enum: ["owner", "admin"],
+                default: "admin",
+              },
+              linkedAt: { type: Date, default: Date.now },
+              linkedBy: { type: String, default: "", trim: true },
+              linkedByUnit: {
+                type: String,
+                default: "",
+                trim: true,
+                uppercase: true,
+              },
+            },
+            { _id: false }
+          ),
+        ],
+        default: [],
+      },
     },
 
     propulsion: {

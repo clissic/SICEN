@@ -5,7 +5,8 @@
   "description": "Sistema Centinela — aplicación web Prefectura Puerto Montevideo",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "build:client": "npm run build --prefix ../SICEN-front",
     "build": "npm run build:client",
     "dev:client": "npm run build:watch --prefix ../SICEN-front",
@@ -48,6 +49,7 @@
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "vitest": "^3.2.7"
   }
 }

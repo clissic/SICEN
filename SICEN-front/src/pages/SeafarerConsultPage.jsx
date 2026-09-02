@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   addSeafarerCourse,
   addSeafarerHeldLicense,
@@ -9,6 +9,8 @@ import {
   deleteSeafarerHeldLicense,
   deleteSeafarerHeldTitle,
   findSeafarerByDocument,
+  getSeafarerById,
+  seafarerLinkPreviewToken,
   updateSeafarerBasicData,
   updateSeafarerHeldLicense,
   updateSeafarerHeldTitle,
@@ -23,6 +25,7 @@ import {
   SeafarerSanctionsSection,
 } from "../components/seafarer/SeafarerConsultSections.jsx";
 import { SeafarerDocumentSearchBar } from "../components/seafarer/SeafarerDocumentSearchBar.jsx";
+import { SeafarerPendingActionsSection } from "../components/seafarer/SeafarerPendingActionsSection.jsx";
 import { Layout } from "../components/Layout.jsx";
 import {
   buildHeldTitleDisplayRows,
@@ -42,6 +45,9 @@ const emptySectionState = () => ({
 });
 
 export function SeafarerConsultPage() {
+  const [searchParams] = useSearchParams();
+  const deepLinkHandled = useRef(false);
+
   const [documentType, setDocumentType] = useState("");
   const [documentNumber, setDocumentNumber] = useState("");
   const [ccSeries, setCcSeries] = useState("");
@@ -60,8 +66,62 @@ export function SeafarerConsultPage() {
   const [editSaving, setEditSaving] = useState(false);
   const [editErr, setEditErr] = useState("");
   const [editOk, setEditOk] = useState("");
+  const [identityFieldsLocked, setIdentityFieldsLocked] = useState(false);
 
   const seafarerId = seafarer?._id ? String(seafarer._id) : "";
+
+  useEffect(() => {
+    if (deepLinkHandled.current) return;
+    const sid = String(searchParams.get("seafarerId") || "").trim();
+    const focus = String(searchParams.get("focus") || "").trim();
+    const token = String(searchParams.get("token") || "").trim();
+    if (!sid) return;
+    deepLinkHandled.current = true;
+
+    let cancelled = false;
+    (async () => {
+      setSearching(true);
+      setSearchErr("");
+      clearSectionMessages();
+      try {
+        if (token) {
+          try {
+            await seafarerLinkPreviewToken(token);
+          } catch {
+            /* token inválido: igual cargamos la ficha */
+          }
+        }
+        const data = await getSeafarerById(sid);
+        if (cancelled) return;
+        setSeafarer(data?.seafarer ?? null);
+        if (!data?.seafarer) {
+          setSearchErr("No se encontró la ficha indicada en el enlace.");
+        } else if (
+          focus === "acciones-pendientes" ||
+          focus === "verificaciones"
+        ) {
+          setTimeout(() => {
+            scrollElementIntoViewById("seafarer-acciones-pendientes");
+          }, 350);
+        }
+      } catch (e) {
+        if (cancelled) return;
+        setSeafarer(null);
+        setSearchErr(
+          e.message || e.data?.msg || "No se pudo abrir la ficha del enlace."
+        );
+        scrollPageToTop();
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // clearSectionMessages is stable enough for mount deep-link
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   function onDocumentTypeChange(nextType) {
     setDocumentType(nextType);
@@ -444,6 +504,7 @@ export function SeafarerConsultPage() {
               onSave={handleSaveBasicData}
               saving={editSaving}
               saveErr={editErr}
+              identityFieldsLocked={identityFieldsLocked}
             />
             <SeafarerHeldTitlesSection
               rows={heldTitleRows}
@@ -488,6 +549,10 @@ export function SeafarerConsultPage() {
               adding={observations.adding}
               addErr={observations.err}
               addOk={observations.ok}
+            />
+            <SeafarerPendingActionsSection
+              seafarerId={seafarerId}
+              onLockStateChange={setIdentityFieldsLocked}
             />
           </>
         ) : null}

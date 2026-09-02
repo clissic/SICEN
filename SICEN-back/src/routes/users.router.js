@@ -11,6 +11,18 @@ export const usersRouter = express.Router();
 
 usersRouter.post("/newAccount", usersController.sendNewAccEmail);
 
+usersRouter.get(
+  "/rejectAccountRequest/preview",
+  ...adminGuarded,
+  usersController.previewRejectAccountRequest
+);
+
+usersRouter.post(
+  "/rejectAccountRequest",
+  ...adminGuarded,
+  usersController.rejectAccountRequest
+);
+
 usersRouter.post("/create", ...adminGuarded, usersController.create);
 
 usersRouter.post(

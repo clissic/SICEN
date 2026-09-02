@@ -10,7 +10,7 @@ import {
 } from "../components/SpecializationRequestFields.jsx";
 import { UserAvatarFileInput } from "../components/UserAvatarFileInput.jsx";
 import { UserUnitSelect } from "../components/UserUnitSelect.jsx";
-import { ADMIN_EDIT_ROLES, normalizeRoleForSelect } from "../constants/userRoles.js";
+import { ADMIN_EDIT_ROLES, normalizeRoleForSelect, userRoleLabel } from "../constants/userRoles.js";
 import { RANK_OPTIONS } from "../constants/ranks.js";
 
 function emptySpecRow() {
@@ -95,6 +95,9 @@ export function UpdateDataPage() {
   }
 
   const isSuperAdminUser = user?.role === "superAdmin";
+  const identityLocked =
+    user?.seafarerLink?.status === "linked" ||
+    user?.seafarerLink?.status === "pending_unlink";
 
   return (
     <Layout>
@@ -117,11 +120,21 @@ export function UpdateDataPage() {
             <ErrorAlert message={err} />
 
             <form onSubmit={onSubmit} className="row g-3">
+              {identityLocked ? (
+                <div className="col-12">
+                  <div className="alert alert-warning py-2 small mb-0">
+                    Nombres y apellidos no se pueden modificar mientras su
+                    cuenta esté vinculada a un perfil de náuta. Solicite la
+                    desvinculación desde Mi documentación.
+                  </div>
+                </div>
+              ) : null}
               <div className="col-12 col-md-6">
                 <label className="form-label">Nombre</label>
                 <input
                   className="form-control"
                   value={newFirstName}
+                  disabled={identityLocked}
                   onChange={(e) => setNf(e.target.value)}
                 />
               </div>
@@ -130,6 +143,7 @@ export function UpdateDataPage() {
                 <input
                   className="form-control"
                   value={newLastName}
+                  disabled={identityLocked}
                   onChange={(e) => setNl(e.target.value)}
                 />
               </div>
@@ -170,7 +184,7 @@ export function UpdateDataPage() {
                       className="form-control"
                       disabled
                       readOnly
-                      value="superAdmin"
+                      value={userRoleLabel("superAdmin")}
                     />
                     <div className="form-text">
                       Este rol no puede modificarse desde este formulario.

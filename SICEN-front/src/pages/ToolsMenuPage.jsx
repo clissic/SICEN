@@ -1,5 +1,8 @@
 import { Link } from "react-router-dom";
 import { Layout } from "../components/Layout.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import { isSkipperRole } from "../constants/userRoles.js";
+import { WINDY_TOOL_URL } from "../constants/externalTools.js";
 
 const ICON_TILE = { fontSize: "0.95rem", marginTop: "0.15rem" };
 
@@ -7,6 +10,9 @@ const SECTION_TITLE_CLASS =
   "h5 text-muted text-uppercase mb-3 pb-2 border-bottom border-secondary-subtle";
 
 export function ToolsMenuPage() {
+  const { user } = useAuth();
+  const isSkipper = isSkipperRole(user?.role);
+
   return (
     <Layout>
       <div className="container py-4">
@@ -47,7 +53,13 @@ export function ToolsMenuPage() {
             </Link>
           </div>
           <div className="col">
-            <Link className="text-decoration-none" to="/herramientas/meteo">
+            <a
+              className="text-decoration-none d-block h-100"
+              href={WINDY_TOOL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Abrir Windy en una pestaña nueva"
+            >
               <div className="card h-100 shadow-sm">
                 <img
                   src="/img/windyTool.jpg"
@@ -63,13 +75,20 @@ export function ToolsMenuPage() {
                       aria-hidden
                     />
                     <div className="min-w-0">
-                      <div className="fw-semibold">Vientos y Temperaturas</div>
+                      <div className="d-flex align-items-center gap-2 fw-semibold text-body">
+                        <span>Vientos y Temperaturas</span>
+                        <i
+                          className="bi bi-box-arrow-up-right text-muted small"
+                          aria-hidden
+                          data-sicen-popover="Se abre en otra pestaña"
+                        />
+                      </div>
                       <div className="text-muted small">Interfaz de Windy.</div>
                     </div>
                   </div>
                 </div>
               </div>
-            </Link>
+            </a>
           </div>
           <div className="col">
             <Link className="text-decoration-none" to="/herramientas/catastro">
@@ -225,6 +244,8 @@ export function ToolsMenuPage() {
           </div>
         </div>
 
+        {!isSkipper ? (
+          <>
         <h4 className={SECTION_TITLE_CLASS}>Otras herramientas</h4>
         <div className="row row-cols-1 row-cols-md-2 row-cols-xl-2 g-3">
           <div className="col">
@@ -290,6 +311,8 @@ export function ToolsMenuPage() {
             </a>
           </div>
         </div>
+          </>
+        ) : null}
       </div>
     </Layout>
   );

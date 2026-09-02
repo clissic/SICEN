@@ -209,3 +209,103 @@ export function sicenButtonPrimaryHtml(href, label) {
   </tr>
 </table>`;
 }
+
+/** Botón de peligro (p. ej. rechazar solicitud). */
+export function sicenButtonDangerHtml(href, label) {
+  const safeHref = escapeHtml(href);
+  const safeLabel = escapeHtml(label);
+  return `
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:12px auto 8px;border-collapse:separate;">
+  <tr>
+    <td align="center" bgcolor="#dc3545" style="border-radius:8px;background-color:#dc3545;">
+      <a href="${safeHref}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:14px 28px;font-family:${FONT_STACK};font-size:15px;font-weight:600;line-height:1.25;color:#ffffff !important;text-decoration:none !important;border-radius:8px;mso-line-height-rule:exactly;">${safeLabel}</a>
+    </td>
+  </tr>
+</table>`;
+}
+
+/** Dos botones apilados (crear / rechazar) centrados. */
+export function sicenButtonStackHtml(buttonsHtml) {
+  return `
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:18px auto 8px;border-collapse:collapse;">
+  <tr>
+    <td align="center" style="padding:0;">
+      ${buttonsHtml}
+    </td>
+  </tr>
+</table>`;
+}
+
+/** Cuerpo HTML para aviso de arribo informado por náuta a prefecturas involucradas. */
+export function sportMovementArrivalReportEmailHtml({
+  vesselName,
+  vesselReg,
+  skipperName,
+  originUnit,
+  destinationUnit,
+  departurePort,
+  destinationPort,
+  etaFormatted,
+  observations,
+  trackingNote = "",
+}) {
+  const S = sicenEmailBodyStyles;
+  const obsBlock = observations
+    ? `<p style="${S.sectionHeading}">Observaciones del náuta</p>
+${sicenCalloutHtml(`<p style="${S.justification}">${escapeHtml(observations)}</p>`, "muted")}`
+    : "";
+  const trackingBlock = trackingNote
+    ? `<p style="${S.metaLine}"><em>${escapeHtml(trackingNote)}</em></p>`
+    : "";
+  return `
+<p style="${S.paragraph}">El patrón <strong>${escapeHtml(skipperName || "—")}</strong> informó el arribo del buque deportivo a través de SICEN.</p>
+<p style="${S.paragraph}"><strong>Buque:</strong> ${escapeHtml(vesselName || "—")} · <strong>Matrícula:</strong> ${escapeHtml(vesselReg || "—")}</p>
+<p style="${S.metaLine}"><strong>Prefectura de despacho:</strong> ${escapeHtml(originUnit || "—")}</p>
+<p style="${S.metaLine}"><strong>Prefectura de destino:</strong> ${escapeHtml(destinationUnit || "—")}</p>
+<p style="${S.metaLine}"><strong>Puerto despacho:</strong> ${escapeHtml(departurePort || "—")}</p>
+<p style="${S.metaLine}"><strong>Puerto destino:</strong> ${escapeHtml(destinationPort || "—")}</p>
+<p style="${S.metaLine}"><strong>ETA registrada:</strong> ${escapeHtml(etaFormatted || "—")}</p>
+${obsBlock}
+${trackingBlock}
+<p style="${S.paragraph}">El movimiento quedó cerrado como <strong>Arribado</strong> en el sistema.</p>
+`;
+}
+
+/** Cuerpo HTML para alerta de sin señal GPS (5 minutos). */
+export function sportMovementNoSignal5EmailHtml({
+  vesselName,
+  vesselReg,
+  skipperName,
+  originUnit,
+  destinationUnit,
+  departurePort,
+  destinationPort,
+  etaFormatted,
+  lastPositionAt,
+  lastPositionLatDms = "",
+  lastPositionLngDms = "",
+  coordinatesLabel = "",
+  silentMinutes = 5,
+}) {
+  const S = sicenEmailBodyStyles;
+  const latDms = lastPositionLatDms || "—";
+  const lngDms = lastPositionLngDms || "—";
+  const coordsBlock =
+    lastPositionLatDms || lastPositionLngDms || coordinatesLabel
+      ? `<p style="${S.metaLine}"><strong>Última posición conocida:</strong><br>
+Lat. ${escapeHtml(latDms)}<br>
+Long. ${escapeHtml(lngDms)}</p>`
+      : "";
+  return `
+<p style="${S.paragraph}">El buque deportivo <strong>${escapeHtml(vesselName || "—")}</strong> dejó de enviar posiciones GPS durante más de <strong>${silentMinutes} minutos</strong>.</p>
+<p style="${S.paragraph}"><strong>Matrícula:</strong> ${escapeHtml(vesselReg || "—")} · <strong>Patrón:</strong> ${escapeHtml(skipperName || "—")}</p>
+<p style="${S.metaLine}"><strong>Prefectura de despacho:</strong> ${escapeHtml(originUnit || "—")}</p>
+<p style="${S.metaLine}"><strong>Prefectura de destino:</strong> ${escapeHtml(destinationUnit || "—")}</p>
+<p style="${S.metaLine}"><strong>Puerto despacho:</strong> ${escapeHtml(departurePort || "—")}</p>
+<p style="${S.metaLine}"><strong>Puerto destino:</strong> ${escapeHtml(destinationPort || "—")}</p>
+<p style="${S.metaLine}"><strong>ETA registrada:</strong> ${escapeHtml(etaFormatted || "—")}</p>
+<p style="${S.metaLine}"><strong>Última señal recibida:</strong> ${escapeHtml(lastPositionAt || "—")}</p>
+${coordsBlock}
+<p style="${S.paragraph}">Revise el seguimiento en SICEN o en El Centinela (capa Posicionamiento SICEN).</p>
+`;
+}

@@ -56,11 +56,19 @@ class SessionsController {
           msg: "Complete email, contraseña, nombre, apellido y grado.",
         });
       }
-      const existing = await UserMongoose.findOne({ email });
+      const normalizedEmail = String(email).trim().toLowerCase();
+      const existing = await UserMongoose.findOne({
+        email: {
+          $regex: new RegExp(
+            `^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+            "i"
+          ),
+        },
+      });
       if (existing) {
-        return res.status(400).json({
+        return res.status(409).json({
           ok: false,
-          msg: "No se pudo registrar (email en uso o datos inválidos).",
+          msg: "Ya existe una cuenta con ese email.",
         });
       }
       const created = await userService.create({
@@ -68,7 +76,7 @@ class SessionsController {
         first_name,
         last_name,
         rank,
-        email,
+        email: normalizedEmail,
         password: createHash(password),
       });
       const token = signAccessToken(created._id);
@@ -93,7 +101,11 @@ class SessionsController {
           msg: "Email y contraseña requeridos.",
         });
       }
-      const user = await UserMongoose.findOne({ email });
+      const normalizedEmail = String(email).trim().toLowerCase();
+      const escaped = normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const user = await UserMongoose.findOne({
+        email: { $regex: new RegExp(`^${escaped}$`, "i") },
+      });
       if (!user || !isValidPassword(password, user.password)) {
         return res.status(401).json({
           ok: false,

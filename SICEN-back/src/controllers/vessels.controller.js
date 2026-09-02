@@ -7,6 +7,7 @@ import {
   getVesselStatsForDashboard,
   listAllVesselsPaginated,
   listVesselsByType,
+  listDeportivoVesselsByOwner,
   listVesselsPaginated,
   normalizeVesselInitialPayload,
   searchVesselsByType,
@@ -144,8 +145,13 @@ function validateVesselInitial(p) {
       return "El puntal debe ser un número mayor o igual a 0.";
     }
   }
-  if (!p.owner.trim()) return "El propietario es obligatorio.";
-  if (!p.operator.trim()) return "El operador es obligatorio.";
+  const hasOwnerSkipper = String(p.ownerSkipperUserId ?? "").trim();
+  if (!p.owner.trim() && !hasOwnerSkipper && p.vesselType !== "Deportivo") {
+    return "El propietario es obligatorio.";
+  }
+  if (!p.operator.trim() && p.vesselType !== "Deportivo") {
+    return "El operador es obligatorio.";
+  }
   if (p.vesselType !== "Deportivo") {
     if (!CLASSIFICATION_KINDS.has(p.classificationKind)) {
       return "Indique si la clasificación es por sociedad reconocida o por bandera.";
@@ -681,6 +687,23 @@ export const vesselsController = {
       return res.status(500).json({
         ok: false,
         msg: "No se pudo registrar el buque.",
+      });
+    }
+  },
+
+  async listDeportivoByOwner(req, res) {
+    try {
+      const result = await listDeportivoVesselsByOwner(req.user);
+      return res.json({ ok: true, ...result });
+    } catch (e) {
+      const code = e.status || e.statusCode || 500;
+      if (code === 400 || code === 403 || code === 404) {
+        return res.status(code).json({ ok: false, msg: e.message });
+      }
+      logger.error("vessels.listDeportivoByOwner: " + (e?.message || e));
+      return res.status(500).json({
+        ok: false,
+        msg: "No se pudieron listar sus buques.",
       });
     }
   },

@@ -17,8 +17,10 @@ description: >-
 | Página | `SICEN-front/src/pages/CentinelaPage.jsx` |
 | Estilos | `SICEN-front/src/styles/centinela-map.css` |
 | Capa AIS UI | `SICEN-front/src/components/centinela/AisVesselLayer.jsx` |
+| Posicionamiento SICEN | `SicenPositioningLayer.jsx` + `useSportMovementTrackingStream.js` |
 | Seamarks | `SICEN-front/src/components/centinela/SeamarksLayer.jsx` (add/remove imperativo + `overlayPane`) |
-| Batimetría | `BathymetryLayer.jsx` + `BathymetryLegend.jsx` (números de profundidad sobre agua; GEBCO) |
+| Batimetría | `BathymetryLayer.jsx` + `BathymetryLegendSection` en `BathymetryLegend.jsx` (GEBCO) |
+| Leyendas unificadas | `CentinelaEnvLegendsPanel.jsx` + `CentinelaEnvForecastSelector.jsx` (centro inferior) + `CentinelaGebcoAttribution.jsx` (control Leaflet) |
 | Batimetría API | `gebcoBathymetry.js` → `POST /api/bathymetry/points` (OpenTopoData gebco2020) |
 | Proxy batimetría | `bathymetryProxy.service.js` + `utils/gebcoBathymetry.js` |
 | HTTP batimetría | `bathymetry.controller.js` + `bathymetry.router.js` → `/api/bathymetry` |
@@ -30,7 +32,7 @@ description: >-
 | Viento | `WindLayer.jsx` + `windVelocityData.js` + `WindLegend.jsx` |
 | Corrientes | `CurrentsLayer.jsx` + `currentsVelocityData.js` + `CurrentsLegend.jsx` (Open-Meteo Marine) |
 | Olas | `WavesLayer.jsx` + `wavesVelocityData.js` + `WavesLegend.jsx` (partículas; color = Hs; escala visual ∝ período medio) |
-| Cliente API | `openAisStream` / `aisStatus` / `aisVessels` / `windFetchPoints` / `currentsFetchPoints` / `wavesFetchPoints` en `client.js` |
+| Cliente API | `openAisStream` / `openSportMovementTrackingStream` / `sportMovementTrackingActiveMap` / `aisStatus` / … en `client.js` |
 | Viento API | `openMeteoWind.js` → `POST /api/wind/points` |
 | Corrientes API | `openMeteoCurrents.js` → `POST /api/currents/points` |
 | Olas API | `openMeteoWaves.js` → `POST /api/waves/points` |
@@ -50,12 +52,14 @@ description: >-
 - Overlay seamarks: `SeamarksLayer` + tiles OpenSeaMap.
 - Zonas: catálogo en `centinelaZones.js`; fila con checkbox maestro (todas on/off, indeterminate si parcial) + desplegable por zona (`zoneVisibility`); `<ZonesLayer zones={visibleZones} />`.
 - Brevets deportivos: catálogo en `centinelaBrevetCategories.js` (A–D). Categoría A `infoOnly` (popover en ícono). Categorías B/C/D: checkbox + ícono info con `data-sicen-popover` (`infoText`); no usar Swal. Categoría B: unión de círculos 15 MN recortada al lado mar (`clipPolygonToSeawardOfCoast`); cortes en `brevetBStripCuts.js`; checkpoint `v1` vía `restore-brevet-b-checkpoint.mjs v1`; regenerar con `build-brevet-b-strip.mjs`. Categoría C `portPicker`: select por puerto desde `sportPorts.js` (id estable, sector, `radiusNm` 20/15); círculo vía `circlePolygonLatLon`. Índice también en `SICEN-back/src/constants/sportPorts.js` para unidades/despachos. D pendiente.
-- Orden de capas en UI: Coordenadas → Seamarks OSM → **Batimetría** → **Viento** → **Corrientes** → **Olas** → AIS EXPERIMENTAL → Zonas → Brevets. Al entrar: solo Coordenadas y Seamarks OSM activos.
+- Orden de capas en UI: **Posicionamiento SICEN** → Coordenadas → Seamarks OSM → **Batimetría** → **Viento** → **Corrientes** → **Olas** → AIS EXPERIMENTAL → Zonas → Brevets. Al entrar: Posicionamiento SICEN, Coordenadas y Seamarks OSM activos.
+- **Posicionamiento SICEN:** checkbox maestro (default **on**) + línea de estado. `SicenPositioningLayer` muestra markers de movimientos `inTransit` con `tracking.active`. Snapshot `GET /api/sportMovements/tracking/active-map` + SSE `GET /api/sportMovements/tracking/stream` (proxy sin timeout en Vite, como AIS).
 - **Batimetría:** checkbox → `BathymetryLayer` (números coloreados de profundidad solo sobre agua). Muestras **aleatorias** (~mismo cupo que antes, tope 128 pts; prioriza agua). Datos: `POST /api/bathymetry/points` → OpenTopoData GEBCO 2020. Pane z 350.
 - **Viento:** checkbox → `WindLayer` (`leaflet-velocity`) + `POST /api/wind/points`. Leyenda azul/amarillo/rojo.
 - **Corrientes:** checkbox → `CurrentsLayer` + `POST /api/currents/points` (Open-Meteo Marine SMOC). Máscara de agua (`currentsWaterMask.js`: anillo seaward costa UY + exclusión tierra AR) aplicada al canvas cada frame — las partículas no se ven sobre tierra. Leyenda teal/verde/violeta. Pane `centinelaCurrentsPane` z 435.
-- **Olas:** checkbox → `WavesLayer` (`leaflet-velocity`) + `POST /api/waves/points`. **Color = Hs** (paleta sky→rojo, `maxVelocity` 4 m). Dirección = desde. `velocityScale` se ajusta con el período medio del viewport (la lib acopla color y velocidad al mismo campo). Máscara de agua. Pane `centinelaWavesPane` z 430. Hs+período+dir en popup. Leyendas en `.centinela-env-legends`.
-- Grilla: `GraticuleLayer` + checkbox; click en el mapa → `MapClickCoords` (popup con lat/lon + env si capas activas).
+- **Olas:** checkbox → `WavesLayer` (`leaflet-velocity`) + `POST /api/waves/points`. **Color = Hs** (paleta sky→rojo, `maxVelocity` 4 m). Dirección = desde. `velocityScale` se ajusta con el período medio del viewport (la lib acopla color y velocidad al mismo campo). Máscara de agua. Pane `centinelaWavesPane` z 430. Hs+período+dir en popup.
+- **Leyendas ambientales:** un solo panel `CentinelaEnvLegendsPanel` en `.centinela-env-legends` (centro inferior; **34.375rem** en desktop, **ancho completo** ≤1024px). Selector único de pronóstico (`CentinelaEnvForecastSelector`) arriba del panel cuando hay viento/corrientes/olas activos; estado compartido `envForecastHours` en `CentinelaPage`. Título de unidad y swatches en la misma fila (`centinela-wind-legend__body`). Atribución **GEBCO 2020** vía `CentinelaGebcoAttribution` en el control nativo de Leaflet cuando batimetría está on.
+- Grilla: `GraticuleLayer` + checkbox; click en el mapa → `MapClickCoords` (popup con lat/lon + env si capas activas). **Coordenadas visibles siempre en DMS** (`geoDms.js`; skill `geo-dms-format`).
 - Disclaimer en UI: no sustituye carta oficial.
 
 ### Índice de puertos (Categoría C / unidades)

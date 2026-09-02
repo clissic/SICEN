@@ -9,10 +9,12 @@ import {
   applyUserStatesModification,
   mergeUserStatesFromDocument,
 } from "../constants/userStates.js";
+import { USER_ROLE_SET } from "../constants/userRoles.js";
 import {
   deleteStoredAvatarFile,
   finalizeAvatarFilename,
 } from "../utils/avatarFiles.js";
+import { verifyAccountRequestRejectToken } from "../utils/accountRequestReject.js";
 
 function escapeRegex(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -77,6 +79,7 @@ class UsersController {
         role,
         fines,
         unit,
+        documentId,
       } = req.query;
       const sortOption =
         sort === "asc"
@@ -104,6 +107,12 @@ class UsersController {
       if (email) {
         mongooseFilter.email = { $regex: new RegExp(email, "i") };
       }
+      if (documentId && String(documentId).trim()) {
+        const digits = String(documentId).replace(/[.\-\s]/g, "");
+        mongooseFilter.documentId = {
+          $regex: new RegExp(escapeRegex(digits), "i"),
+        };
+      }
       if (role) {
         mongooseFilter.role = { $regex: new RegExp(`^${escapeRegex(role)}$`, "i") };
       }
@@ -125,6 +134,7 @@ class UsersController {
         unit: u.unit ?? "",
         email: u.email,
         role: u.role,
+        documentId: u.documentId ?? "",
         fines: u.fines.length,
         avatar: u.avatar,
       }));
@@ -176,12 +186,27 @@ class UsersController {
           payload: {},
         });
       }
+      const normalizedEmail = userService.normalizeEmail(email);
+      if (!normalizedEmail) {
+        return res.status(400).json({
+          status: "error",
+          msg: "Debe indicar un email válido.",
+          payload: {},
+        });
+      }
+      if (await userService.isEmailInUse(normalizedEmail)) {
+        return res.status(409).json({
+          status: "error",
+          msg: "Ya existe una cuenta con ese email.",
+          payload: {},
+        });
+      }
       const userDTO = new UserDTO(
         avatar,
         first_name,
         last_name,
         rank,
-        email,
+        normalizedEmail,
         createHash(password),
         undefined,
         unit
@@ -203,9 +228,13 @@ class UsersController {
         payload: userCreated,
       });
     } catch (e) {
-      return res.status(500).json({
+      const dup =
+        e?.code === 11000 || String(e?.message || "").includes("E11000");
+      return res.status(dup ? 409 : 500).json({
         status: "error",
-        msg: "Something went wrong: " + e,
+        msg: dup
+          ? "Ya existe una cuenta con ese email."
+          : "Something went wrong: " + e,
         payload: {},
       });
     }
@@ -362,9 +391,7 @@ class UsersController {
 
   async sendNewAccEmail(req, res) {
     try {
-      const { first_name, last_name, rank, unit, position, email, newAccBody } =
-        req.body;
-      const emailSent = await userService.sendNewAccEmail({
+      const {
         first_name,
         last_name,
         rank,
@@ -372,6 +399,34 @@ class UsersController {
         position,
         email,
         newAccBody,
+        accountType,
+        documentId,
+        birthDate,
+      } = req.body;
+      const normalizedEmail = userService.normalizeEmail(email);
+      if (!normalizedEmail) {
+        return res.status(400).json({
+          ok: false,
+          msg: "Debe indicar un email válido.",
+        });
+      }
+      if (await userService.isEmailInUse(normalizedEmail)) {
+        return res.status(409).json({
+          ok: false,
+          msg: "Ese email ya tiene una cuenta. Si olvidó su contraseña, use Recuperar contraseña.",
+        });
+      }
+      await userService.sendNewAccEmail({
+        first_name,
+        last_name,
+        rank,
+        unit,
+        position,
+        email: normalizedEmail,
+        newAccBody,
+        accountType,
+        documentId,
+        birthDate,
       });
       return res.status(200).json({
         ok: true,
@@ -382,6 +437,71 @@ class UsersController {
       return res.status(400).json({
         ok: false,
         msg: "La solicitud no fue realizada con exito.",
+      });
+    }
+  }
+
+  /** Preview del token de rechazo (admin). */
+  async previewRejectAccountRequest(req, res) {
+    try {
+      const token =
+        typeof req.query.token === "string"
+          ? req.query.token
+          : typeof req.body?.token === "string"
+            ? req.body.token
+            : "";
+      const payload = verifyAccountRequestRejectToken(token);
+      if (!payload) {
+        return res.status(400).json({
+          ok: false,
+          msg: "El enlace de rechazo no es válido o expiró.",
+        });
+      }
+      return res.status(200).json({ ok: true, request: payload });
+    } catch (error) {
+      logger.error(
+        "Error in users.controller previewRejectAccountRequest: " + error
+      );
+      return res.status(500).json({
+        ok: false,
+        msg: "No se pudo validar el enlace de rechazo.",
+      });
+    }
+  }
+
+  /** Confirma rechazo y avisa al solicitante por email (admin). */
+  async rejectAccountRequest(req, res) {
+    try {
+      const token =
+        typeof req.body?.token === "string" ? req.body.token.trim() : "";
+      const payload = verifyAccountRequestRejectToken(token);
+      if (!payload) {
+        return res.status(400).json({
+          ok: false,
+          msg: "El enlace de rechazo no es válido o expiró.",
+        });
+      }
+      await userService.sendAccountRequestRejectedEmail({
+        first_name: payload.first_name,
+        last_name: payload.last_name,
+        email: payload.email,
+        typeLabel: payload.typeLabel,
+      });
+      logger.info(
+        `Solicitud de cuenta rechazada para ${payload.email} por ${req.user?.email || "admin"}.`
+      );
+      return res.status(200).json({
+        ok: true,
+        msg: "Se informó al solicitante que la solicitud no fue aprobada.",
+        request: payload,
+      });
+    } catch (error) {
+      logger.error(
+        "Error in users.controller rejectAccountRequest: " + error
+      );
+      return res.status(500).json({
+        ok: false,
+        msg: "No se pudo enviar el aviso de rechazo al solicitante.",
       });
     }
   }
@@ -405,6 +525,24 @@ class UsersController {
         profilePhotoDataUrl,
         specializationRequests,
       } = req.body;
+
+      const linkStatus = req.user?.seafarerLink?.status;
+      if (linkStatus === "linked" || linkStatus === "pending_unlink") {
+        const curFirst = String(req.user.first_name ?? "").trim();
+        const curLast = String(req.user.last_name ?? "").trim();
+        const nf = String(newFirstName ?? "").trim();
+        const nl = String(newLastName ?? "").trim();
+        if (
+          (nf && nf !== curFirst) ||
+          (nl && nl !== curLast)
+        ) {
+          return res.status(409).json({
+            ok: false,
+            msg: "Nombres y apellidos no se pueden modificar mientras su cuenta esté vinculada a un perfil de náuta. Solicite la desvinculación desde Mi documentación.",
+          });
+        }
+      }
+
       const emailSent = await userService.sendNewDataEmail({
         first_name,
         newFirstName,
@@ -443,12 +581,27 @@ class UsersController {
         uploadedAvatarPath = `/uploads/avatars/${req.file.filename}`;
       }
       const avatar = uploadedAvatarPath || "/img/avatar.png";
-      const { first_name, last_name, rank, unit, email } = req.body;
-      const ALLOWED_CREATE_ROLES = new Set(["user", "admin", "superAdmin"]);
+      const { first_name, last_name } = req.body;
+      const normalizedEmail = userService.normalizeEmail(req.body.email);
+      if (!normalizedEmail) {
+        if (uploadedAvatarPath) deleteStoredAvatarFile(uploadedAvatarPath);
+        return res.status(400).json({
+          ok: false,
+          msg: "Debe indicar un email válido.",
+        });
+      }
+      if (await userService.isEmailInUse(normalizedEmail)) {
+        if (uploadedAvatarPath) deleteStoredAvatarFile(uploadedAvatarPath);
+        return res.status(409).json({
+          ok: false,
+          msg: "Ya existe una cuenta con ese email.",
+        });
+      }
+      const email = normalizedEmail;
       let role =
         typeof req.body.role === "string" ? req.body.role.trim() : "";
       if (!role) role = "user";
-      if (!ALLOWED_CREATE_ROLES.has(role)) {
+      if (!USER_ROLE_SET.has(role)) {
         if (uploadedAvatarPath) deleteStoredAvatarFile(uploadedAvatarPath);
         return res.status(400).json({
           ok: false,
@@ -462,13 +615,80 @@ class UsersController {
           msg: "Solo un super administrador puede asignar el rol super administrador.",
         });
       }
-      if (!(await isValidUserUnitAsync(unit))) {
-        if (uploadedAvatarPath) deleteStoredAvatarFile(uploadedAvatarPath);
-        return res.status(400).json({
-          ok: false,
-          msg: "Debe indicar una unidad válida.",
-        });
+
+      const isSkipper = role === "skipper";
+      let rank =
+        typeof req.body.rank === "string" ? req.body.rank.trim() : "";
+      let unit =
+        typeof req.body.unit === "string" ? req.body.unit.trim() : "";
+      let documentId =
+        typeof req.body.documentId === "string"
+          ? req.body.documentId.trim()
+          : "";
+      let phone =
+        typeof req.body.phone === "string" ? req.body.phone.trim() : "";
+      let FN = null;
+
+      if (isSkipper) {
+        rank = rank || "Nauta";
+        unit = "";
+        documentId =
+          documentId ||
+          (typeof req.body.document_id === "string"
+            ? req.body.document_id.trim()
+            : "");
+        if (!documentId) {
+          if (uploadedAvatarPath) deleteStoredAvatarFile(uploadedAvatarPath);
+          return res.status(400).json({
+            ok: false,
+            msg: "Debe indicar DNI o pasaporte.",
+          });
+        }
+        if (!phone) {
+          if (uploadedAvatarPath) deleteStoredAvatarFile(uploadedAvatarPath);
+          return res.status(400).json({
+            ok: false,
+            msg: "Debe indicar un teléfono.",
+          });
+        }
+        const birthRaw =
+          typeof req.body.birthDate === "string"
+            ? req.body.birthDate.trim()
+            : typeof req.body.FN === "string"
+              ? req.body.FN.trim()
+              : "";
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(birthRaw)) {
+          if (uploadedAvatarPath) deleteStoredAvatarFile(uploadedAvatarPath);
+          return res.status(400).json({
+            ok: false,
+            msg: "Debe indicar una fecha de nacimiento válida.",
+          });
+        }
+        FN = new Date(`${birthRaw}T00:00:00.000Z`);
+        if (Number.isNaN(FN.getTime())) {
+          if (uploadedAvatarPath) deleteStoredAvatarFile(uploadedAvatarPath);
+          return res.status(400).json({
+            ok: false,
+            msg: "Debe indicar una fecha de nacimiento válida.",
+          });
+        }
+      } else {
+        if (!rank) {
+          if (uploadedAvatarPath) deleteStoredAvatarFile(uploadedAvatarPath);
+          return res.status(400).json({
+            ok: false,
+            msg: "Debe indicar el grado.",
+          });
+        }
+        if (!(await isValidUserUnitAsync(unit))) {
+          if (uploadedAvatarPath) deleteStoredAvatarFile(uploadedAvatarPath);
+          return res.status(400).json({
+            ok: false,
+            msg: "Debe indicar una unidad válida.",
+          });
+        }
       }
+
       const password = createHash("123456789");
       const emailSent = await userService.sendDataToNewUser({
         first_name,
@@ -485,6 +705,9 @@ class UsersController {
         email,
         password,
         role,
+        documentId: isSkipper ? documentId : undefined,
+        phone: isSkipper ? phone : undefined,
+        FN: isSkipper ? FN : undefined,
       });
       console.log(emailSent + " " + userCreated);
       if (emailSent && userCreated) {
@@ -529,9 +752,15 @@ class UsersController {
         deleteStoredAvatarFile(`/uploads/avatars/${req.file.filename}`);
       }
       logger.error("Error in users.controller createAndSendEmail: " + error);
-      return res.status(400).json({
+      const dup =
+        error?.code === 11000 ||
+        String(error?.message || "").includes("E11000") ||
+        String(error?.cause?.code || "") === "11000";
+      return res.status(dup ? 409 : 400).json({
         ok: false,
-        msg: "La cuenta no pudo ser creada con éxito debido a un error del servidor. Por favor, verifica que el email utilizado no se encuentre ya en uso e intentelo nuevamente.",
+        msg: dup
+          ? "Ya existe una cuenta con ese email."
+          : "La cuenta no pudo ser creada con éxito. Verifique los datos e intente de nuevo.",
       });
     }
   }
@@ -617,17 +846,45 @@ class UsersController {
     updatedUser._id = id;
     updatedUser.last_modified_by = user.email;
 
-    const ALLOWED_ROLES = new Set(["user", "admin", "superAdmin"]);
+    const existingLinkStatus = existing?.seafarerLink?.status;
+    if (
+      existingLinkStatus === "linked" ||
+      existingLinkStatus === "pending_unlink"
+    ) {
+      const nextFirst =
+        updatedUser.first_name !== undefined
+          ? String(updatedUser.first_name ?? "").trim()
+          : String(existing.first_name ?? "").trim();
+      const nextLast =
+        updatedUser.last_name !== undefined
+          ? String(updatedUser.last_name ?? "").trim()
+          : String(existing.last_name ?? "").trim();
+      const curFirst = String(existing.first_name ?? "").trim();
+      const curLast = String(existing.last_name ?? "").trim();
+      if (nextFirst !== curFirst || nextLast !== curLast) {
+        discardUploadedAvatar();
+        return res.status(409).json({
+          ok: false,
+          msg: "Nombres y apellidos no se pueden editar mientras la cuenta esté vinculada a un perfil de náuta. Primero desvincule el perfil.",
+        });
+      }
+      updatedUser.first_name = existing.first_name;
+      updatedUser.last_name = existing.last_name;
+      if (Object.prototype.hasOwnProperty.call(updatedUser, "documentId")) {
+        updatedUser.documentId = existing.documentId;
+      }
+    }
+
     if (
       updatedUser.role !== undefined &&
       updatedUser.role !== null &&
       updatedUser.role !== ""
     ) {
-      if (!ALLOWED_ROLES.has(updatedUser.role)) {
+      if (!USER_ROLE_SET.has(updatedUser.role)) {
         discardUploadedAvatar();
         return res.status(400).json({
           ok: false,
-          msg: "El rol indicado no es válido. Use user, admin o superAdmin.",
+          msg: "El rol indicado no es válido.",
         });
       }
       if (updatedUser.role === "superAdmin" && user.role !== "superAdmin") {

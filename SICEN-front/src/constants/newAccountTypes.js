@@ -17,8 +17,15 @@ export const NEW_ACCOUNT_TYPES = [
   {
     id: "nauta-deportivo",
     label: "Náuta deportivo",
-    description: "Próximamente.",
+    description: "Titulares de brevet o embarcaciones de recreo.",
     icon: "bi-water",
+    available: true,
+  },
+  {
+    id: "gente-de-mar",
+    label: "Gente de mar",
+    description: "Próximamente.",
+    icon: "bi-person-badge",
     available: false,
   },
 ];
@@ -33,4 +40,12 @@ export function newAccountTypeLabel(id) {
   return (
     NEW_ACCOUNT_TYPES.find((t) => t.id === id)?.label ?? "Solicitud de cuenta"
   );
+}
+
+export function isPnnAccountType(id) {
+  return id === "pnn-funcionario";
+}
+
+export function isNautaAccountType(id) {
+  return id === "nauta-deportivo";
 }

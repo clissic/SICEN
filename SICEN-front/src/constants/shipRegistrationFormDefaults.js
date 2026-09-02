@@ -52,6 +52,10 @@ export const INITIAL_SHIP_REGISTRATION_FORM = {
   draft: "",
   owner: "",
   operator: "",
+  /** Solo alta deportiva: náuta propietario vinculado (objeto UI). */
+  ownerSkipper: null,
+  /** Solo alta deportiva: náutas administradores vinculados (objetos UI). */
+  administratorSkippers: [],
   classificationKind: "",
   classificationSociety: "",
   classificationFlagRegistry: "",

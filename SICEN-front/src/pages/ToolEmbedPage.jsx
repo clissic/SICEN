@@ -1,5 +1,6 @@
 import { Link, useParams } from "react-router-dom";
 import { Layout } from "../components/Layout.jsx";
+import { WINDY_TOOL_URL } from "../constants/externalTools.js";
 
 const FRAMES = {
   ais: {
@@ -8,7 +9,9 @@ const FRAMES = {
   },
   meteo: {
     title: "Windy",
-    src: "https://windy.app/map/#c=-34.8925,-56.22437&z=11",
+    subtitle: "Vientos y temperaturas",
+    externalUrl: WINDY_TOOL_URL,
+    externalOnly: true,
   },
   catastro: {
     title: "Información Catastral",
@@ -48,6 +51,46 @@ export function ToolEmbedPage() {
     height: 550,
     ...cfg.iframeStyle,
   };
+
+  if (cfg.externalOnly && cfg.externalUrl) {
+    return (
+      <Layout>
+        <div className="container py-4">
+          <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <div>
+              <h3 className="m-0">{cfg.title}</h3>
+              {cfg.subtitle ? (
+                <div className="text-muted small mt-1">{cfg.subtitle}</div>
+              ) : null}
+            </div>
+            <Link className="btn btn-outline-secondary btn-sm" to="/herramientas">
+              Volver
+            </Link>
+          </div>
+          <div className="card shadow-sm">
+            <div className="card-body">
+              <p className="mb-3">
+                Windy no permite mostrarse embebido en otras páginas. Abralo en
+                una pestaña nueva para consultar vientos y temperaturas.
+              </p>
+              <a
+                className="btn btn-primary"
+                href={cfg.externalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Abrir Windy
+                <i
+                  className="bi bi-box-arrow-up-right ms-2"
+                  aria-hidden
+                />
+              </a>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

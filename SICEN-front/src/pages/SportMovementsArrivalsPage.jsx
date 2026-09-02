@@ -10,6 +10,7 @@ import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { SportMovementCloseModal } from "../components/SportMovementCloseModal.jsx";
 import { SportMovementSkipperContactModal } from "../components/SportMovementSkipperContactModal.jsx";
+import { SportMovementTrackingPanel } from "../components/SportMovementTrackingPanel.jsx";
 
 const MENU = "/mi-unidad/areas/movimientos-deportivos";
 const PAGE_SIZE = 10;
@@ -87,6 +88,7 @@ export function SportMovementsArrivalsPage() {
   const [confirming, setConfirming] = useState(null);
   const [saving, setSaving] = useState(false);
   const [skipperMovement, setSkipperMovement] = useState(null);
+  const [trackingMovement, setTrackingMovement] = useState(null);
 
   const loadTransit = useCallback(async (pageNum = 1) => {
     setTransitLoading(true);
@@ -232,8 +234,29 @@ export function SportMovementsArrivalsPage() {
                         <td className="small">{formatDateTime(m.eta)}</td>
                         <td>
                           <span className="badge text-bg-info">Esperado</span>
+                          {(m.tracking?.communicationState === "no_signal_5" ||
+                            m.tracking?.communicationState === "no_signal_3") ? (
+                            <span className="badge text-bg-danger ms-1">
+                              Sin señal 5m
+                            </span>
+                          ) : null}
+                          {m.delayedNotifiedAt ||
+                          m.tracking?.etaOverdueAlertAt ? (
+                            <span className="badge text-bg-secondary ms-1">
+                              ETA vencida
+                            </span>
+                          ) : null}
                         </td>
                         <td className="text-end text-nowrap">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary me-1"
+                            data-sicen-popover="Ver seguimiento GPS"
+                            aria-label="Ver seguimiento GPS"
+                            onClick={() => setTrackingMovement(m)}
+                          >
+                            <i className="bi bi-geo-alt" aria-hidden />
+                          </button>
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-secondary me-1"
@@ -364,6 +387,12 @@ export function SportMovementsArrivalsPage() {
         open={Boolean(skipperMovement)}
         movement={skipperMovement}
         onClose={() => setSkipperMovement(null)}
+      />
+
+      <SportMovementTrackingPanel
+        open={Boolean(trackingMovement)}
+        movement={trackingMovement}
+        onClose={() => setTrackingMovement(null)}
       />
     </Layout>
   );

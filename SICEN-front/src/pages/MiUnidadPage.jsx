@@ -4,6 +4,11 @@ import { Layout } from "../components/Layout.jsx";
 import { useUnitFromApi } from "../hooks/useUnitFromApi.js";
 import { MI_UNIDAD_DIVISIONS } from "../constants/miUnidadDivisions.js";
 import { MI_UNIDAD_AREAS } from "../constants/miUnidadAreas.js";
+import {
+  isEmpreUnit,
+  MI_UNIDAD_EMPRE_AREA_SLUGS,
+  MI_UNIDAD_EMPRE_DIVISIONES,
+} from "../constants/miUnidadEmpreDivisiones.js";
 
 const ESCUDO_BASE = "/img/ESCUDO-UNIDADES-PNN";
 const ESCUDO_PRENA = `${ESCUDO_BASE}/PRENA.png`;
@@ -15,6 +20,10 @@ export function MiUnidadPage() {
   const unitMeta = useUnitFromApi(user?.unit);
 
   const displayName = unitMeta?.name?.trim() || unitCodeUpper || "";
+  const isEmpre = isEmpreUnit(unitCodeUpper);
+  const areasToShow = isEmpre
+    ? MI_UNIDAD_AREAS.filter((a) => MI_UNIDAD_EMPRE_AREA_SLUGS.includes(a.slug))
+    : MI_UNIDAD_AREAS;
   const escudoSrc = unitMeta?.shieldRelativeUrl?.trim()
     ? unitMeta.shieldRelativeUrl
     : unitCodeUpper
@@ -94,14 +103,15 @@ export function MiUnidadPage() {
         </div>
 
         <h4 className="h6 text-muted text-uppercase mb-3">Divisiones</h4>
-        <div className="row row-cols-1 row-cols-md-3 g-3">
-          {MI_UNIDAD_DIVISIONS.map((d) => (
-            <div key={d.slug} className="col">
-              <Link
-                className="text-decoration-none"
-                to={`/mi-unidad/${d.slug}`}
-              >
-                <div className="card h-100 shadow-sm">
+        {isEmpre ? (
+          <div className="row row-cols-1 row-cols-md-3 g-3">
+            {MI_UNIDAD_EMPRE_DIVISIONES.map((d) => (
+              <div key={d.slug} className="col">
+                <Link
+                  className="text-decoration-none"
+                  to={`/mi-unidad/${d.slug}`}
+                >
+                  <div className="card h-100 shadow-sm">
                   {d.imageSrc ? (
                     <img
                       src={d.imageSrc}
@@ -109,7 +119,12 @@ export function MiUnidadPage() {
                       className="card-img-top"
                       loading="lazy"
                     />
-                  ) : null}
+                  ) : (
+                    <div
+                      className="card-img-top mi-unidad-empre-img-placeholder"
+                      aria-hidden
+                    />
+                  )}
                   <div className="card-body">
                     <div className="d-flex align-items-start gap-2">
                       <i
@@ -127,17 +142,57 @@ export function MiUnidadPage() {
                       </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            </div>
-          ))}
-        </div>
+                  </div>
+                </Link>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="row row-cols-1 row-cols-md-3 g-3">
+            {MI_UNIDAD_DIVISIONS.map((d) => (
+              <div key={d.slug} className="col">
+                <Link
+                  className="text-decoration-none"
+                  to={`/mi-unidad/${d.slug}`}
+                >
+                  <div className="card h-100 shadow-sm">
+                    {d.imageSrc ? (
+                      <img
+                        src={d.imageSrc}
+                        alt={d.title}
+                        className="card-img-top"
+                        loading="lazy"
+                      />
+                    ) : null}
+                    <div className="card-body">
+                      <div className="d-flex align-items-start gap-2">
+                        <i
+                          className={`menu-tile-icon bi ${d.iconClass} me-1 px-2 py-1 border border-secondary rounded-1 bg-secondary text-white flex-shrink-0`}
+                          style={{ fontSize: "0.95rem", marginTop: "0.15rem" }}
+                          aria-hidden
+                        />
+                        <div className="min-w-0">
+                          <div className="fw-semibold text-body text-break">
+                            {d.title}
+                          </div>
+                          <div className="text-muted small text-break mt-1">
+                            {d.subtitle}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
 
         <h4 className="h6 text-muted text-uppercase mb-3 mt-4">
           Áreas de interés
         </h4>
         <div className="row row-cols-1 row-cols-md-3 g-3">
-          {MI_UNIDAD_AREAS.map((a) => (
+          {areasToShow.map((a) => (
             <div key={a.slug} className="col">
               <Link
                 className="text-decoration-none"

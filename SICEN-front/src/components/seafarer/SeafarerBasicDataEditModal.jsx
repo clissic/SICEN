@@ -91,6 +91,7 @@ export function SeafarerBasicDataEditModal({
   onSave,
   saving,
   saveErr,
+  identityFieldsLocked = false,
 }) {
   const initialForm = useMemo(
     () => (seafarer ? seafarerToCreateForm(seafarer) : { ...INITIAL_SEAFARER_CREATE_FORM }),
@@ -183,6 +184,13 @@ export function SeafarerBasicDataEditModal({
 
             <div className="modal-body">
                 <ErrorAlert message={clientErr || saveErr} />
+                {identityFieldsLocked ? (
+                  <div className="alert alert-warning py-2 small">
+                    DNI, pasaporte, nombres y apellidos están bloqueados porque
+                    esta ficha está vinculada a una cuenta SICEN. Desvincule el
+                    perfil en Verificaciones para poder editarlos.
+                  </div>
+                ) : null}
 
                 <fieldset className="border rounded-3 px-3 pt-2 pb-3 mb-3">
                   <legend className="float-none w-auto px-2 fs-6 fw-semibold text-body">
@@ -201,6 +209,7 @@ export function SeafarerBasicDataEditModal({
                         inputMode="numeric"
                         pattern="[0-9]*"
                         value={form.dni}
+                        disabled={identityFieldsLocked}
                         onChange={(e) =>
                           set("dni", normalizeSeafarerDni(e.target.value))
                         }
@@ -216,6 +225,7 @@ export function SeafarerBasicDataEditModal({
                         autoComplete="off"
                         style={{ textTransform: "uppercase" }}
                         value={form.passport}
+                        disabled={identityFieldsLocked}
                         onChange={(e) =>
                           set("passport", normalizeSeafarerPassport(e.target.value))
                         }
@@ -272,6 +282,7 @@ export function SeafarerBasicDataEditModal({
                         required
                         autoComplete="given-name"
                         value={form.firstName}
+                        disabled={identityFieldsLocked}
                         onChange={(e) => set("firstName", e.target.value)}
                       />
                     </div>
@@ -285,6 +296,7 @@ export function SeafarerBasicDataEditModal({
                         required
                         autoComplete="family-name"
                         value={form.lastName}
+                        disabled={identityFieldsLocked}
                         onChange={(e) => set("lastName", e.target.value)}
                       />
                     </div>

@@ -3,8 +3,15 @@ import { SportMovementMongoose } from "../DAO/models/mongoose/sportMovements.mon
 import { VesselMongoose } from "../DAO/models/mongoose/vessels.mongoose.js";
 import { SeafarerMongoose } from "../DAO/models/mongoose/seafarers.mongoose.js";
 import { LicenceMongoose } from "../DAO/models/mongoose/licences.mongoose.js";
-import { findUnitByAcronym } from "./units.service.js";
+import { findUnitByAcronym, assertDeparturePortInUnit } from "./units.service.js";
 import { notifyAudience } from "./notifications.service.js";
+import { sendSportMovementArrivalEmails } from "./sportMovementArrivalEmails.service.js";
+import { skipperCanManageVessel } from "../utils/skipperVesselOwner.js";
+import {
+  startTrackingOnConfirm,
+  stopMovementTracking,
+  materializeEtaOverdueAlerts,
+} from "./sportMovementTracking.service.js";
 import {
   normalizeSportBrevetCategory,
   SPORT_BREVET_KEYS,
@@ -562,85 +569,11 @@ export async function listArrivalsForUser(user, { page, limit } = {}) {
 }
 
 /**
- * Materializa notificaciones de demora (idempotente).
- * Destino + cada prefectura de tránsito; una sola vez por movimiento.
+ * Materializa notificaciones de ETA vencida (idempotente).
+ * Origen + destino + tránsito; delegado al servicio de tracking unificado.
  */
-export async function materializeDelayedNotifications({ limit = 40 } = {}) {
-  const now = new Date();
-  const batch = await SportMovementMongoose.find({
-    status: "inTransit",
-    standBy: false,
-    eta: { $lt: now },
-    $or: [{ delayedNotifiedAt: null }, { delayedNotifiedAt: { $exists: false } }],
-  })
-    .sort({ eta: 1 })
-    .limit(Math.min(100, Math.max(1, Number(limit) || 40)))
-    .lean();
-
-  if (!batch.length) return { processed: 0 };
-
-  const href = "/mi-unidad/areas/movimientos-deportivos/demorados";
-  let processed = 0;
-
-  for (const m of batch) {
-    const movementId = String(m._id);
-    const name = str(m.vesselSnapshot?.name) || "Buque";
-    const reg =
-      str(m.vesselSnapshot?.nationalRegistryNumber) || "s/matrícula";
-    const destUnit = str(m.destinationUnit).toUpperCase();
-    const transitUnits = Array.isArray(m.informedUnits)
-      ? [
-          ...new Set(
-            m.informedUnits
-              .map((u) => str(u).toUpperCase())
-              .filter((u) => u && u !== destUnit)
-          ),
-        ]
-      : [];
-
-    const baseMeta = {
-      movementId,
-      vesselName: name,
-      nationalRegistryNumber: reg,
-      originUnit: str(m.originUnit).toUpperCase(),
-      destinationUnit: destUnit,
-      informedUnits: transitUnits,
-    };
-
-    if (destUnit) {
-      await notifyAudience({
-        audienceType: "unit",
-        audienceValue: destUnit,
-        type: "sportMovement.delayed",
-        title: "Buque demorado",
-        body: `Buque demorado: ${name} (${reg}) con ETA vencida hacia su prefectura.`,
-        href,
-        meta: { ...baseMeta, role: "destination" },
-        dedupeKey: `sportMovement.delayed:${movementId}:${destUnit}`,
-      });
-    }
-
-    for (const unit of transitUnits) {
-      await notifyAudience({
-        audienceType: "unit",
-        audienceValue: unit,
-        type: "sportMovement.delayed",
-        title: "Buque demorado en tránsito",
-        body: `Buque demorado en tránsito por su jurisdicción: ${name} (${reg}).`,
-        href,
-        meta: { ...baseMeta, role: "transit" },
-        dedupeKey: `sportMovement.delayed:${movementId}:${unit}`,
-      });
-    }
-
-    await SportMovementMongoose.updateOne(
-      { _id: m._id },
-      { $set: { delayedNotifiedAt: now } }
-    );
-    processed += 1;
-  }
-
-  return { processed };
+export async function materializeDelayedNotifications(options = {}) {
+  return materializeEtaOverdueAlerts(options);
 }
 
 export async function listDelayedForUser(user, { page, limit } = {}) {
@@ -778,6 +711,7 @@ export async function closeSportMovement(id, body, user) {
     lastModifiedBy: userEmail(user),
   };
   await doc.save();
+  await stopMovementTracking(doc._id, { reason: "close", user });
   return doc.toObject();
 }
 
@@ -860,6 +794,7 @@ export async function confirmSportMovement(id, user) {
     createdBy: doc.metadata?.createdBy || "",
     lastModifiedBy: userEmail(user),
   };
+  await startTrackingOnConfirm(doc, user);
   await doc.save();
   return doc.toObject();
 }
@@ -925,6 +860,7 @@ export async function cancelConfirmedSportMovement(id, body, user) {
     lastModifiedBy: userEmail(user),
   };
   await doc.save();
+  await stopMovementTracking(doc._id, { reason: "cancel", user });
   return doc.toObject();
 }
 
@@ -939,4 +875,257 @@ export async function findSportMovementById(id, user) {
     throw httpError("No tiene acceso a este movimiento.", 403);
   }
   return doc;
+}
+
+function assertSkipperRole(user) {
+  if (str(user?.role) !== "skipper") {
+    throw httpError("Solo los náutas pueden realizar esta acción.", 403);
+  }
+}
+
+async function resolveSkipperFromUser(user) {
+  const documentId = str(user?.documentId);
+  if (!documentId) {
+    throw httpError(
+      "Su usuario no tiene documento registrado. Actualice sus datos."
+    );
+  }
+  return resolveSkipperFromBody({
+    documentType: "DNI",
+    documentNumber: documentId,
+  });
+}
+
+async function findOpenMovementForSkipper(skipper) {
+  const or = [];
+  if (skipper?.seafarerId) {
+    or.push({ "skipper.seafarerId": skipper.seafarerId });
+  }
+  const docType = str(skipper?.documentType);
+  const docNumber = str(skipper?.documentNumber);
+  if (docType && docNumber) {
+    or.push({
+      "skipper.documentType": docType,
+      "skipper.documentNumber": docNumber,
+    });
+  }
+  if (!or.length) return null;
+  return SportMovementMongoose.findOne({
+    ...openMovementFilter(),
+    $or: or,
+  }).lean();
+}
+
+function assertSkipperOnMovement(doc, skipper) {
+  const docSeafarer = doc?.skipper?.seafarerId
+    ? String(doc.skipper.seafarerId)
+    : "";
+  const skipperSeafarer = skipper?.seafarerId ? String(skipper.seafarerId) : "";
+  if (docSeafarer && skipperSeafarer && docSeafarer === skipperSeafarer) {
+    return;
+  }
+  if (
+    str(doc?.skipper?.documentType) === str(skipper?.documentType) &&
+    str(doc?.skipper?.documentNumber) === str(skipper?.documentNumber)
+  ) {
+    return;
+  }
+  throw httpError("No puede gestionar este movimiento.", 403);
+}
+
+export async function getSkipperMovementStatus(user) {
+  assertSkipperRole(user);
+  const skipper = await resolveSkipperFromUser(user);
+  const movement = await findOpenMovementForSkipper(skipper);
+
+  if (!movement) {
+    return {
+      canRequestDispatch: true,
+      canCreateDispatchRequest: true,
+      canCancelDispatchRequest: false,
+      canReportArrival: false,
+      movement: null,
+    };
+  }
+
+  if (movement.status === "inTransit") {
+    return {
+      canRequestDispatch: false,
+      canCreateDispatchRequest: false,
+      canCancelDispatchRequest: false,
+      canReportArrival: true,
+      movement,
+    };
+  }
+
+  return {
+    canRequestDispatch: true,
+    canCreateDispatchRequest: false,
+    canCancelDispatchRequest: true,
+    canReportArrival: false,
+    movement,
+  };
+}
+
+export async function createSportMovementRequestBySkipper(body, user) {
+  assertSkipperRole(user);
+
+  const status = await getSkipperMovementStatus(user);
+  if (!status.canCreateDispatchRequest) {
+    throw httpError(
+      status.canCancelDispatchRequest
+        ? "Ya tiene una solicitud de despacho pendiente. Cancélela antes de solicitar otra."
+        : "Ya tiene un movimiento en curso. No puede solicitar otro despacho."
+    );
+  }
+
+  const originUnit = str(body?.originUnit).toUpperCase();
+  if (!originUnit) {
+    throw httpError("Indique la prefectura de despacho.");
+  }
+
+  if (!body?.skipper) {
+    throw httpError("Indique el patrón del movimiento.");
+  }
+  const skipper = await resolveSkipperFromBody(body.skipper);
+  const payload = await buildMovementPayload(
+    { ...body, skipper },
+    { partial: false }
+  );
+
+  await assertDeparturePortInUnit(originUnit, payload.departurePort);
+
+  const { vessel } = await buildVesselSnapshot(payload.vesselId);
+  if (!skipperCanManageVessel(vessel, user)) {
+    throw httpError(
+      "El buque indicado no figura como suyo en la base de datos."
+    );
+  }
+
+  assertPrefecturesAreCoherent(
+    payload.destinationUnit,
+    payload.informedUnits
+  );
+  await assertVesselAndSkipperAvailable({
+    vesselId: payload.vesselId,
+    skipper: payload.skipper,
+  });
+
+  const now = new Date();
+  const email = userEmail(user);
+
+  const doc = await SportMovementMongoose.create({
+    ...payload,
+    originUnit,
+    standBy: true,
+    status: "standBy",
+    requestedBySkipper: true,
+    expiresAt: plus24h(now),
+    confirmedAt: null,
+    renewedAt: null,
+    metadata: {
+      createdBy: email,
+      lastModifiedBy: email,
+    },
+  });
+  return doc.toObject();
+}
+
+export async function reportArrivalBySkipper(id, body, user) {
+  assertSkipperRole(user);
+  if (!isValidObjectId(id)) throw httpError("Identificador no válido.", 400);
+
+  const skipper = await resolveSkipperFromUser(user);
+  const status = await getSkipperMovementStatus(user);
+  if (!status.canReportArrival || !status.movement) {
+    throw httpError(
+      "No tiene un despacho autorizado para informar arribo."
+    );
+  }
+  if (String(status.movement._id) !== String(id)) {
+    throw httpError("El movimiento indicado no coincide con su despacho activo.");
+  }
+
+  const doc = await SportMovementMongoose.findById(id).exec();
+  if (!doc) throw httpError("Movimiento no encontrado.", 404);
+  assertSkipperOnMovement(doc, skipper);
+
+  if (doc.status === "closed" && doc.closureOutcome === "arrived") {
+    return doc.toObject();
+  }
+
+  if (doc.status !== "inTransit" || doc.standBy) {
+    throw httpError(
+      "Solo puede informar arribo cuando el despacho fue autorizado."
+    );
+  }
+
+  const notes = str(body?.observations ?? body?.closureNotes);
+  const now = new Date();
+
+  const updated = await SportMovementMongoose.findOneAndUpdate(
+    { _id: id, status: "inTransit", standBy: false },
+    {
+      $set: {
+        status: "closed",
+        standBy: false,
+        closureOutcome: "arrived",
+        closureNotes: notes,
+        closedAt: now,
+        "metadata.lastModifiedBy": userEmail(user),
+      },
+    },
+    { new: true }
+  ).exec();
+
+  if (!updated) {
+    const existing = await SportMovementMongoose.findById(id).lean();
+    if (existing?.status === "closed" && existing?.closureOutcome === "arrived") {
+      return existing;
+    }
+    throw httpError(
+      "Solo puede informar arribo cuando el despacho fue autorizado."
+    );
+  }
+
+  await stopMovementTracking(updated._id, { reason: "arrival", user });
+
+  const movement = (
+    await SportMovementMongoose.findById(updated._id).lean()
+  );
+  try {
+    await sendSportMovementArrivalEmails(movement);
+  } catch {
+    /* el cierre ya quedó persistido */
+  }
+  return movement;
+}
+
+export async function cancelSportMovementRequestBySkipper(id, user) {
+  assertSkipperRole(user);
+  if (!isValidObjectId(id)) throw httpError("Identificador no válido.", 400);
+
+  const skipper = await resolveSkipperFromUser(user);
+  const doc = await SportMovementMongoose.findById(id).exec();
+  if (!doc) throw httpError("Movimiento no encontrado.", 404);
+
+  if (!doc.requestedBySkipper) {
+    throw httpError("No puede cancelar este movimiento.", 403);
+  }
+  if (!EDITABLE_STATUSES.has(doc.status)) {
+    throw httpError(
+      "Solo puede cancelar solicitudes pendientes o vencidas de confirmación."
+    );
+  }
+
+  assertSkipperOnMovement(doc, skipper);
+
+  const vessel = await VesselMongoose.findById(doc.vesselId).lean();
+  if (!skipperCanManageVessel(vessel, user)) {
+    throw httpError("No está autorizado a cancelar esta solicitud.", 403);
+  }
+
+  const deletedId = String(doc._id);
+  await doc.deleteOne();
+  return { id: deletedId };
 }

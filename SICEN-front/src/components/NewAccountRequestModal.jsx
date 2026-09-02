@@ -3,6 +3,8 @@ import { newAccountRequest } from "../api/client.js";
 import {
   NEW_ACCOUNT_TYPES,
   NEW_ACCOUNT_WIZARD_STEPS,
+  isNautaAccountType,
+  isPnnAccountType,
   newAccountTypeLabel,
 } from "../constants/newAccountTypes.js";
 import { RANK_OPTIONS } from "../constants/ranks.js";
@@ -15,6 +17,9 @@ const EMPTY_FORM = {
   rank: "",
   unit: "",
   position: "",
+  phone: "",
+  documentId: "",
+  birthDate: "",
   email: "",
   newAccBody: "",
 };
@@ -84,16 +89,53 @@ export function NewAccountRequestModal({ open, onClose }) {
     setResult(null);
     try {
       const typeLabel = newAccountTypeLabel(accountType);
-      const bodyPrefix =
-        accountType === "pnn-funcionario"
-          ? form.newAccBody.trim()
-          : `[${typeLabel}]\n\n${form.newAccBody.trim()}`;
-      const data = await newAccountRequest({ ...form, newAccBody: bodyPrefix });
+      let payload;
+
+      if (isPnnAccountType(accountType)) {
+        payload = {
+          accountType,
+          first_name: form.first_name,
+          last_name: form.last_name,
+          rank: form.rank,
+          unit: form.unit,
+          position: form.position,
+          email: form.email,
+          newAccBody: form.newAccBody.trim(),
+        };
+      } else if (isNautaAccountType(accountType)) {
+        payload = {
+          accountType,
+          first_name: form.first_name,
+          last_name: form.last_name,
+          rank: "Náuta deportivo",
+          unit: "",
+          position: form.phone.trim(),
+          documentId: form.documentId.trim(),
+          birthDate: form.birthDate,
+          email: form.email,
+          newAccBody: `[${typeLabel}]\n\n${form.newAccBody.trim()}`,
+        };
+      } else {
+        payload = {
+          accountType,
+          first_name: form.first_name,
+          last_name: form.last_name,
+          rank: typeLabel,
+          unit: form.unit,
+          position: form.position,
+          email: form.email,
+          newAccBody: `[${typeLabel}]\n\n${form.newAccBody.trim()}`,
+        };
+      }
+
+      const data = await newAccountRequest(payload);
+      const emailShown = form.email.trim();
       setResult({
         kind: "success",
         message:
           data.msg ||
-          "Su solicitud fue enviada. Recibirá respuesta por correo cuando sea procesada.",
+          "Su solicitud fue enviada correctamente.",
+        email: emailShown,
       });
       setStep(3);
     } catch (ex) {
@@ -261,60 +303,135 @@ export function NewAccountRequestModal({ open, onClose }) {
                         onChange={(e) => setField("last_name", e.target.value)}
                       />
                     </div>
-                    <div className="col-12 col-md-6">
-                      <label className="form-label" htmlFor="new-acc-modal-rank">
-                        Grado
-                      </label>
-                      <select
-                        id="new-acc-modal-rank"
-                        className="form-select"
-                        required
-                        value={form.rank}
-                        onChange={(e) => setField("rank", e.target.value)}
-                        aria-label="Grado"
-                      >
-                        <option value="">Seleccionar grado…</option>
-                        {RANK_OPTIONS.map((r) => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="col-12 col-md-6">
-                      <label className="form-label" htmlFor="new-acc-modal-unit">
-                        Unidad
-                      </label>
-                      <UserUnitSelect
-                        id="new-acc-modal-unit"
-                        value={form.unit}
-                        onChange={(v) => setField("unit", v)}
-                        required
-                        usePublicEndpoint
-                        extraOptions={[
-                          {
-                            value: "OTRA",
-                            label: "Otra — Aclarar en el cuerpo del mensaje",
-                          },
-                        ]}
-                      />
-                    </div>
-                    <div className="col-12 col-md-6">
-                      <label
-                        className="form-label"
-                        htmlFor="new-acc-modal-position"
-                      >
-                        Cargo que desempeña
-                      </label>
-                      <input
-                        id="new-acc-modal-position"
-                        className="form-control"
-                        required
-                        value={form.position}
-                        onChange={(e) => setField("position", e.target.value)}
-                        placeholder="Ej.: Jefe de Unidad, Radio Operador…"
-                      />
-                    </div>
+
+                    {isPnnAccountType(accountType) ? (
+                      <>
+                        <div className="col-12 col-md-6">
+                          <label
+                            className="form-label"
+                            htmlFor="new-acc-modal-rank"
+                          >
+                            Grado
+                          </label>
+                          <select
+                            id="new-acc-modal-rank"
+                            className="form-select"
+                            required
+                            value={form.rank}
+                            onChange={(e) => setField("rank", e.target.value)}
+                            aria-label="Grado"
+                          >
+                            <option value="">Seleccionar grado…</option>
+                            {RANK_OPTIONS.map((r) => (
+                              <option key={r} value={r}>
+                                {r}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="col-12 col-md-6">
+                          <label
+                            className="form-label"
+                            htmlFor="new-acc-modal-unit"
+                          >
+                            Unidad
+                          </label>
+                          <UserUnitSelect
+                            id="new-acc-modal-unit"
+                            value={form.unit}
+                            onChange={(v) => setField("unit", v)}
+                            required
+                            usePublicEndpoint
+                            extraOptions={[
+                              {
+                                value: "OTRA",
+                                label:
+                                  "Otra — Aclarar en el cuerpo del mensaje",
+                              },
+                            ]}
+                          />
+                        </div>
+                        <div className="col-12 col-md-6">
+                          <label
+                            className="form-label"
+                            htmlFor="new-acc-modal-position"
+                          >
+                            Cargo que desempeña
+                          </label>
+                          <input
+                            id="new-acc-modal-position"
+                            className="form-control"
+                            required
+                            value={form.position}
+                            onChange={(e) =>
+                              setField("position", e.target.value)
+                            }
+                            placeholder="Ej.: Jefe de Unidad, Radio Operador…"
+                          />
+                        </div>
+                      </>
+                    ) : null}
+
+                    {isNautaAccountType(accountType) ? (
+                      <>
+                        <div className="col-12 col-md-6">
+                          <label
+                            className="form-label"
+                            htmlFor="new-acc-modal-document"
+                          >
+                            DNI / Pasaporte
+                          </label>
+                          <input
+                            id="new-acc-modal-document"
+                            className="form-control"
+                            required
+                            value={form.documentId}
+                            onChange={(e) =>
+                              setField("documentId", e.target.value)
+                            }
+                            placeholder="Ej.: 1.234.567-8"
+                            autoComplete="off"
+                          />
+                        </div>
+                        <div className="col-12 col-md-6">
+                          <label
+                            className="form-label"
+                            htmlFor="new-acc-modal-birth"
+                          >
+                            Fecha de nacimiento
+                          </label>
+                          <input
+                            id="new-acc-modal-birth"
+                            className="form-control"
+                            type="date"
+                            required
+                            value={form.birthDate}
+                            onChange={(e) =>
+                              setField("birthDate", e.target.value)
+                            }
+                          />
+                        </div>
+                        <div className="col-12 col-md-6">
+                          <label
+                            className="form-label"
+                            htmlFor="new-acc-modal-phone"
+                          >
+                            Teléfono
+                          </label>
+                          <input
+                            id="new-acc-modal-phone"
+                            className="form-control"
+                            type="tel"
+                            required
+                            value={form.phone}
+                            onChange={(e) => setField("phone", e.target.value)}
+                            placeholder="Ej.: 099 123 456"
+                            autoComplete="tel"
+                          />
+                        </div>
+                      </>
+                    ) : null}
+
                     <div className="col-12 col-md-6">
                       <label className="form-label" htmlFor="new-acc-modal-email">
                         Email
@@ -326,7 +443,11 @@ export function NewAccountRequestModal({ open, onClose }) {
                         required
                         value={form.email}
                         onChange={(e) => setField("email", e.target.value)}
-                        placeholder="Ej.: napellido@armada.mil.uy"
+                        placeholder={
+                          isPnnAccountType(accountType)
+                            ? "Ej.: napellido@armada.mil.uy"
+                            : "Ej.: nombre@correo.com"
+                        }
                       />
                     </div>
                     <div className="col-12">
@@ -340,6 +461,11 @@ export function NewAccountRequestModal({ open, onClose }) {
                         required
                         value={form.newAccBody}
                         onChange={(e) => setField("newAccBody", e.target.value)}
+                        placeholder={
+                          isNautaAccountType(accountType)
+                            ? "Indicá brevet, matrícula u otro dato útil para la solicitud…"
+                            : undefined
+                        }
                       />
                     </div>
                   </div>
@@ -410,9 +536,33 @@ export function NewAccountRequestModal({ open, onClose }) {
                         ? "Solicitud registrada"
                         : "No se pudo completar"}
                     </h3>
-                    <p className="new-account-modal__result-text">
-                      {result?.message}
-                    </p>
+                    {result?.kind === "success" ? (
+                      <div className="new-account-modal__result-text">
+                        <p className="mb-2">
+                          Su solicitud fue enviada correctamente.
+                        </p>
+                        <p className="mb-2">
+                          Un administrador del sistema revisará la solicitud y
+                          evaluará el acceso. El resultado se le informará a
+                          través del email ingresado
+                          {result.email ? (
+                            <>
+                              {" "}
+                              (<strong>{result.email}</strong>)
+                            </>
+                          ) : null}
+                          .
+                        </p>
+                        <p className="mb-0 text-secondary">
+                          Este proceso puede demorar; no es necesario volver a
+                          enviar la misma solicitud.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="new-account-modal__result-text">
+                        {result?.message}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="modal-footer new-account-modal__footer">

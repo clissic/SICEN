@@ -151,10 +151,21 @@ export const unitsController = {
   async listPublic(req, res) {
     try {
       const units = await UnitMongoose.find()
-        .select("acronym name")
+        .select("acronym name emailMarinaMercante")
         .sort({ acronym: 1 })
         .lean();
-      return res.json({ ok: true, units });
+      return res.json({
+        ok: true,
+        units: units.map((u) => ({
+          acronym: u.acronym,
+          name: u.name,
+          hasEmailMarinaMercante: Boolean(
+            String(u.emailMarinaMercante ?? "")
+              .trim()
+              .includes("@")
+          ),
+        })),
+      });
     } catch (e) {
       return res.status(500).json({
         ok: false,

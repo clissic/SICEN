@@ -14,6 +14,8 @@ const OSERP_ROOT = path.resolve(__dirname, "public", "files", "OSERP");
  * vacío cuando `emptyOutDir: true`.
  */
 function oserpFilesManifestPlugin() {
+  let lastBuildStartRegen = 0;
+
   function regenerate() {
     writeOserpManifestFile();
   }
@@ -21,6 +23,11 @@ function oserpFilesManifestPlugin() {
   return {
     name: "oserp-files-manifest",
     buildStart() {
+      /* En --watch, buildStart corre en cada rebuild; evitar regenerar dos veces
+         seguidas si el hook se dispara en cadena. */
+      const now = Date.now();
+      if (now - lastBuildStartRegen < 500) return;
+      lastBuildStartRegen = now;
       regenerate();
     },
     configureServer(server) {
@@ -64,6 +71,25 @@ export default defineConfig({
             if (res && !res.headersSent && typeof res.writeHead === "function") {
               res.writeHead(502, { "Content-Type": "text/plain" });
               res.end("AIS stream unavailable");
+            }
+          });
+        },
+      },
+      "/api/sportMovements/tracking/stream": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        timeout: 0,
+        proxyTimeout: 0,
+        configure(proxy) {
+          proxy.on("proxyReq", (proxyReq) => {
+            proxyReq.setHeader("Connection", "keep-alive");
+            proxyReq.setHeader("Cache-Control", "no-cache");
+          });
+          proxy.on("error", (err, _req, res) => {
+            console.warn(`[vite] Tracking stream proxy: ${err.message}`);
+            if (res && !res.headersSent && typeof res.writeHead === "function") {
+              res.writeHead(502, { "Content-Type": "text/plain" });
+              res.end("Tracking stream unavailable");
             }
           });
         },

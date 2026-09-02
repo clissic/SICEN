@@ -1,5 +1,11 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import { ErrorAlert } from "./ErrorAlert.jsx";
+import {
+  formatSkipperLabel,
+  SkipperDocumentLookupField,
+} from "./vessel/SkipperDocumentLookupField.jsx";
+import { VesselAdministratorsSection } from "./vessel/VesselAdministratorsSection.jsx";
 import { CLASSIFICATION_SOCIETY_OPTIONS } from "../constants/classificationSocieties.js";
 import { FLAG_STATE_OPTIONS } from "../constants/flagStates.js";
 import {
@@ -45,10 +51,61 @@ export function ShipRegistrationForm({
   msg,
   err,
   clientErr,
+  enableSkipperOwnershipLinking = false,
+  /** Edición PNN: gestión de náutas vinculados dentro de Propiedad. */
+  enableVesselAdminManagement = false,
+  vesselId = "",
 }) {
   const isUltramar = form.vesselType === "Ultramar";
   const isCabotaje = form.vesselType === "Cabotaje";
   const isDeportivo = form.vesselType === "Deportivo";
+  const showSkipperLinking = enableSkipperOwnershipLinking && isDeportivo;
+  const showVesselAdminMgmt =
+    enableVesselAdminManagement && isDeportivo && String(vesselId || "").trim();
+
+  const [adminSearchRowIds, setAdminSearchRowIds] = useState(["admin-row-0"]);
+  const [adminSearchReset, setAdminSearchReset] = useState(0);
+
+  const ownerSkipper = form.ownerSkipper || null;
+  const administratorSkippers = Array.isArray(form.administratorSkippers)
+    ? form.administratorSkippers
+    : [];
+
+  const excludedSkipperIds = [
+    ownerSkipper?._id,
+    ...administratorSkippers.map((a) => a._id),
+  ].filter(Boolean);
+
+  function handleOwnerSkipperChange(skipper) {
+    set("ownerSkipper", skipper);
+    if (skipper) {
+      set("owner", formatSkipperLabel(skipper));
+    } else {
+      set("owner", "");
+    }
+  }
+
+  function handleAddAdministrator(skipper) {
+    if (!skipper?._id) return;
+    if (ownerSkipper?._id === skipper._id) return;
+    if (administratorSkippers.some((a) => a._id === skipper._id)) return;
+    set("administratorSkippers", [...administratorSkippers, skipper]);
+    setAdminSearchReset((n) => n + 1);
+  }
+
+  function handleRemoveAdministrator(userId) {
+    set(
+      "administratorSkippers",
+      administratorSkippers.filter((a) => a._id !== userId)
+    );
+  }
+
+  function handleAddAdministratorRow() {
+    setAdminSearchRowIds((rows) => [
+      ...rows,
+      `admin-row-${Date.now()}-${rows.length}`,
+    ]);
+  }
 
   return (
     <>
@@ -489,30 +546,130 @@ export function ShipRegistrationForm({
         {fieldset(
           "Propiedad",
           <>
-            <div className="col-12 col-md-6">
-              <label className="form-label" htmlFor="owner">
-                Propietario
-              </label>
-              <input
-                id="owner"
-                className="form-control"
-                required
-                value={form.owner}
-                onChange={(e) => set("owner", e.target.value)}
+            {showSkipperLinking ? (
+              <>
+                <div className="col-12">
+                  <label className="form-label">Propietario</label>
+                  <SkipperDocumentLookupField
+                    idPrefix="owner-skipper"
+                    label="Buscar cuenta SICEN por DNI / pasaporte"
+                    value={ownerSkipper}
+                    onChange={handleOwnerSkipperChange}
+                    excludedUserIds={excludedSkipperIds.filter(
+                      (id) => id !== ownerSkipper?._id
+                    )}
+                    disabled={submitting}
+                    variant="embedded"
+                    linkRoleLabel="propietario"
+                  />
+                  {!ownerSkipper ? (
+                    <p className="form-text small mb-0 mt-1">
+                      Opcional en el alta. Si el propietario no tiene cuenta en
+                      SICEN, podrá vincularse más adelante desde la ficha del
+                      buque.
+                    </p>
+                  ) : null}
+                </div>
+                <div className="col-12">
+                  <label className="form-label">Administradores</label>
+                  {administratorSkippers.length > 0 ? (
+                    <ul className="list-group list-group-flush mb-2">
+                      {administratorSkippers.map((a) => (
+                        <li
+                          key={a._id}
+                          className="list-group-item px-0 d-flex flex-wrap align-items-center justify-content-between gap-2"
+                        >
+                          <span className="small">
+                            <strong>{formatSkipperLabel(a)}</strong>
+                            {a.email ? (
+                              <span className="text-muted"> · {a.email}</span>
+                            ) : null}
+                          </span>
+                          <button
+                            type="button"
+                            className="btn btn-outline-danger btn-sm"
+                            disabled={submitting}
+                            onClick={() => handleRemoveAdministrator(a._id)}
+                          >
+                            Quitar
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {adminSearchRowIds.map((rowId, idx) => (
+                    <div
+                      key={`${rowId}-${adminSearchReset}`}
+                      className={idx > 0 ? "mt-2" : ""}
+                    >
+                      <SkipperDocumentLookupField
+                        idPrefix={`admin-skipper-${idx}`}
+                        label={
+                          idx === 0
+                            ? "Buscar cuenta SICEN por DNI / pasaporte"
+                            : "Otra cuenta (DNI / pasaporte)"
+                        }
+                        value={null}
+                        onChange={(u) => {
+                          if (u) handleAddAdministrator(u);
+                        }}
+                        excludedUserIds={excludedSkipperIds}
+                        disabled={submitting}
+                        variant="embedded"
+                        linkRoleLabel="administrador"
+                      />
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm mt-2"
+                    disabled={submitting}
+                    onClick={handleAddAdministratorRow}
+                  >
+                    Agregar otro administrador
+                  </button>
+                  {administratorSkippers.length === 0 ? (
+                    <p className="form-text small mb-0 mt-1">
+                      Opcional. Los náutas vinculados verán el buque en Mis
+                      barcos como administradores.
+                    </p>
+                  ) : null}
+                </div>
+              </>
+            ) : showVesselAdminMgmt ? (
+              <VesselAdministratorsSection
+                vesselId={vesselId}
+                enabled
+                embedded
               />
-            </div>
-            <div className="col-12 col-md-6">
-              <label className="form-label" htmlFor="operator">
-                Operador
-              </label>
-              <input
-                id="operator"
-                className="form-control"
-                required
-                value={form.operator}
-                onChange={(e) => set("operator", e.target.value)}
-              />
-            </div>
+            ) : (
+              <>
+                <div className="col-12 col-md-6">
+                  <label className="form-label" htmlFor="owner">
+                    Propietario
+                  </label>
+                  <input
+                    id="owner"
+                    className="form-control"
+                    required
+                    value={form.owner}
+                    onChange={(e) => set("owner", e.target.value)}
+                  />
+                </div>
+                <div className="col-12 col-md-6">
+                  <label className="form-label" htmlFor="operator">
+                    Operador
+                  </label>
+                  <input
+                    id="operator"
+                    className="form-control"
+                    required
+                    value={form.operator}
+                    onChange={(e) => set("operator", e.target.value)}
+                  />
+                </div>
+              </>
+            )}
           </>
         )}
 

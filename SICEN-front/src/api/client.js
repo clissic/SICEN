@@ -1093,6 +1093,22 @@ export function newAccountRequest(body) {
   });
 }
 
+/** Preview de rechazo de solicitud (admin). */
+export function previewRejectAccountRequest(token) {
+  const q = new URLSearchParams({ token: token || "" });
+  return apiFetch(`/api/users/rejectAccountRequest/preview?${q}`, {
+    method: "GET",
+  });
+}
+
+/** Confirma rechazo y avisa al solicitante (admin). */
+export function rejectAccountRequest(token) {
+  return apiFetch("/api/users/rejectAccountRequest", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+}
+
 export function forgotPassword(email) {
   return apiFetch("/api/tokens/recoverPassword", {
     method: "POST",
@@ -1114,14 +1130,22 @@ export function resetPassword(email, newPassword, confirmPassword) {
 }
 
 export function createUserAdmin(body, avatarFile) {
+  const fields = {
+    first_name: body.first_name ?? "",
+    last_name: body.last_name ?? "",
+    rank: body.rank ?? "",
+    unit: body.unit ?? "",
+    email: body.email ?? "",
+    role: body.role ?? "user",
+    documentId: body.documentId ?? "",
+    phone: body.phone ?? "",
+    birthDate: body.birthDate ?? "",
+  };
   if (avatarFile instanceof File) {
     const fd = new FormData();
-    fd.append("first_name", body.first_name ?? "");
-    fd.append("last_name", body.last_name ?? "");
-    fd.append("rank", body.rank ?? "");
-    fd.append("unit", body.unit ?? "");
-    fd.append("email", body.email ?? "");
-    fd.append("role", body.role ?? "user");
+    for (const [k, v] of Object.entries(fields)) {
+      fd.append(k, v);
+    }
     fd.append("avatar", avatarFile);
     return apiFetch("/api/users/createAndSendEmail", {
       method: "POST",
@@ -1131,12 +1155,7 @@ export function createUserAdmin(body, avatarFile) {
   return apiFetch("/api/users/createAndSendEmail", {
     method: "POST",
     body: JSON.stringify({
-      first_name: body.first_name,
-      last_name: body.last_name,
-      rank: body.rank,
-      unit: body.unit,
-      email: body.email,
-      role: body.role ?? "user",
+      ...fields,
       avatar: "/img/avatar.png",
     }),
   });
@@ -1150,6 +1169,336 @@ export function createSportMovement(payload) {
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+/** Estado del náuta para habilitar Solicitar despacho / Informar arribo. */
+export function skipperMovementStatus() {
+  return apiFetch("/api/sportMovements/skipper/status");
+}
+
+/** Solicitud de despacho por náuta (rol skipper). */
+export function skipperRequestDispatch(payload) {
+  return apiFetch("/api/sportMovements/skipper/request", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Cancela una solicitud de despacho pendiente (náuta). */
+export function skipperCancelDispatchRequest(movementId) {
+  return apiFetch("/api/sportMovements/skipper/cancel-request", {
+    method: "POST",
+    body: JSON.stringify({ movementId }),
+  });
+}
+
+/** Informar arribo por náuta (cierra movimiento y notifica prefecturas). */
+export function skipperReportArrival(movementId, payload) {
+  const enc = encodeURIComponent(String(movementId || ""));
+  return apiFetch(`/api/sportMovements/${enc}/report-arrival`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Estado de emisión GPS del náuta (movimiento activo con tracking). */
+export function skipperTrackingStatus() {
+  return apiFetch("/api/sportMovements/skipper/tracking-status");
+}
+
+/** Snapshot de movimientos en seguimiento para El Centinela. */
+export function sportMovementTrackingActiveMap() {
+  return apiFetch("/api/sportMovements/tracking/active-map");
+}
+
+/** Registrar posición GPS de un movimiento en tránsito. */
+export function postSportMovementPosition(movementId, payload) {
+  const enc = encodeURIComponent(String(movementId || ""));
+  return apiFetch(`/api/sportMovements/${enc}/positions`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function sportMovementPositions(movementId, params = {}) {
+  const enc = encodeURIComponent(String(movementId || ""));
+  const q = new URLSearchParams(params).toString();
+  return apiFetch(
+    `/api/sportMovements/${enc}/positions${q ? `?${q}` : ""}`
+  );
+}
+
+export function sportMovementLastPosition(movementId) {
+  const enc = encodeURIComponent(String(movementId || ""));
+  return apiFetch(`/api/sportMovements/${enc}/last-position`);
+}
+
+export function sportMovementTrack(movementId) {
+  const enc = encodeURIComponent(String(movementId || ""));
+  return apiFetch(`/api/sportMovements/${enc}/track`);
+}
+
+/** Buques deportivos del propietario/administrador (rol skipper). */
+export function vesselsDeportivoByOwner() {
+  return apiFetch("/api/vessels/deportivo/by-owner");
+}
+
+/** Búsqueda para reclamar buque (4 campos). */
+export function vesselsDeportivoSearchClaim(payload) {
+  return apiFetch("/api/vessels/deportivo/search-claim", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Solicitudes pendientes de administración del náuta. */
+export function vesselsMyAdminStatus() {
+  return apiFetch("/api/vessels/deportivo/my-admin-status");
+}
+
+/** Solicitar administración de un buque (multipart). */
+export function vesselsRequestAdmin({
+  vesselId,
+  unitAcronym,
+  claimType,
+  proofFile,
+}) {
+  const form = new FormData();
+  form.append("vesselId", String(vesselId ?? "").trim());
+  form.append("unitAcronym", String(unitAcronym ?? "").trim());
+  form.append("claimType", String(claimType ?? "").trim());
+  if (proofFile) form.append("proofDocument", proofFile);
+  return apiFetch("/api/vessels/deportivo/request-admin", {
+    method: "POST",
+    body: form,
+  });
+}
+
+export function vesselsCancelAdminRequest({ requestId }) {
+  return apiFetch("/api/vessels/deportivo/cancel-admin-request", {
+    method: "POST",
+    body: JSON.stringify({ requestId }),
+  });
+}
+
+/** Desvincula un buque deportivo de la cuenta del náuta. */
+export function vesselsSkipperUnlink({ vesselId }) {
+  return apiFetch("/api/vessels/deportivo/unlink-vessel", {
+    method: "POST",
+    body: JSON.stringify({ vesselId }),
+  });
+}
+
+export function vesselAdminRequests(vesselId) {
+  const vid = encodeURIComponent(String(vesselId ?? "").trim());
+  return apiFetch(`/api/vessels/by-business-id/${vid}/admin-requests`);
+}
+
+export function approveVesselAdminRequest(requestId, { identityVerified }) {
+  const id = encodeURIComponent(String(requestId ?? "").trim());
+  return apiFetch(`/api/vessels/admin-requests/${id}/approve`, {
+    method: "POST",
+    body: JSON.stringify({ identityVerified: !!identityVerified }),
+  });
+}
+
+export function rejectVesselAdminRequest(requestId, { reason }) {
+  const id = encodeURIComponent(String(requestId ?? "").trim());
+  return apiFetch(`/api/vessels/admin-requests/${id}/reject`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export function addVesselAdministrator(vesselId, { userId, claimType }) {
+  const vid = encodeURIComponent(String(vesselId ?? "").trim());
+  return apiFetch(`/api/vessels/by-business-id/${vid}/administrators`, {
+    method: "POST",
+    body: JSON.stringify({ userId, claimType }),
+  });
+}
+
+export function removeVesselAdministrator(vesselId, userId) {
+  const vid = encodeURIComponent(String(vesselId ?? "").trim());
+  const uid = encodeURIComponent(String(userId ?? "").trim());
+  return apiFetch(
+    `/api/vessels/by-business-id/${vid}/administrators/${uid}`,
+    { method: "DELETE" }
+  );
+}
+
+export async function fetchVesselAdminProofDocument(requestId) {
+  const token = getAuthToken();
+  const id = encodeURIComponent(String(requestId ?? "").trim());
+  const res = await fetch(
+    `/api/vessels/admin-requests/${id}/proof-document`,
+    {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    }
+  );
+  if (!res.ok) {
+    let msg = "No se pudo abrir el documento.";
+    try {
+      const data = await res.json();
+      if (data?.msg) msg = data.msg;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  return { blob, mimeType: res.headers.get("Content-Type") || "" };
+}
+
+export function vesselAdminPreviewToken(token) {
+  const q = new URLSearchParams({ token: String(token || "") });
+  return apiFetch(`/api/vessels/admin-requests/preview?${q}`);
+}
+
+/** Estado de vinculación cuenta ↔ ficha de náuta. */
+export function skipperSeafarerLinkStatus() {
+  return apiFetch("/api/seafarer-links/me/status");
+}
+
+/** Documentación náutica (solo si está vinculado). */
+export function skipperSeafarerLinkProfile() {
+  return apiFetch("/api/seafarer-links/me/profile");
+}
+
+/** Solicitar vinculación formal (elige prefectura + adjunto de documento). */
+export function skipperRequestSeafarerLink({ unitAcronym, identityFile }) {
+  const form = new FormData();
+  form.append("unitAcronym", String(unitAcronym ?? "").trim());
+  if (identityFile) {
+    form.append("identityDocument", identityFile);
+  }
+  return apiFetch("/api/seafarer-links/me/request-link", {
+    method: "POST",
+    body: form,
+  });
+}
+
+/** Cancelar solicitud de vinculación pendiente. */
+export function skipperCancelSeafarerLink() {
+  return apiFetch("/api/seafarer-links/me/cancel", { method: "POST" });
+}
+
+/** Náuta: solicitar desvinculación de su ficha. */
+export function skipperRequestSeafarerUnlink({ reason }) {
+  return apiFetch("/api/seafarer-links/me/request-unlink", {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+}
+
+/** URL autenticada del documento de identidad adjunto a una solicitud. */
+export function seafarerLinkIdentityDocumentUrl(requestId) {
+  const id = encodeURIComponent(String(requestId ?? "").trim());
+  return `/api/seafarer-links/requests/${id}/identity-document`;
+}
+
+/** Descarga el documento de identidad (blob) con el token de sesión. */
+export async function fetchSeafarerLinkIdentityDocument(requestId) {
+  const token = getAuthToken();
+  const url = seafarerLinkIdentityDocumentUrl(requestId);
+  const res = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    let msg = "No se pudo abrir el documento.";
+    try {
+      const data = await res.json();
+      if (data?.msg) msg = data.msg;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get("Content-Disposition") || "";
+  let filename = "documento-identidad";
+  const m = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(
+    disposition
+  );
+  if (m) {
+    filename = decodeURIComponent(m[1] || m[2] || filename);
+  }
+  return { blob, filename, mimeType: res.headers.get("Content-Type") || "" };
+}
+
+/** Verificaciones de vinculación para una ficha (PNN). */
+export function seafarerPendingActions(seafarerId) {
+  const sid = encodeURIComponent(String(seafarerId ?? "").trim());
+  return apiFetch(`/api/seafarer-links/seafarer/${sid}/pending-actions`);
+}
+
+/** Cuentas skipper con documentId = DNI/pasaporte de la ficha. */
+export function seafarerMatchingAccounts(seafarerId) {
+  const sid = encodeURIComponent(String(seafarerId ?? "").trim());
+  return apiFetch(`/api/seafarer-links/seafarer/${sid}/matching-accounts`);
+}
+
+/** Vinculación iniciada por PNN tras búsqueda por documento. */
+export function staffLinkSeafarerUser(seafarerId, { userId, identityVerified }) {
+  const sid = encodeURIComponent(String(seafarerId ?? "").trim());
+  return apiFetch(`/api/seafarer-links/seafarer/${sid}/link-user`, {
+    method: "POST",
+    body: JSON.stringify({
+      userId,
+      identityVerified: !!identityVerified,
+    }),
+  });
+}
+
+export function seafarerLinkPreviewToken(token) {
+  const q = new URLSearchParams({ token: String(token || "") });
+  return apiFetch(`/api/seafarer-links/requests/preview?${q}`);
+}
+
+export function approveSeafarerLink(requestId, { identityVerified }) {
+  const id = encodeURIComponent(String(requestId ?? "").trim());
+  return apiFetch(`/api/seafarer-links/requests/${id}/approve-link`, {
+    method: "POST",
+    body: JSON.stringify({ identityVerified: !!identityVerified }),
+  });
+}
+
+export function rejectSeafarerLink(requestId, { reason }) {
+  const id = encodeURIComponent(String(requestId ?? "").trim());
+  return apiFetch(`/api/seafarer-links/requests/${id}/reject-link`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export function requestSeafarerUnlink(seafarerId, { reason }) {
+  const sid = encodeURIComponent(String(seafarerId ?? "").trim());
+  return apiFetch(`/api/seafarer-links/seafarer/${sid}/request-unlink`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export function approveSeafarerUnlink(requestId) {
+  const id = encodeURIComponent(String(requestId ?? "").trim());
+  return apiFetch(`/api/seafarer-links/requests/${id}/approve-unlink`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export function rejectSeafarerUnlink(requestId, { reason }) {
+  const id = encodeURIComponent(String(requestId ?? "").trim());
+  return apiFetch(`/api/seafarer-links/requests/${id}/reject-unlink`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+}
+
+/** Ficha de gente de mar por _id. */
+export function getSeafarerById(seafarerId) {
+  const sid = encodeURIComponent(String(seafarerId ?? "").trim());
+  return apiFetch(`/api/seafarers/${sid}`);
 }
 
 /**
@@ -1432,6 +1781,95 @@ export async function openAisStream(handlers = {}) {
   } catch (e) {
     if (e?.name === "AbortError") return;
     /* Corte de red / reinicio del API: el hook reintenta. */
+    const err = e instanceof Error ? e : new Error(String(e));
+    handlers.onError?.(err);
+  }
+}
+
+/**
+ * Stream SSE de seguimiento de movimientos deportivos SICEN.
+ * @param {{
+ *   onSnapshot?: (items: object[]) => void,
+ *   onPosition?: (payload: object) => void,
+ *   onTrackingState?: (payload: object) => void,
+ *   onAlert?: (payload: object) => void,
+ *   onStatus?: (status: object) => void,
+ *   onError?: (err: Error) => void,
+ *   signal?: AbortSignal,
+ * }} handlers
+ */
+export async function openSportMovementTrackingStream(handlers = {}) {
+  const token = getAuthToken();
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch("/api/sportMovements/tracking/stream", {
+    method: "GET",
+    credentials: "include",
+    headers,
+    signal: handlers.signal,
+  });
+
+  if (!res.ok) {
+    let msg = res.statusText;
+    try {
+      const data = await res.json();
+      if (data?.msg) msg = data.msg;
+    } catch {
+      /* ignore */
+    }
+    const err = new Error(msg || "No se pudo abrir el stream de seguimiento");
+    err.status = res.status;
+    throw err;
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) {
+    throw new Error("El navegador no soporta streaming de respuesta.");
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  function dispatchEvent(eventName, dataRaw) {
+    let data;
+    try {
+      data = JSON.parse(dataRaw);
+    } catch {
+      return;
+    }
+    if (eventName === "snapshot") handlers.onSnapshot?.(data);
+    else if (eventName === "position") handlers.onPosition?.(data);
+    else if (eventName === "tracking_state") handlers.onTrackingState?.(data);
+    else if (eventName === "alert") handlers.onAlert?.(data);
+    else if (eventName === "status") handlers.onStatus?.(data);
+  }
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const chunks = buffer.split("\n\n");
+      buffer = chunks.pop() || "";
+      for (const chunk of chunks) {
+        if (!chunk.trim() || chunk.startsWith(":")) continue;
+        let eventName = "message";
+        const dataLines = [];
+        for (const line of chunk.split("\n")) {
+          if (line.startsWith("event:")) {
+            eventName = line.slice(6).trim();
+          } else if (line.startsWith("data:")) {
+            dataLines.push(line.slice(5).trim());
+          }
+        }
+        if (dataLines.length) {
+          dispatchEvent(eventName, dataLines.join("\n"));
+        }
+      }
+    }
+  } catch (e) {
+    if (e?.name === "AbortError") return;
     const err = e instanceof Error ? e : new Error(String(e));
     handlers.onError?.(err);
   }

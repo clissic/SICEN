@@ -5,17 +5,30 @@ import {
   closeSportMovement,
   confirmSportMovement,
   createSportMovement,
+  createSportMovementRequestBySkipper,
+  cancelSportMovementRequestBySkipper,
   delayedAlertForUser,
   deleteSportMovement,
   findSportMovementById,
+  getSkipperMovementStatus,
   listArrivalsForUser,
   listClosedForUser,
   listConfirmedDispatchesForUser,
   listDelayedForUser,
   listDispatchesForUser,
   renewSportMovement,
+  reportArrivalBySkipper,
   updateSportMovement,
 } from "../services/sportMovements.service.js";
+import {
+  getLastPosition,
+  getSkipperTrackingStatus,
+  getTrackSummary,
+  listActiveMapForUser,
+  listPositions,
+  recordPosition,
+} from "../services/sportMovementTracking.service.js";
+import { subscribeTrackingSse } from "../services/sportMovementTrackingBridge.service.js";
 
 function handleError(res, e, fallbackMsg) {
   const code = e.status || e.statusCode || 500;
@@ -218,6 +231,168 @@ export const sportMovementsController = {
       });
     } catch (e) {
       return handleError(res, e, "No se pudo eliminar el movimiento.");
+    }
+  },
+
+  async skipperStatus(req, res) {
+    try {
+      const status = await getSkipperMovementStatus(req.user);
+      return res.json({ ok: true, ...status });
+    } catch (e) {
+      return handleError(res, e, "No se pudo obtener el estado del náuta.");
+    }
+  },
+
+  async skipperRequest(req, res) {
+    try {
+      const movement = await createSportMovementRequestBySkipper(
+        req.body || {},
+        req.user
+      );
+      return res.status(201).json({
+        ok: true,
+        msg: "Pre-despacho registrado en SICEN. Para completar el despacho, efectúe la comunicación radial con la Prefectura de despacho.",
+        movement,
+      });
+    } catch (e) {
+      return handleError(res, e, "No se pudo solicitar el despacho.");
+    }
+  },
+
+  async skipperCancelRequest(req, res) {
+    try {
+      const movementId = req.body?.movementId || req.params?.id;
+      const result = await cancelSportMovementRequestBySkipper(
+        movementId,
+        req.user
+      );
+      return res.json({
+        ok: true,
+        msg: "Solicitud de despacho cancelada correctamente.",
+        deletedId: result.id,
+      });
+    } catch (e) {
+      return handleError(res, e, "No se pudo cancelar la solicitud de despacho.");
+    }
+  },
+
+  async reportArrival(req, res) {
+    try {
+      const movement = await reportArrivalBySkipper(
+        req.params.id,
+        req.body || {},
+        req.user
+      );
+      return res.json({
+        ok: true,
+        msg: "Arribo informado correctamente. Se notificó a las prefecturas involucradas.",
+        movement,
+      });
+    } catch (e) {
+      return handleError(res, e, "No se pudo informar el arribo.");
+    }
+  },
+
+  async trackingStream(req, res) {
+    try {
+      res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+      res.setHeader("Cache-Control", "no-cache, no-transform");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("X-Accel-Buffering", "no");
+      if (typeof res.flushHeaders === "function") res.flushHeaders();
+
+      res.write(`: connected\n\n`);
+
+      const snapshot = await listActiveMapForUser(req.user);
+      const unsubscribe = subscribeTrackingSse(res, {
+        user: req.user,
+        snapshot,
+      });
+
+      const heartbeat = setInterval(() => {
+        try {
+          res.write(`: ping\n\n`);
+        } catch {
+          clearInterval(heartbeat);
+        }
+      }, 25_000);
+
+      req.on("close", () => {
+        clearInterval(heartbeat);
+        unsubscribe();
+      });
+    } catch (e) {
+      return handleError(res, e, "No se pudo abrir el stream de seguimiento.");
+    }
+  },
+
+  async trackingActiveMap(req, res) {
+    try {
+      const items = await listActiveMapForUser(req.user);
+      return res.json({ ok: true, items });
+    } catch (e) {
+      return handleError(res, e, "No se pudo cargar el mapa de seguimiento.");
+    }
+  },
+
+  async skipperTrackingStatus(req, res) {
+    try {
+      const status = await getSkipperTrackingStatus(req.user);
+      return res.json({ ok: true, ...status });
+    } catch (e) {
+      return handleError(
+        res,
+        e,
+        "No se pudo obtener el estado de seguimiento del náuta."
+      );
+    }
+  },
+
+  async recordPosition(req, res) {
+    try {
+      const result = await recordPosition(
+        req.params.id,
+        req.body || {},
+        req.user
+      );
+      return res.status(201).json({
+        ok: true,
+        msg: "Posición registrada.",
+        ...result,
+      });
+    } catch (e) {
+      return handleError(res, e, "No se pudo registrar la posición.");
+    }
+  },
+
+  async listPositions(req, res) {
+    try {
+      const result = await listPositions(
+        req.params.id,
+        req.query || {},
+        req.user
+      );
+      return res.json({ ok: true, ...result });
+    } catch (e) {
+      return handleError(res, e, "No se pudo listar las posiciones.");
+    }
+  },
+
+  async lastPosition(req, res) {
+    try {
+      const result = await getLastPosition(req.params.id, req.user);
+      return res.json({ ok: true, ...result });
+    } catch (e) {
+      return handleError(res, e, "No se pudo obtener la última posición.");
+    }
+  },
+
+  async track(req, res) {
+    try {
+      const result = await getTrackSummary(req.params.id, req.user);
+      return res.json({ ok: true, ...result });
+    } catch (e) {
+      return handleError(res, e, "No se pudo obtener el recorrido.");
     }
   },
 };

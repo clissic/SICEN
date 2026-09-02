@@ -1,0 +1,85 @@
+/* Orejetas de rol encima del formulario de Nuevo usuario. */
+
+.new-user-role-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.4rem;
+  align-items: flex-end;
+  margin: 0 0 -1px;
+  padding: 0 0.35rem;
+  position: relative;
+  z-index: 1;
+}
+
+.new-user-role-tabs__tab {
+  appearance: none;
+  margin: 0;
+  padding: 0.55rem 0.85rem 0.65rem;
+  border: 1px solid var(--bs-border-color);
+  border-bottom: none;
+  border-radius: 0.65rem 0.65rem 0 0;
+  background: rgba(var(--bs-body-bg-rgb), 0.55);
+  color: var(--bs-secondary-color);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  max-width: 100%;
+  white-space: nowrap;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.new-user-role-tabs__tab:hover {
+  color: var(--bs-body-color);
+  background: rgba(var(--bs-body-bg-rgb), 0.85);
+}
+
+.new-user-role-tabs__tab.is-active {
+  color: var(--bs-body-color);
+  background: var(--bs-body-bg);
+  box-shadow: 0 -1px 0 var(--bs-body-bg);
+  position: relative;
+  z-index: 2;
+}
+
+.new-user-form-card {
+  border-top-left-radius: 0;
+  position: relative;
+  z-index: 0;
+}
+
+.new-user-form-card__hint {
+  font-size: 0.9rem;
+  color: var(--bs-secondary-color);
+}
+
+@media (max-width: 575.98px) {
+  .new-user-role-tabs {
+    padding: 0;
+    gap: 0.3rem;
+  }
+
+  .new-user-role-tabs__tab {
+    flex: 1 1 calc(50% - 0.3rem);
+    white-space: normal;
+    text-align: center;
+    font-size: 0.78rem;
+    padding: 0.5rem 0.55rem;
+    border-radius: 0.55rem;
+    border: 1px solid var(--bs-border-color);
+  }
+
+  .new-user-role-tabs__tab.is-active {
+    border-color: var(--bs-primary);
+    box-shadow: none;
+    color: var(--bs-primary);
+  }
+
+  .new-user-form-card {
+    border-top-left-radius: var(--bs-border-radius);
+    margin-top: 0.65rem;
+  }
+}

@@ -78,13 +78,19 @@ export function buildOserpManifestData() {
 /** Escribe `src/generated/oserpFilesManifest.js` para importarlo desde el código. */
 export function writeOserpManifestFile() {
   const data = buildOserpManifestData();
-  fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });
-  fs.writeFileSync(
-    OUT_FILE,
+  const content =
     "/** Generado automáticamente. No editar a mano. */\n" +
-      `export default ${JSON.stringify(data, null, 2)};\n`,
-    "utf8"
-  );
+    `export default ${JSON.stringify(data, null, 2)};\n`;
+  fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });
+  let previous = "";
+  try {
+    previous = fs.readFileSync(OUT_FILE, "utf8");
+  } catch {
+    /* archivo nuevo */
+  }
+  if (previous !== content) {
+    fs.writeFileSync(OUT_FILE, content, "utf8");
+  }
   return data;
 }
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { findSeafarerByDocument } from "../api/client.js";
+import { ModalPortal, SICEN_MODAL_Z_INDEX } from "./ModalPortal.jsx";
 
 function dash(v) {
   const s = String(v ?? "").trim();
@@ -97,14 +98,15 @@ export function SportMovementSkipperContactModal({
   const vesselReg = movement.vesselSnapshot?.nationalRegistryNumber || "—";
 
   return (
-    <div
-      className="modal fade show d-block"
-      tabIndex={-1}
-      role="dialog"
-      aria-modal="true"
-      style={{ background: "rgba(0,0,0,0.45)" }}
-      onClick={onClose}
-    >
+    <ModalPortal>
+      <div
+        className="modal fade show d-block"
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        style={{ background: "rgba(0,0,0,0.45)", zIndex: SICEN_MODAL_Z_INDEX }}
+        onClick={onClose}
+      >
       <div
         className="modal-dialog"
         onClick={(e) => e.stopPropagation()}
@@ -188,6 +190,7 @@ export function SportMovementSkipperContactModal({
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </ModalPortal>
   );
 }

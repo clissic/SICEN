@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
+import { formatCoordDms } from "../../utils/geoDms.js";
 
 function stepForZoom(zoom) {
   if (zoom >= 15) return 0.05;
@@ -13,17 +14,7 @@ function stepForZoom(zoom) {
 }
 
 function formatLineLabel(value, kind) {
-  const abs = Math.abs(value);
-  const decimals = abs < 1 ? 2 : abs < 10 ? 1 : 0;
-  const n = abs.toFixed(decimals);
-  if (kind === "lat") {
-    if (value > 0) return `${n}° N`;
-    if (value < 0) return `${n}° S`;
-    return "0°";
-  }
-  if (value > 0) return `${n}° E`;
-  if (value < 0) return `${n}° O`;
-  return "0°";
+  return formatCoordDms(value, kind);
 }
 
 /**

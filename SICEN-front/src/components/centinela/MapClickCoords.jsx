@@ -17,20 +17,13 @@ import {
   fetchWindAtPoint,
   formatWindSummary,
 } from "../../api/openMeteoWind.js";
-
-function formatCoord(value, kind) {
-  const abs = Math.abs(value);
-  const hemi =
-    kind === "lat" ? (value >= 0 ? "N" : "S") : value >= 0 ? "E" : "O";
-  return `${abs.toFixed(5)}° ${hemi}`;
-}
+import { formatCoordDms } from "../../utils/geoDms.js";
 
 function coordsPopupHtml(lat, lng, extraBlock = "") {
   return `<div class="centinela-coords-popup__body">
     <div class="centinela-coords-popup__title">Coordenadas</div>
-    <div><span class="centinela-coords-popup__label">Lat</span> ${formatCoord(lat, "lat")}</div>
-    <div><span class="centinela-coords-popup__label">Lon</span> ${formatCoord(lng, "lng")}</div>
-    <div class="centinela-coords-popup__decimal">${lat.toFixed(6)}, ${lng.toFixed(6)}</div>
+    <div><span class="centinela-coords-popup__label">Lat</span> ${formatCoordDms(lat, "lat")}</div>
+    <div><span class="centinela-coords-popup__label">Lon</span> ${formatCoordDms(lng, "lng")}</div>
     ${extraBlock}
   </div>`;
 }
@@ -40,12 +33,10 @@ function coordsPopupHtml(lat, lng, extraBlock = "") {
  */
 export function MapClickCoords({
   windLayerOn = false,
-  windForecastHoursOffset = 0,
   currentsLayerOn = false,
-  currentsForecastHoursOffset = 0,
   wavesLayerOn = false,
-  wavesForecastHoursOffset = 0,
   bathymetryLayerOn = false,
+  envForecastHoursOffset = 0,
 }) {
   const map = useMap();
 
@@ -104,7 +95,7 @@ export function MapClickCoords({
         tasks.push(
           fetchWindAtPoint(lat, lng, {
             signal: controller.signal,
-            forecastHoursOffset: windForecastHoursOffset,
+            forecastHoursOffset: envForecastHoursOffset,
           })
             .then((point) => ({
               kind: "wind",
@@ -123,7 +114,7 @@ export function MapClickCoords({
         tasks.push(
           fetchCurrentAtPoint(lat, lng, {
             signal: controller.signal,
-            forecastHoursOffset: currentsForecastHoursOffset,
+            forecastHoursOffset: envForecastHoursOffset,
           })
             .then((point) => ({
               kind: "currents",
@@ -142,7 +133,7 @@ export function MapClickCoords({
         tasks.push(
           fetchWaveAtPoint(lat, lng, {
             signal: controller.signal,
-            forecastHoursOffset: wavesForecastHoursOffset,
+            forecastHoursOffset: envForecastHoursOffset,
           })
             .then((point) => ({
               kind: "waves",
@@ -192,12 +183,10 @@ export function MapClickCoords({
   }, [
     map,
     windLayerOn,
-    windForecastHoursOffset,
     currentsLayerOn,
-    currentsForecastHoursOffset,
     wavesLayerOn,
-    wavesForecastHoursOffset,
     bathymetryLayerOn,
+    envForecastHoursOffset,
   ]);
 
   return null;

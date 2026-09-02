@@ -24,6 +24,8 @@ import {
   INSPECTION_PDFS_DIR,
   ensureInspectionPdfsDirSync,
 } from "./utils/inspectionPDFFiles.js";
+import { ensureSeafarerLinkIdentityDirSync } from "./utils/seafarerLinkIdentityFiles.js";
+import { ensureVesselAdminProofDirSync } from "./utils/vesselAdminProofFiles.js";
 import { usersRouter } from "./routes/users.router.js";
 import { sessionsRouter } from "./routes/sessions.router.js";
 import { carFinesRouter } from "./routes/carFines.router.js";
@@ -44,7 +46,9 @@ import { windRouter } from "./routes/wind.router.js";
 import { currentsRouter } from "./routes/currents.router.js";
 import { wavesRouter } from "./routes/waves.router.js";
 import { bathymetryRouter } from "./routes/bathymetry.router.js";
+import { seafarerLinksRouter } from "./routes/seafarerLinks.router.js";
 import { warmAisBridge } from "./services/aisBridge.service.js";
+import { startTrackingMonitor } from "./services/sportMovementTracking.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -94,6 +98,9 @@ app.use(
   compression({
     filter(req, res) {
       if (req.originalUrl?.startsWith("/api/ais/stream")) return false;
+      if (req.originalUrl?.startsWith("/api/sportMovements/tracking/stream")) {
+        return false;
+      }
       return compression.filter(req, res);
     },
   })
@@ -119,6 +126,9 @@ app.use(
 ensureInspectionPdfsDirSync();
 app.use("/uploads/inspectionsERP", express.static(INSPECTION_PDFS_DIR));
 
+ensureSeafarerLinkIdentityDirSync();
+ensureVesselAdminProofDirSync();
+
 app.use("/api/users", usersRouter);
 app.use("/api/sessions", sessionsRouter);
 app.use("/api/carFines", carFinesRouter);
@@ -139,8 +149,10 @@ app.use("/api/wind", windRouter);
 app.use("/api/currents", currentsRouter);
 app.use("/api/waves", wavesRouter);
 app.use("/api/bathymetry", bathymetryRouter);
+app.use("/api/seafarer-links", seafarerLinksRouter);
 
 warmAisBridge();
+startTrackingMonitor();
 
 
 if (hasSpaBuild) {

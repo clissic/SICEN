@@ -20,6 +20,8 @@ import {
   SPORT_RECREATIONAL_DOC_TYPES,
 } from "../constants/vesselStatsClassification.js";
 import { logger } from "../utils/logger.js";
+import { ownerStringMatchesSkipper, ownerLabelFromSkipper, skipperCanManageVessel } from "../utils/skipperVesselOwner.js";
+import { UserMongoose } from "../DAO/models/mongoose/users.mongoose.js";
 import { createPlaceholderInspectionForVessel } from "./vesselInspections.service.js";
 
 function escapeRegex(s) {
@@ -75,6 +77,10 @@ export function buildRegistrationSubdoc(p, existing) {
         ? existing.ownership.companyAddress
         : ""
       : "";
+  const administrators =
+    existing && typeof existing === "object" && Array.isArray(existing.ownership?.administrators)
+      ? existing.ownership.administrators
+      : [];
 
   const classification =
     p.vesselType === "Deportivo"
@@ -132,6 +138,7 @@ export function buildRegistrationSubdoc(p, existing) {
       owner: p.owner.trim(),
       operator: p.operator.trim(),
       companyAddress,
+      administrators,
     },
     classification,
     crew: {
@@ -156,6 +163,34 @@ export function buildRegistrationSubdoc(p, existing) {
 export async function createVesselInitial(p, user = null) {
   const id = randomUUID();
   const reg = buildRegistrationSubdoc(p, null);
+
+  let administrators = [];
+  let ownerText = str(p.owner);
+
+  if (p.vesselType === "Deportivo") {
+    const adminIds = [
+      ...(p.ownerSkipperUserId ? [p.ownerSkipperUserId] : []),
+      ...(p.administratorSkipperUserIds || []),
+    ];
+    if (adminIds.length) {
+      const usersById = await loadSkipperUsersForVesselLink(adminIds);
+      administrators = buildAdministratorEntries({
+        ownerSkipperUserId: p.ownerSkipperUserId || "",
+        administratorSkipperUserIds: p.administratorSkipperUserIds || [],
+        usersById,
+        actor: user,
+      });
+      if (p.ownerSkipperUserId) {
+        const ownerUser = usersById.get(p.ownerSkipperUserId);
+        if (ownerUser) ownerText = ownerLabelFromSkipper(ownerUser);
+      }
+    }
+  }
+
+  if (reg.ownership) {
+    reg.ownership.owner = ownerText;
+    reg.ownership.administrators = administrators;
+  }
 
   const doc = {
     id,
@@ -328,6 +363,13 @@ export function normalizeVesselInitialPayload(raw) {
   const master = typeof raw.master === "string" ? raw.master : "";
   const crewCapacity = parseFiniteNumber(raw.crewCapacity);
 
+  const ownerSkipperUserId = str(raw.ownerSkipperUserId);
+  const administratorSkipperUserIds = Array.isArray(
+    raw.administratorSkipperUserIds
+  )
+    ? [...new Set(raw.administratorSkipperUserIds.map((id) => str(id)).filter(Boolean))]
+    : [];
+
   if (vesselType === "Deportivo" && recreationalDocType === "Extranjero") {
     if (recreationalCategory.length > 500) {
       recreationalCategory = recreationalCategory.slice(0, 500);
@@ -368,7 +410,78 @@ export function normalizeVesselInitialPayload(raw) {
     classificationFlagRegistry,
     master,
     crewCapacity,
+    ownerSkipperUserId,
+    administratorSkipperUserIds,
   };
+}
+
+async function loadSkipperUsersForVesselLink(userIds) {
+  const unique = [...new Set(userIds.map((id) => str(id)).filter(Boolean))];
+  if (!unique.length) return new Map();
+  const invalid = unique.filter((id) => !isValidObjectId(id));
+  if (invalid.length) {
+    const e = new Error("Identificador de náuta no válido.");
+    e.status = 400;
+    throw e;
+  }
+  const docs = await UserMongoose.find({ _id: { $in: unique } })
+    .select("first_name last_name email documentId role")
+    .lean();
+  const byId = new Map(docs.map((d) => [String(d._id), d]));
+  for (const id of unique) {
+    const u = byId.get(id);
+    if (!u || str(u.role) !== "skipper") {
+      const e = new Error("Solo se pueden vincular cuentas de náuta deportivo.");
+      e.status = 400;
+      throw e;
+    }
+  }
+  return byId;
+}
+
+function buildAdministratorEntries({ ownerSkipperUserId, administratorSkipperUserIds, usersById, actor }) {
+  const linkedBy = str(actor?.email);
+  const linkedByUnit = str(actor?.unit).toUpperCase();
+  const now = new Date();
+  const entries = [];
+  const seen = new Set();
+
+  if (ownerSkipperUserId) {
+    const ownerUser = usersById.get(ownerSkipperUserId);
+    if (!ownerUser) {
+      const e = new Error("El propietario náuta indicado no existe.");
+      e.status = 400;
+      throw e;
+    }
+    entries.push({
+      userId: ownerUser._id,
+      claimType: "owner",
+      linkedAt: now,
+      linkedBy,
+      linkedByUnit,
+    });
+    seen.add(ownerSkipperUserId);
+  }
+
+  for (const adminId of administratorSkipperUserIds) {
+    if (seen.has(adminId)) continue;
+    const adminUser = usersById.get(adminId);
+    if (!adminUser) {
+      const e = new Error("Uno de los administradores indicados no existe.");
+      e.status = 400;
+      throw e;
+    }
+    entries.push({
+      userId: adminUser._id,
+      claimType: "admin",
+      linkedAt: now,
+      linkedBy,
+      linkedByUnit,
+    });
+    seen.add(adminId);
+  }
+
+  return entries;
 }
 
 /**
@@ -559,6 +672,99 @@ export async function searchVesselsByType({
     total,
     limit: safeLimit,
   };
+}
+
+const DEPORTIVO_BY_OWNER_PROJECTION = {
+  id: 1,
+  vesselType: 1,
+  recreationalDocType: 1,
+  recreationalCategory: 1,
+  "identification.callSign": 1,
+  "generalInfo.name": 1,
+  "generalInfo.flagState": 1,
+  "generalInfo.portOfRegistry": 1,
+  "generalInfo.yearBuilt": 1,
+  "generalInfo.shipType": 1,
+  "generalInfo.grossTonnage": 1,
+  "generalInfo.lengthOverall": 1,
+  "generalInfo.beam": 1,
+  "generalInfo.puntal": 1,
+  "identification.nationalRegistryNumber": 1,
+  "ownership.owner": 1,
+  "ownership.administrators": 1,
+  "crew.crewCapacity": 1,
+};
+
+export function mapDeportivoVesselSummary(d) {
+  const uid = String(d.__viewerUserId || "");
+  const adminEntry = (d.ownership?.administrators || []).find(
+    (a) => String(a.userId) === uid
+  );
+  let myClaimType = adminEntry?.claimType || null;
+  if (
+    !myClaimType &&
+    d.__viewerUser &&
+    ownerStringMatchesSkipper(d.ownership?.owner, d.__viewerUser)
+  ) {
+    myClaimType = "owner";
+  }
+  return {
+    _id: d._id,
+    id: d.id || undefined,
+    vesselType: d.vesselType ?? "",
+    name: d.generalInfo?.name ?? "",
+    nationalRegistryNumber: d.identification?.nationalRegistryNumber ?? null,
+    callSign: d.identification?.callSign ?? "",
+    flagState: d.generalInfo?.flagState ?? "",
+    portOfRegistry: d.generalInfo?.portOfRegistry ?? "",
+    recreationalDocType: d.recreationalDocType ?? "",
+    recreationalCategory: d.recreationalCategory ?? "",
+    shipType: d.generalInfo?.shipType ?? "",
+    yearBuilt: d.generalInfo?.yearBuilt ?? null,
+    grossTonnage: d.generalInfo?.grossTonnage ?? null,
+    lengthOverall: d.generalInfo?.lengthOverall ?? null,
+    beam: d.generalInfo?.beam ?? null,
+    puntal: d.generalInfo?.puntal ?? null,
+    owner: d.ownership?.owner ?? "",
+    myClaimType,
+    crewCapacity: d.crew?.crewCapacity ?? null,
+  };
+}
+
+/**
+ * Buques deportivos cuyo propietario coincide con el usuario náuta
+ * o donde figura en ownership.administrators.
+ */
+export async function listDeportivoVesselsByOwner(user) {
+  if (str(user?.role) !== "skipper") {
+    const e = new Error("Solo los náutas pueden consultar sus buques.");
+    e.status = 403;
+    throw e;
+  }
+
+  const docs = await VesselMongoose.find(
+    { vesselType: "Deportivo" },
+    DEPORTIVO_BY_OWNER_PROJECTION
+  )
+    .sort({ "generalInfo.name": 1 })
+    .lean();
+
+  const uid = String(user._id);
+  const vessels = docs
+    .filter((d) => skipperCanManageVessel(d, user))
+    .map((d) =>
+      mapDeportivoVesselSummary({
+        ...d,
+        __viewerUserId: uid,
+        __viewerUser: user,
+      })
+    );
+
+  return { vessels, total: vessels.length };
+}
+
+function str(v) {
+  return String(v ?? "").trim();
 }
 
 /**

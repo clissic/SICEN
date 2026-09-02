@@ -27,6 +27,7 @@ import {
   resolveHeldCredentialStatus,
   syncHeldCredentialsExpiryOnDoc,
 } from "../utils/heldCredentialStatus.js";
+import { UserMongoose } from "../DAO/models/mongoose/users.mongoose.js";
 import {
   normalizeSportBrevetCategory,
   sportBrevetCountsToRows,
@@ -395,6 +396,31 @@ export async function updateSeafarerBasicData(seafarerId, body, user) {
 
   const doc = await loadSeafarerDocById(id);
 
+  const linkedAccount = await UserMongoose.findOne({
+    "seafarerLink.seafarerId": id,
+    "seafarerLink.status": { $in: ["linked", "pending_unlink"] },
+  })
+    .select("_id")
+    .lean();
+  if (linkedAccount) {
+    const curId = doc.identificationDocuments || {};
+    const curPd = doc.personalData || {};
+    const nextId = normalized.identificationDocuments || {};
+    const nextPd = normalized.personalData || {};
+    const lockedChanged =
+      normalizeSeafarerDni(curId.dni) !== normalizeSeafarerDni(nextId.dni) ||
+      normalizeSeafarerPassport(curId.passport) !==
+        normalizeSeafarerPassport(nextId.passport) ||
+      str(curPd.firstName) !== str(nextPd.firstName) ||
+      str(curPd.lastName) !== str(nextPd.lastName);
+    if (lockedChanged) {
+      throw httpError(
+        "DNI, pasaporte, nombres y apellidos no se pueden editar mientras la ficha esté vinculada a una cuenta SICEN. Primero desvincule el perfil en Verificaciones.",
+        409
+      );
+    }
+  }
+
   doc.set("identificationDocuments", normalized.identificationDocuments);
   doc.set("personalData", normalized.personalData);
   doc.set("morphologicalData", normalized.morphologicalData);
@@ -516,6 +542,11 @@ async function seafarerToConsultObject(docId) {
     .populate(SEAFARER_CONSULT_POPULATE)
     .exec();
   return out.toObject ? out.toObject() : out;
+}
+
+/** Consulta por `_id` (p. ej. deep link de vinculación náuta). */
+export async function getSeafarerById(id) {
+  return seafarerToConsultObject(id);
 }
 
 function touchSeafarerMetadata(doc, user) {

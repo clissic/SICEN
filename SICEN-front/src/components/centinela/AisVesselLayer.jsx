@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Marker, Popup } from "react-leaflet";
 import L from "leaflet";
+import { formatCoordDms } from "../../utils/geoDms.js";
 
 const NAV_STATUS = {
   0: "En navegación con motor",
@@ -68,6 +69,8 @@ export function AisVesselLayer({ vessels }) {
                   )}
                 </div>
                 <ul className="centinela-ais-popup__meta list-unstyled mb-0">
+                  <li>Lat. {formatCoordDms(v.lat, "lat")}</li>
+                  <li>Long. {formatCoordDms(v.lon, "lng")}</li>
                   {typeof v.sog === "number" ? (
                     <li>SOG: {(v.sog * 1).toFixed(1)} kn</li>
                   ) : null}

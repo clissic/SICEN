@@ -615,7 +615,17 @@ export function SportMovementsDispatchesPage() {
                         <td>{m.destinationPort || "—"}</td>
                         <td>{m.destinationUnit || "—"}</td>
                         <td className="small">{formatEta(m.eta)}</td>
-                        <td>{statusBadge(m.status)}</td>
+                        <td>
+                          {statusBadge(m.status)}
+                          {m.requestedBySkipper ? (
+                            <span
+                              className="badge text-bg-secondary ms-1"
+                              data-sicen-popover="Solicitado por náuta desde SICEN"
+                            >
+                              Náuta
+                            </span>
+                          ) : null}
+                        </td>
                         <td className="text-end text-nowrap">
                           {m.status === "standBy" ? (
                             <button

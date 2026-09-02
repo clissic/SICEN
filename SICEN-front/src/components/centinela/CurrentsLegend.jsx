@@ -1,51 +1,14 @@
-import {
-  CURRENT_FORECAST_HOUR_OPTIONS,
-  CURRENT_SPEED_LEGEND,
-} from "../../api/openMeteoCurrents.js";
+import { CURRENT_SPEED_LEGEND } from "../../api/openMeteoCurrents.js";
 
-/**
- * Leyenda inferior de corrientes + selector de horizonte.
- * Colores teal/verde/violeta (distintos del viento).
- */
-export function CurrentsLegend({
-  visible,
-  forecastHours = 0,
-  onForecastHoursChange,
-}) {
-  if (!visible) return null;
-
+export function CurrentsLegendSection() {
   return (
-    <div
-      className="centinela-wind-legend centinela-currents-legend"
-      role="region"
-      aria-label="Pronóstico y leyenda de corrientes"
+    <section
+      className="centinela-env-legends-panel__section"
+      aria-label="Leyenda de corrientes"
     >
-      <div
-        className="centinela-wind-legend__forecast"
-        role="group"
-        aria-label="Horizonte de pronóstico de corrientes"
-      >
-        {CURRENT_FORECAST_HOUR_OPTIONS.map((opt) => {
-          const active = forecastHours === opt.hours;
-          return (
-            <button
-              key={opt.hours}
-              type="button"
-              className={`centinela-wind-legend__hour${
-                active ? " is-active" : ""
-              }`}
-              aria-pressed={active}
-              onClick={() => onForecastHoursChange?.(opt.hours)}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
-
       <div className="centinela-wind-legend__body">
         <span className="centinela-wind-legend__title">Corrientes (kn)</span>
-        <ul className="centinela-wind-legend__list">
+        <ul className="centinela-wind-legend__list centinela-wind-legend__list--compact">
           {CURRENT_SPEED_LEGEND.map((item) => (
             <li key={item.className} className="centinela-wind-legend__item">
               <span
@@ -57,6 +20,16 @@ export function CurrentsLegend({
           ))}
         </ul>
       </div>
+    </section>
+  );
+}
+
+/** @deprecated Usar `CentinelaEnvLegendsPanel`. */
+export function CurrentsLegend({ visible }) {
+  if (!visible) return null;
+  return (
+    <div className="centinela-wind-legend centinela-currents-legend">
+      <CurrentsLegendSection />
     </div>
   );
 }
