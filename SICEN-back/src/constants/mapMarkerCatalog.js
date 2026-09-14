@@ -14,6 +14,11 @@ export const MAP_MARKER_COLORS = [
   "#db2777",
   "#0891b2",
   "#475569",
+  "#ffffff",
+  "#d4d4d4",
+  "#a3a3a3",
+  "#525252",
+  "#000000",
 ];
 
 export const MAP_MARKER_ICON_GROUPS = [

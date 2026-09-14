@@ -26,34 +26,57 @@ function userEmail(user) {
   return String(user?.email || "").trim();
 }
 
-function normalizePayload(body = {}) {
-  const name = String(body.name ?? "").trim();
-  const lat = Number(body.lat);
-  const lng = Number(body.lng);
-  const icon = String(body.icon ?? MAP_MARKER_DEFAULT_ICON).trim();
-  const colorRaw = String(body.color ?? MAP_MARKER_DEFAULT_COLOR).trim();
-  const color =
-    MAP_MARKER_COLORS.find(
-      (c) => c.toLowerCase() === colorRaw.toLowerCase()
-    ) || null;
+function normalizePayload(body = {}, { partial = false } = {}) {
+  const out = {};
 
-  if (!name || name.length > 80) {
-    throw httpError("El nombre es obligatorio (máx. 80 caracteres).");
-  }
-  if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
-    throw httpError("Latitud inválida.");
-  }
-  if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
-    throw httpError("Longitud inválida.");
-  }
-  if (!isAllowedMapMarkerIcon(icon)) {
-    throw httpError("Ícono no permitido.");
-  }
-  if (!color) {
-    throw httpError("Color no permitido.");
+  if (!partial || body.name !== undefined) {
+    const name = String(body.name ?? "").trim();
+    if (!name || name.length > 80) {
+      throw httpError("El nombre es obligatorio (máx. 80 caracteres).");
+    }
+    out.name = name;
   }
 
-  return { name, lat, lng, icon, color };
+  if (!partial || body.lat !== undefined || body.lng !== undefined) {
+    const lat = Number(body.lat);
+    const lng = Number(body.lng);
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+      throw httpError("Latitud inválida.");
+    }
+    if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+      throw httpError("Longitud inválida.");
+    }
+    out.lat = Number(lat.toFixed(6));
+    out.lng = Number(lng.toFixed(6));
+  }
+
+  if (!partial || body.icon !== undefined) {
+    const icon = String(body.icon ?? MAP_MARKER_DEFAULT_ICON).trim();
+    if (!isAllowedMapMarkerIcon(icon)) {
+      throw httpError("Ícono no permitido.");
+    }
+    out.icon = icon;
+  }
+
+  if (!partial || body.color !== undefined) {
+    const colorRaw = String(body.color ?? MAP_MARKER_DEFAULT_COLOR).trim();
+    const color =
+      MAP_MARKER_COLORS.find(
+        (c) => c.toLowerCase() === colorRaw.toLowerCase()
+      ) || null;
+    if (!color) {
+      throw httpError("Color no permitido.");
+    }
+    out.color = color;
+  }
+
+  if (body.hidden !== undefined) {
+    out.hidden = Boolean(body.hidden);
+  } else if (!partial) {
+    out.hidden = false;
+  }
+
+  return out;
 }
 
 export async function listMapMarkersForUser(user) {
@@ -88,7 +111,41 @@ export async function updateMapMarker(user, id, body) {
   if (!isValidObjectId(String(id))) {
     throw httpError("Marcador inválido.", 400);
   }
-  const data = normalizePayload(body);
+  const raw = body ?? {};
+  const hasName = raw.name !== undefined;
+  const hasLat = raw.lat !== undefined;
+  const hasLng = raw.lng !== undefined;
+  const hasIcon = raw.icon !== undefined;
+  const hasColor = raw.color !== undefined;
+  const hasHidden = raw.hidden !== undefined;
+
+  if (
+    !hasName &&
+    !hasLat &&
+    !hasLng &&
+    !hasIcon &&
+    !hasColor &&
+    !hasHidden
+  ) {
+    throw httpError("No hay cambios para guardar.");
+  }
+
+  const onlyHidden =
+    hasHidden &&
+    !hasName &&
+    !hasLat &&
+    !hasLng &&
+    !hasIcon &&
+    !hasColor;
+
+  let data;
+  if (onlyHidden) {
+    data = { hidden: Boolean(raw.hidden) };
+  } else {
+    data = normalizePayload(raw, { partial: false });
+    if (hasHidden) data.hidden = Boolean(raw.hidden);
+  }
+
   const doc = await MapMarkersMongoose.findOneAndUpdate(
     { _id: id, userId },
     {

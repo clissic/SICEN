@@ -48,8 +48,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(22px) saturate(165%);
   -webkit-backdrop-filter: blur(22px) saturate(165%);
-  /* visible para que la solapa de cierre no se recorte */
-  overflow: visible;
+  overflow: hidden;
 }
 
 .centinela-glass__body {
@@ -261,39 +260,39 @@ html[data-bs-theme="dark"] .centinela-fab-zoom__btn + .centinela-fab-zoom__btn {
   cursor: pointer;
 }
 
-/* Solapa de cierre pegada al borde derecho del panel (solo mobile / drawer) */
+/* Cierre del panel Capas (esquina superior derecha, dentro del menú) */
 .centinela-glass__collapse {
-  position: absolute;
-  top: 1.15rem;
-  left: 100%;
+  position: static;
   z-index: 2;
   display: none;
+  flex-shrink: 0;
   place-items: center;
-  width: 1.55rem;
-  height: 2.7rem;
+  width: 1.85rem;
+  height: 1.85rem;
   margin: 0;
   padding: 0;
-  border-radius: 0 0.7rem 0.7rem 0;
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  border-left: none;
+  border-radius: 0.45rem;
+  border: none;
   color: inherit;
-  background: rgba(255, 255, 255, 0.42);
-  box-shadow:
-    4px 4px 18px rgba(15, 23, 42, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(22px) saturate(165%);
-  -webkit-backdrop-filter: blur(22px) saturate(165%);
-  font-size: 0.95rem;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  font-size: 0.85rem;
   line-height: 1;
   cursor: pointer;
+  opacity: 0.75;
 }
 
 html[data-bs-theme="dark"] .centinela-glass__collapse {
-  border-color: rgba(255, 255, 255, 0.14);
-  background: rgba(16, 20, 28, 0.52);
-  box-shadow:
-    4px 6px 20px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.centinela-glass__collapse:hover {
+  opacity: 1;
+  filter: none;
 }
 
 .centinela-glass__footer-actions {
@@ -370,10 +369,6 @@ html[data-bs-theme="dark"] .centinela-glass__collapse {
 }
 
 .centinela-glass__action-btn.is-active:hover {
-  filter: brightness(1.06);
-}
-
-.centinela-glass__collapse:hover {
   filter: brightness(1.06);
 }
 
@@ -1093,6 +1088,14 @@ html[data-bs-theme="dark"] .centinela-skylight-list-fab.is-active {
   top: calc(1rem + 2.75rem + 0.5rem);
 }
 
+.centinela-zones-list-fab--offset {
+  top: calc(1rem + 2.75rem + 0.5rem);
+}
+
+.centinela-zones-list-fab--offset-2 {
+  top: calc(1rem + 2.75rem + 0.5rem + 2.75rem + 0.5rem);
+}
+
 .centinela-vessel-dossier__scroll {
   gap: 0.75rem;
 }
@@ -1740,7 +1743,9 @@ html[data-bs-theme="dark"] .centinela-env-legends-panel__forecast {
 .centinela-tool-panel,
 .centinela-measure-panel,
 .centinela-goto-panel,
-.centinela-hc-panel {
+.centinela-hc-panel,
+.centinela-marker-form,
+.centinela-zone-form {
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
@@ -1764,7 +1769,9 @@ html[data-bs-theme="dark"] .centinela-env-legends-panel__forecast {
 html[data-bs-theme="dark"] .centinela-tool-panel,
 html[data-bs-theme="dark"] .centinela-measure-panel,
 html[data-bs-theme="dark"] .centinela-goto-panel,
-html[data-bs-theme="dark"] .centinela-hc-panel {
+html[data-bs-theme="dark"] .centinela-hc-panel,
+html[data-bs-theme="dark"] .centinela-marker-form,
+html[data-bs-theme="dark"] .centinela-zone-form {
   background: rgba(15, 23, 42, 0.62);
   border-color: rgba(255, 255, 255, 0.12);
   box-shadow:
@@ -2088,6 +2095,17 @@ html[data-bs-theme="dark"] .centinela-hc-panel__pick.is-active {
 
   .centinela-hc-panel__pick-label {
     display: none;
+  }
+
+  .centinela-zone-form__pick {
+    min-width: 0;
+    max-width: none;
+    width: auto;
+    padding: 0.35rem 0.65rem;
+  }
+
+  .centinela-zone-form__pick .centinela-hc-panel__pick-label {
+    display: inline;
   }
 }
 
@@ -2443,9 +2461,13 @@ html[data-bs-theme="dark"] .centinela-goto-panel__hemi-btn.is-active {
 
 .centinela-coords-popup__actions {
   margin-top: 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
-.centinela-coords-popup__add-marker {
+.centinela-coords-popup__add-marker,
+.centinela-coords-popup__add-zone {
   width: 100%;
 }
 
@@ -2474,6 +2496,12 @@ html[data-bs-theme="dark"] .centinela-goto-panel__hemi-btn.is-active {
   color: #fff;
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.28);
   border: 2px solid rgba(255, 255, 255, 0.9);
+}
+
+.centinela-marker-pin--on-light {
+  color: #0f172a;
+  border-color: #0f172a;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.2);
 }
 
 .centinela-marker-pin .material-symbols-outlined {
@@ -2543,25 +2571,193 @@ html[data-bs-theme="dark"] .centinela-user-marker-popup__btn:hover {
   background: rgba(255, 255, 255, 0.14);
 }
 
-.centinela-marker-modal {
-  position: absolute;
-  inset: 0;
-  z-index: 1200;
+.centinela-marker-form,
+.centinela-zone-form {
+  width: 100%;
+  max-height: min(42vh, 22rem);
+  overflow: auto;
+  margin-inline: 0;
+}
+
+.centinela-marker-form__row,
+.centinela-zone-form__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.centinela-marker-form__name-row {
+  flex-wrap: nowrap;
+}
+
+.centinela-marker-form__name {
+  display: flex;
+  flex: 1 1 12rem;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  min-width: 0;
+}
+
+.centinela-marker-form__colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  justify-content: center;
+  width: 100%;
+}
+
+.centinela-marker-form__icons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.centinela-marker-form__actions {
+  gap: 0.4rem;
+  justify-content: space-between;
+}
+
+.centinela-zone-form__points-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.centinela-zone-form__points-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.3rem;
+}
+
+.centinela-zone-form__pick {
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  align-self: center;
+  min-width: 0;
+  max-width: none;
+  min-height: 0;
+  padding: 0.35rem 0.65rem;
+}
+
+.centinela-zone-form__pick i {
+  font-size: 1rem;
+}
+
+.centinela-zone-form__pick .centinela-hc-panel__pick-label {
+  font-size: 0.72rem;
+  max-width: none;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.centinela-zone-form__points {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 11rem;
+  overflow: auto;
+}
+
+.centinela-zone-form__point {
   display: grid;
-  place-items: center;
-  padding: 1rem;
-  pointer-events: none;
+  grid-template-columns: 1.15rem minmax(0, 1fr) auto minmax(0, 1.15fr) auto auto;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.centinela-zone-form__idx {
+  font-size: 0.72rem;
+  font-weight: 700;
+  opacity: 0.7;
+  text-align: center;
+}
+
+.centinela-zone-form__point-btns {
+  display: inline-flex;
+  gap: 0;
+}
+
+.centinela-zone-vertex {
+  background: transparent !important;
+  border: none !important;
+}
+
+.centinela-zone-vertex__dot {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.35), 0 1px 4px rgba(15, 23, 42, 0.35);
+  cursor: grab;
+}
+
+.centinela-zone-vertex.leaflet-drag-target .centinela-zone-vertex__dot,
+.centinela-zone-vertex:active .centinela-zone-vertex__dot {
+  cursor: grabbing;
+}
+
+.centinela-marker-form .centinela-marker-modal__swatch,
+.centinela-zone-form .centinela-marker-modal__swatch {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+@media (max-width: 640px) {
+  .centinela-zone-form__point {
+    grid-template-columns: 1.1rem minmax(0, 1fr) auto;
+    grid-template-areas:
+      "idx lat hemiL"
+      ". lon hemiO"
+      ". btns btns";
+  }
+
+  .centinela-zone-form__point > :nth-child(1) {
+    grid-area: idx;
+  }
+
+  .centinela-zone-form__point > :nth-child(2) {
+    grid-area: lat;
+  }
+
+  .centinela-zone-form__point > :nth-child(3) {
+    grid-area: hemiL;
+  }
+
+  .centinela-zone-form__point > :nth-child(4) {
+    grid-area: lon;
+  }
+
+  .centinela-zone-form__point > :nth-child(5) {
+    grid-area: hemiO;
+  }
+
+  .centinela-zone-form__point-btns {
+    grid-area: btns;
+    justify-content: flex-end;
+  }
+
+  .centinela-marker-form,
+  .centinela-zone-form {
+    max-height: min(50vh, 24rem);
+  }
+}
+
+.centinela-marker-modal {
+  /* legacy overlay removido: formularios van al margen inferior */
+  display: none;
 }
 
 .centinela-marker-modal__backdrop {
-  position: absolute;
-  inset: 0;
-  border: none;
-  margin: 0;
-  padding: 0;
-  background: rgba(15, 23, 42, 0.35);
-  pointer-events: auto;
-  cursor: pointer;
+  display: none;
 }
 
 .centinela-marker-modal__panel {
@@ -2584,7 +2780,7 @@ html[data-bs-theme="dark"] .centinela-user-marker-popup__btn:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .centinela-marker-modal__swatch {
@@ -2770,6 +2966,37 @@ html[data-bs-theme="dark"] .centinela-marker-modal__accordion-btn {
 
 html[data-bs-theme="dark"] .centinela-markers-list__icon-btn:hover {
   background: rgba(255, 255, 255, 0.08);
+}
+
+.centinela-zone-swatch {
+  flex-shrink: 0;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 0.2rem;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+}
+
+html[data-bs-theme="dark"] .centinela-zone-swatch {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.centinela-markers-list__row.is-hidden-item {
+  opacity: 0.55;
+}
+
+.centinela-zones-user-list__verts {
+  margin: 0 0 0.35rem 2.1rem;
+  padding: 0 0 0.15rem;
+  list-style: none;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.centinela-zones-user-list__vert-idx {
+  font-weight: 600;
+  opacity: 0.85;
 }
 
 .centinela-measure-label {
@@ -3302,6 +3529,11 @@ html[data-bs-theme="dark"] .centinela-bathy-tooltip {
   /* Eventos Skylight / Historial: por encima de FABs en mobile */
   .centinela-skylight-list--mobile {
     z-index: 1110;
+  }
+
+  /* Crear marcador / zona: por encima de Mis marcadores / Mis zonas */
+  .centinela-env-legends--form-open {
+    z-index: 1120;
   }
 
   .centinela-glass--drawer .centinela-glass__body {

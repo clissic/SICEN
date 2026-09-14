@@ -8,10 +8,10 @@ description: >-
   límites marítimos MarineRegions 12/24 MN y ZEE).
   Usar al tocar `/centinela`, CentinelaPage, AisVesselLayer, SkylightEventsLayer,
   FiuIuuEventsLayer, HcSpillPanel, SarDriftPanel, MaritimeBoundariesLayer,
-  useAisVessels, /api/ais, /api/skylight, /api/fiuIuu, /api/hc, /api/sar,
-  /api/maritimeBoundaries, /api/wind, /api/currents, /api/waves, batimetría GEBCO,
-  AISStream, SICEN-sim o refuerzo Skylight last-known / Global Fishing Watch
-  (identidad OMI) en la capa AIS.
+  UserZonesLayer, ZoneFormModal, useAisVessels, /api/ais, /api/skylight, /api/fiuIuu,
+  /api/hc, /api/sar, /api/mapZones, /api/maritimeBoundaries, /api/wind, /api/currents,
+  /api/waves, batimetría GEBCO, AISStream, SICEN-sim o refuerzo Skylight last-known /
+  Global Fishing Watch (identidad OMI) en la capa AIS.
 ---
 
 # El Centinela — mapa y capas
@@ -28,6 +28,7 @@ description: >-
 | Medición | `MeasureDistanceLayer.jsx` + `MeasureDistancePanel.jsx` + `utils/geoMeasure.js` |
 | Ir al punto | `GoToPointPanel.jsx` + `parseDmsDigits` / hemi N·S E·O + `openMapCoordsPopup` |
 | Marcadores | `UserMarkersLayer.jsx` + `UserMarkersPanel.jsx` + `MarkerFormModal.jsx` + `POST/GET/PUT/DELETE /api/mapMarkers` |
+| Zonas personales | `UserZonesLayer.jsx` + `UserZonesPanel.jsx` + `ZoneFormModal.jsx` + `POST/GET/PUT/DELETE /api/mapZones` |
 | Detalle mapa | `CentinelaDetailWindow.jsx` (ventana fija arrastrable; skill `centinela-detail-window`) |
 | Posicionamiento SICEN | `SicenPositioningLayer.jsx` + `useSportMovementTrackingStream.js` |
 | Seamarks | `SICEN-front/src/components/centinela/SeamarksLayer.jsx` (add/remove imperativo + `overlayPane`) |
@@ -37,6 +38,7 @@ description: >-
 | Proxy batimetría | `bathymetryProxy.service.js` + `utils/gebcoBathymetry.js` |
 | HTTP batimetría | `bathymetry.controller.js` + `bathymetry.router.js` → `/api/bathymetry` |
 | Marcadores API | `mapMarkers.*` + `mapMarkerCatalog.js` → `/api/mapMarkers` |
+| Zonas personales API | `mapZones.*` + `mapZoneCatalog.js` → `/api/mapZones` |
 | Zonas | `centinelaZones.js` + `ZonesLayer.jsx` (polígonos Leaflet) |
 | Límites marítimos | `maritimeBoundaryLayers.js` + `MaritimeBoundariesLayer.jsx` + `/api/maritimeBoundaries` (MarineRegions 12/24 MN + ZEE) |
 | Brevets | `centinelaBrevetCategories.js` (A–D) + `sportPorts.js` (índice Categoría C) |
@@ -127,9 +129,17 @@ Más capas (catastro), tracks históricos, correlación MMSI ↔ `vessels`, rece
 ### Mis marcadores (personales)
 
 - Botón `bi-bookmark-star` en **Herramientas** → muestra/oculta capa `UserMarkersLayer` y habilita FAB de lista (panel empieza **cerrado**).
-- Popup de coords: botón **Agregar marcador** → evento `centinela:add-marker` → `MarkerFormModal` (DMS tipado, nombre, paleta de color, acordeón de [Material Symbols](https://fonts.google.com/icons) wght 400 / opsz 24).
-- Panel `UserMarkersPanel`: **Nuevo marcador**, lista con editar/borrar (`confirmDelete`) / flyTo.
+- Popup de coords: botón **Agregar marcador** → evento `centinela:add-marker` → `MarkerFormModal` (DMS tipado, nombre, paleta de color, acordeón de Material Symbols). Formulario en margen inferior (sin backdrop); botón **Mapa** para pick.
+- Panel `UserMarkersPanel`: **Nuevo marcador**, lista con ojo (`hidden` vía `PUT`) / editar/borrar (`confirmDelete`) / flyTo.
 - Persistencia: colección `mapMarkers` ligada a `userId`; API `guarded` `/api/mapMarkers`. Catálogo whitelist en `centinelaMarkerIcons.js` (front) y `mapMarkerCatalog.js` (back).
+
+### Mis zonas (personales)
+
+- Botón `bi-pentagon` en **Herramientas** → capa `UserZonesLayer` + FAB de lista (panel empieza **cerrado**).
+- Panel `UserZonesPanel`: **Nueva zona**, filas con swatch + nombre, desplegable de vértices en DMS (`formatCoordDms`), ojo (`hidden` vía `PUT`), editar/borrar (`confirmDelete`), click → `fitBounds`.
+- `ZoneFormModal` en margen inferior (sin backdrop): nombre, color, filas compactas de vértices DMS + **Mapa** (`ZoneMapPickClick`). Preview `ZoneDraftPreview` con vértices **arrastrables** (sync al formulario al soltar).
+- Popup de coords: botón **Crear zona** → evento `centinela:add-zone` → activa Mis zonas + form con ese punto como vértice 1 (pad a ≥3 slots) y pick activo.
+- Persistencia: colección `mapZones` (`userId`, `name`, `color`, `positions`, `hidden`); API `guarded` `/api/mapZones`. Catálogo `mapZoneCatalog.js`. No mezclar con `centinelaZones` / brevets / límites marítimos.
 
 ### Simular incidente de hidrocarburo (HC)
 

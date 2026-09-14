@@ -20,11 +20,15 @@ import {
 import { formatCoordDms } from "../../utils/geoDms.js";
 
 export const CENTINELA_ADD_MARKER_EVENT = "centinela:add-marker";
+export const CENTINELA_ADD_ZONE_EVENT = "centinela:add-zone";
 
-function addMarkerButtonHtml(lat, lng) {
+function coordsPopupActionsHtml(lat, lng) {
   return `<div class="centinela-coords-popup__actions">
     <button type="button" class="btn btn-sm btn-primary centinela-coords-popup__add-marker" data-lat="${lat}" data-lng="${lng}">
       Agregar marcador
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-primary centinela-coords-popup__add-zone" data-lat="${lat}" data-lng="${lng}">
+      Crear zona
     </button>
   </div>`;
 }
@@ -35,25 +39,41 @@ function coordsPopupHtml(lat, lng, extraBlock = "") {
     <div><span class="centinela-coords-popup__label">Lat</span> ${formatCoordDms(lat, "lat")}</div>
     <div><span class="centinela-coords-popup__label">Lon</span> ${formatCoordDms(lng, "lng")}</div>
     ${extraBlock}
-    ${addMarkerButtonHtml(lat, lng)}
+    ${coordsPopupActionsHtml(lat, lng)}
   </div>`;
 }
 
-function bindAddMarkerButton(popup, map, lat, lng) {
+function bindCoordsPopupActions(popup, map, lat, lng) {
   const root = popup.getElement();
   if (!root) return;
-  const btn = root.querySelector(".centinela-coords-popup__add-marker");
-  if (!btn || btn.dataset.bound === "1") return;
-  btn.dataset.bound = "1";
-  btn.addEventListener("click", (e) => {
-    L.DomEvent.stop(e);
-    window.dispatchEvent(
-      new CustomEvent(CENTINELA_ADD_MARKER_EVENT, {
-        detail: { lat, lng },
-      })
-    );
-    map.closePopup(popup);
-  });
+
+  const markerBtn = root.querySelector(".centinela-coords-popup__add-marker");
+  if (markerBtn && markerBtn.dataset.bound !== "1") {
+    markerBtn.dataset.bound = "1";
+    markerBtn.addEventListener("click", (e) => {
+      L.DomEvent.stop(e);
+      window.dispatchEvent(
+        new CustomEvent(CENTINELA_ADD_MARKER_EVENT, {
+          detail: { lat, lng },
+        })
+      );
+      map.closePopup(popup);
+    });
+  }
+
+  const zoneBtn = root.querySelector(".centinela-coords-popup__add-zone");
+  if (zoneBtn && zoneBtn.dataset.bound !== "1") {
+    zoneBtn.dataset.bound = "1";
+    zoneBtn.addEventListener("click", (e) => {
+      L.DomEvent.stop(e);
+      window.dispatchEvent(
+        new CustomEvent(CENTINELA_ADD_ZONE_EVENT, {
+          detail: { lat, lng },
+        })
+      );
+      map.closePopup(popup);
+    });
+  }
 }
 
 /**
@@ -83,7 +103,7 @@ export function openMapCoordsPopup(
     .setContent(coordsPopupHtml(lat, lng))
     .openOn(map);
 
-  requestAnimationFrame(() => bindAddMarkerButton(popup, map, lat, lng));
+  requestAnimationFrame(() => bindCoordsPopupActions(popup, map, lat, lng));
 
   if (
     !windLayerOn &&
@@ -116,7 +136,7 @@ export function openMapCoordsPopup(
     );
   }
   popup.setContent(coordsPopupHtml(lat, lng, loadingParts.join("")));
-  requestAnimationFrame(() => bindAddMarkerButton(popup, map, lat, lng));
+  requestAnimationFrame(() => bindCoordsPopupActions(popup, map, lat, lng));
 
   const controller = new AbortController();
 
@@ -202,7 +222,7 @@ export function openMapCoordsPopup(
     popup.setContent(
       coordsPopupHtml(lat, lng, parts.map((p) => p.html).join(""))
     );
-    requestAnimationFrame(() => bindAddMarkerButton(popup, map, lat, lng));
+    requestAnimationFrame(() => bindCoordsPopupActions(popup, map, lat, lng));
   });
 
   return {

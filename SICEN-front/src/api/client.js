@@ -1732,6 +1732,34 @@ export function deleteMapMarker(id, { signal } = {}) {
   });
 }
 
+/** Zonas personales (polígonos) del Centinela. */
+export function listMapZones({ signal } = {}) {
+  return apiFetch("/api/mapZones", { signal });
+}
+
+export function createMapZone(body, { signal } = {}) {
+  return apiFetch("/api/mapZones", {
+    method: "POST",
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+export function updateMapZone(id, body, { signal } = {}) {
+  return apiFetch(`/api/mapZones/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+export function deleteMapZone(id, { signal } = {}) {
+  return apiFetch(`/api/mapZones/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    signal,
+  });
+}
+
 /** Snapshot de buques AIS en el bbox configurado. */
 export function aisVessels() {
   return apiFetch("/api/ais/vessels");

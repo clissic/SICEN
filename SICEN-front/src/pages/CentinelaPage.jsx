@@ -17,14 +17,22 @@ import {
 } from "../components/centinela/SarDriftLayer.jsx";
 import { SarDriftPanel } from "../components/centinela/SarDriftPanel.jsx";
 import { MarkerFormModal } from "../components/centinela/MarkerFormModal.jsx";
+import { ZoneFormModal } from "../components/centinela/ZoneFormModal.jsx";
 import { CentinelaHelpModal } from "../components/centinela/CentinelaHelpModal.jsx";
 import {
   CENTINELA_ADD_MARKER_EVENT,
+  CENTINELA_ADD_ZONE_EVENT,
   MapClickCoords,
   openMapCoordsPopup,
 } from "../components/centinela/MapClickCoords.jsx";
 import { UserMarkersLayer } from "../components/centinela/UserMarkersLayer.jsx";
 import { UserMarkersPanel } from "../components/centinela/UserMarkersPanel.jsx";
+import {
+  UserZonesLayer,
+  ZoneDraftPreview,
+  ZoneMapPickClick,
+} from "../components/centinela/UserZonesLayer.jsx";
+import { UserZonesPanel } from "../components/centinela/UserZonesPanel.jsx";
 import { MapCursorScaleBar } from "../components/centinela/MapCursorScaleBar.jsx";
 import { MeasureDistanceLayer } from "../components/centinela/MeasureDistanceLayer.jsx";
 import { MeasureDistancePanel } from "../components/centinela/MeasureDistancePanel.jsx";
@@ -82,13 +90,17 @@ import {
 } from "../constants/centinelaIntelLayers.js";
 import {
   createMapMarker,
+  createMapZone,
   deleteMapMarker,
+  deleteMapZone,
   gfwFetchInsights,
   listMapMarkers,
+  listMapZones,
   maritimeBoundariesFetch,
   skylightFetchAois,
   skylightFetchVesselDossier,
   updateMapMarker,
+  updateMapZone,
 } from "../api/client.js";
 import {
   confirmDelete,
@@ -262,6 +274,19 @@ export function CentinelaPage() {
   const [selectedMarkerId, setSelectedMarkerId] = useState(null);
   const [markerForm, setMarkerForm] = useState(null);
   const [markerSaving, setMarkerSaving] = useState(false);
+  const [markerPickMode, setMarkerPickMode] = useState(false);
+  const [markerPendingPoint, setMarkerPendingPoint] = useState(null);
+  const [zonesToolOn, setZonesToolOn] = useState(false);
+  const [zonesListOpen, setZonesListOpen] = useState(false);
+  const [userZones, setUserZones] = useState([]);
+  const [zonesLoading, setZonesLoading] = useState(false);
+  const [selectedZoneId, setSelectedZoneId] = useState(null);
+  const [zoneForm, setZoneForm] = useState(null);
+  const [zoneSaving, setZoneSaving] = useState(false);
+  const [zonePickMode, setZonePickMode] = useState(false);
+  const [zonePendingPoint, setZonePendingPoint] = useState(null);
+  const [zoneVertexMove, setZoneVertexMove] = useState(null);
+  const [zoneDraft, setZoneDraft] = useState(null);
   const [measureMode, setMeasureMode] = useState("distance");
   const [measureUnit, setMeasureUnit] = useState("nm");
   const [measureTotalMeters, setMeasureTotalMeters] = useState(0);
@@ -1041,6 +1066,8 @@ export function CentinelaPage() {
       const lng = Number(e?.detail?.lng);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
       if (!markersOn) setMarkersOn(true);
+      setMarkerPickMode(false);
+      setMarkerPendingPoint(null);
       setMarkerForm({
         mode: "create",
         initial: {
@@ -1058,6 +1085,33 @@ export function CentinelaPage() {
     };
   }, [markersOn]);
 
+  useEffect(() => {
+    function onAddZone(e) {
+      const lat = Number(e?.detail?.lat);
+      const lng = Number(e?.detail?.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      setZonesToolOn(true);
+      setZonesListOpen(false);
+      setMarkerPickMode(false);
+      setZonePendingPoint(null);
+      setZoneVertexMove(null);
+      setZoneDraft(null);
+      setZonePickMode(true);
+      setZoneForm({
+        mode: "create",
+        initial: {
+          name: "",
+          color: MAP_MARKER_DEFAULT_COLOR,
+          positions: [[lat, lng]],
+        },
+      });
+    }
+    window.addEventListener(CENTINELA_ADD_ZONE_EVENT, onAddZone);
+    return () => {
+      window.removeEventListener(CENTINELA_ADD_ZONE_EVENT, onAddZone);
+    };
+  }, []);
+
   async function handleSaveMarker(payload) {
     setMarkerSaving(true);
     try {
@@ -1066,7 +1120,7 @@ export function CentinelaPage() {
       } else {
         await createMapMarker(payload);
       }
-      setMarkerForm(null);
+      closeMarkerForm();
       if (!markersOn) setMarkersOn(true);
       else await refreshUserMarkers();
     } catch (e) {
@@ -1074,6 +1128,12 @@ export function CentinelaPage() {
     } finally {
       setMarkerSaving(false);
     }
+  }
+
+  function closeMarkerForm() {
+    setMarkerForm(null);
+    setMarkerPickMode(false);
+    setMarkerPendingPoint(null);
   }
 
   async function handleDeleteMarker(m) {
@@ -1096,11 +1156,128 @@ export function CentinelaPage() {
     }
   }
 
+  async function handleToggleMarkerHidden(m) {
+    const id = m?._id || m?.id;
+    if (!id) return;
+    const nextHidden = !m.hidden;
+    try {
+      await updateMapMarker(id, { hidden: nextHidden });
+      setUserMarkers((list) =>
+        list.map((item) =>
+          String(item._id || item.id) === String(id)
+            ? { ...item, hidden: nextHidden }
+            : item
+        )
+      );
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   function flyToMarker(m) {
     const map = mapRef.current;
     if (!map || !Number.isFinite(m?.lat) || !Number.isFinite(m?.lng)) return;
     setSelectedMarkerId(m._id || m.id || null);
     map.flyTo([m.lat, m.lng], Math.max(map.getZoom(), 12), { duration: 0.6 });
+  }
+
+  async function refreshUserZones() {
+    setZonesLoading(true);
+    try {
+      const res = await listMapZones();
+      setUserZones(Array.isArray(res?.zones) ? res.zones : []);
+    } catch (e) {
+      setUserZones([]);
+      console.error(e);
+    } finally {
+      setZonesLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!zonesToolOn) {
+      setZonesListOpen(false);
+      setSelectedZoneId(null);
+      return undefined;
+    }
+    void refreshUserZones();
+    return undefined;
+  }, [zonesToolOn]);
+
+  function closeZoneForm() {
+    setZoneForm(null);
+    setZonePickMode(false);
+    setZonePendingPoint(null);
+    setZoneVertexMove(null);
+    setZoneDraft(null);
+  }
+
+  async function handleSaveZone(payload) {
+    setZoneSaving(true);
+    try {
+      if (zoneForm?.mode === "edit" && zoneForm?.initial?._id) {
+        await updateMapZone(zoneForm.initial._id, payload);
+      } else {
+        await createMapZone(payload);
+      }
+      closeZoneForm();
+      if (!zonesToolOn) setZonesToolOn(true);
+      else await refreshUserZones();
+    } catch (e) {
+      throw e;
+    } finally {
+      setZoneSaving(false);
+    }
+  }
+
+  async function handleDeleteZone(z) {
+    const id = z?._id || z?.id;
+    if (!id) return;
+    const result = await confirmDelete({
+      resource: "zona",
+      summaryHtml: `<ul class="mb-2 ps-3"><li><strong>Nombre:</strong> ${escapeHtml(
+        z.name || "—"
+      )}</li></ul>`,
+    });
+    if (!result.isConfirmed) return;
+    try {
+      const res = await deleteMapZone(id);
+      notifyDeleteSuccess(res?.msg || "Zona eliminada.");
+      if (String(selectedZoneId) === String(id)) setSelectedZoneId(null);
+      await refreshUserZones();
+    } catch (err) {
+      notifyDeleteError(err, "No se pudo eliminar la zona.");
+    }
+  }
+
+  async function handleToggleZoneHidden(z) {
+    const id = z?._id || z?.id;
+    if (!id) return;
+    const nextHidden = !z.hidden;
+    try {
+      await updateMapZone(id, { hidden: nextHidden });
+      setUserZones((list) =>
+        list.map((item) =>
+          String(item._id || item.id) === String(id)
+            ? { ...item, hidden: nextHidden }
+            : item
+        )
+      );
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function fitToZone(z) {
+    const map = mapRef.current;
+    const pts = Array.isArray(z?.positions) ? z.positions : [];
+    if (!map || pts.length < 1) return;
+    setSelectedZoneId(z._id || z.id || null);
+    const latlngs = pts
+      .map((p) => [Number(p?.[0]), Number(p?.[1])])
+      .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+    if (latlngs.length === 0) return;
+    map.fitBounds(latlngs, { padding: [40, 40], maxZoom: 14 });
   }
 
   const panelClass = [
@@ -1132,13 +1309,28 @@ export function CentinelaPage() {
           <ClosePopupsOnVesselDetail active={Boolean(mapDetail)} />
           <MapClickCoords
             enabled={
-              !(measureOn && !measurePinned) && !hcPickMode && !sarPickMode
+              !(measureOn && !measurePinned) &&
+              !hcPickMode &&
+              !sarPickMode &&
+              !zonePickMode &&
+              !markerPickMode
             }
             windLayerOn={windLayerOn}
             currentsLayerOn={currentsLayerOn}
             wavesLayerOn={wavesLayerOn}
             envForecastHoursOffset={envForecastHours}
             bathymetryLayerOn={bathymetryOn}
+          />
+          <ZoneMapPickClick
+            active={zonePickMode || markerPickMode}
+            onPick={(ll) => {
+              const point = { ...ll, t: Date.now() };
+              if (zonePickMode) setZonePendingPoint(point);
+              else if (markerPickMode) {
+                setMarkerPendingPoint(point);
+                setMarkerPickMode(false);
+              }
+            }}
           />
           <HcMapPickClick
             active={hcPickMode}
@@ -1185,12 +1377,14 @@ export function CentinelaPage() {
               markers={userMarkers}
               selectedId={selectedMarkerId}
               onSelect={flyToMarker}
-              onEdit={(m) =>
+              onEdit={(m) => {
+                setMarkerPickMode(false);
+                setMarkerPendingPoint(null);
                 setMarkerForm({
                   mode: "edit",
                   initial: m,
-                })
-              }
+                });
+              }}
               onDelete={(m) => {
                 void handleDeleteMarker(m);
               }}
@@ -1227,6 +1421,16 @@ export function CentinelaPage() {
             enabled={visibleMaritimeCount > 0}
             zones={visibleMaritimeZones}
           />
+          {zonesToolOn ? <UserZonesLayer zones={userZones} /> : null}
+          {zoneForm && zoneDraft?.vertices?.length ? (
+            <ZoneDraftPreview
+              vertices={zoneDraft.vertices}
+              color={zoneDraft.color}
+              onVertexDragEnd={(index, lat, lng) => {
+                setZoneVertexMove({ index, lat, lng, t: Date.now() });
+              }}
+            />
+          ) : null}
           {skylightSyncedZones.length > 0 ? (
             <ZonesLayer zones={skylightSyncedZones} />
           ) : null}
@@ -1342,7 +1546,14 @@ export function CentinelaPage() {
         {mapDetail?.body}
       </CentinelaDetailWindow>
 
-      <div className="centinela-env-legends">
+      <div
+        className={[
+          "centinela-env-legends",
+          markerForm || zoneForm ? "centinela-env-legends--form-open" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
         <CentinelaEnvLegendsPanel
           bathymetryOn={bathymetryOn}
           windLayerOn={windLayerOn}
@@ -1478,6 +1689,53 @@ export function CentinelaPage() {
             onPlayingChange={setSarPlaying}
           />
         ) : null}
+        {markerForm ? (
+          <MarkerFormModal
+            mode={markerForm.mode}
+            initial={markerForm.initial}
+            saving={markerSaving}
+            pickMode={markerPickMode}
+            pendingMapPoint={markerPendingPoint}
+            onConsumeMapPoint={() => setMarkerPendingPoint(null)}
+            onTogglePickMode={(next) => {
+              const on = Boolean(next);
+              setMarkerPickMode(on);
+              if (on) {
+                setZonePickMode(false);
+                setMeasureOn(false);
+                setHcPickMode(false);
+                setSarPickMode(false);
+              }
+            }}
+            onClose={closeMarkerForm}
+            onSave={handleSaveMarker}
+          />
+        ) : null}
+        {zoneForm ? (
+          <ZoneFormModal
+            mode={zoneForm.mode}
+            initial={zoneForm.initial}
+            saving={zoneSaving}
+            pickMode={zonePickMode}
+            pendingMapPoint={zonePendingPoint}
+            onConsumeMapPoint={() => setZonePendingPoint(null)}
+            pendingVertexMove={zoneVertexMove}
+            onConsumeVertexMove={() => setZoneVertexMove(null)}
+            onTogglePickMode={(next) => {
+              const on = Boolean(next);
+              setZonePickMode(on);
+              if (on) {
+                setMarkerPickMode(false);
+                setMeasureOn(false);
+                setHcPickMode(false);
+                setSarPickMode(false);
+              }
+            }}
+            onClose={closeZoneForm}
+            onSave={handleSaveZone}
+            onPointsChange={(draft) => setZoneDraft(draft)}
+          />
+        ) : null}
       </div>
 
       {skylightEventsOn && skylightListOpen ? (
@@ -1535,7 +1793,9 @@ export function CentinelaPage() {
             setMarkersOn(false);
             setSelectedMarkerId(null);
           }}
-          onNew={() =>
+          onNew={() => {
+            setMarkerPickMode(true);
+            setMarkerPendingPoint(null);
             setMarkerForm({
               mode: "create",
               initial: {
@@ -1543,16 +1803,21 @@ export function CentinelaPage() {
                 icon: MAP_MARKER_DEFAULT_ICON,
                 color: MAP_MARKER_DEFAULT_COLOR,
               },
-            })
-          }
-          onEdit={(m) =>
+            });
+          }}
+          onEdit={(m) => {
+            setMarkerPickMode(false);
+            setMarkerPendingPoint(null);
             setMarkerForm({
               mode: "edit",
               initial: m,
-            })
-          }
+            });
+          }}
           onDelete={(m) => {
             void handleDeleteMarker(m);
+          }}
+          onToggleHidden={(m) => {
+            void handleToggleMarkerHidden(m);
           }}
           onSelect={flyToMarker}
         />
@@ -1586,14 +1851,80 @@ export function CentinelaPage() {
         </button>
       ) : null}
 
-      {markerForm ? (
-        <MarkerFormModal
-          mode={markerForm.mode}
-          initial={markerForm.initial}
-          saving={markerSaving}
-          onClose={() => setMarkerForm(null)}
-          onSave={handleSaveMarker}
+      {zonesToolOn && zonesListOpen ? (
+        <UserZonesPanel
+          visible
+          zones={userZones}
+          loading={zonesLoading}
+          selectedId={selectedZoneId}
+          isMobile={isMobile}
+          besideFab
+          onClose={() => {
+            setZonesListOpen(false);
+            setZonesToolOn(false);
+            setSelectedZoneId(null);
+            closeZoneForm();
+          }}
+          onNew={() => {
+            setZonePendingPoint(null);
+            setZoneDraft(null);
+            setZonePickMode(true);
+            setMarkerPickMode(false);
+            setZoneForm({
+              mode: "create",
+              initial: {
+                name: "",
+                color: MAP_MARKER_DEFAULT_COLOR,
+                positions: [],
+              },
+            });
+          }}
+          onEdit={(z) => {
+            setZonePickMode(false);
+            setZonePendingPoint(null);
+            setZoneForm({
+              mode: "edit",
+              initial: z,
+            });
+          }}
+          onDelete={(z) => {
+            void handleDeleteZone(z);
+          }}
+          onToggleHidden={(z) => {
+            void handleToggleZoneHidden(z);
+          }}
+          onSelect={fitToZone}
         />
+      ) : null}
+
+      {zonesToolOn ? (
+        <button
+          type="button"
+          className={[
+            "centinela-skylight-list-fab",
+            "centinela-zones-list-fab",
+            markersOn && skylightEventsOn
+              ? "centinela-zones-list-fab--offset-2"
+              : markersOn || skylightEventsOn
+                ? "centinela-zones-list-fab--offset"
+                : "",
+            zonesListOpen ? "is-active" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          onClick={() => setZonesListOpen((open) => !open)}
+          aria-pressed={zonesListOpen}
+          aria-label={
+            zonesListOpen ? "Ocultar mis zonas" : "Mostrar mis zonas"
+          }
+        >
+          <i className="bi bi-pentagon" aria-hidden />
+          {userZones.length > 0 ? (
+            <span className="centinela-skylight-list-fab__badge">
+              {userZones.length > 99 ? "99+" : userZones.length}
+            </span>
+          ) : null}
+        </button>
       ) : null}
 
       <SkylightVesselDossierPanel
@@ -1731,14 +2062,6 @@ export function CentinelaPage() {
         aria-hidden={!panelOpen}
         inert={!panelOpen ? true : undefined}
       >
-        <button
-          type="button"
-          className="centinela-glass__collapse"
-          onClick={() => setPanelOpen(false)}
-          aria-label={isMobile ? "Cerrar menú" : "Achicar panel de capas"}
-        >
-          <i className="bi bi-x-lg" aria-hidden />
-        </button>
         <div className="centinela-glass__body">
         <div className="centinela-glass__header">
           <div className="min-w-0">
@@ -1748,6 +2071,14 @@ export function CentinelaPage() {
               navegación.
             </p>
           </div>
+          <button
+            type="button"
+            className="centinela-glass__collapse"
+            onClick={() => setPanelOpen(false)}
+            aria-label={isMobile ? "Cerrar menú" : "Achicar panel de capas"}
+          >
+            <i className="bi bi-x-lg" aria-hidden />
+          </button>
         </div>
 
         <div>
@@ -2582,12 +2913,45 @@ export function CentinelaPage() {
                     } else {
                       setMarkersListOpen(false);
                       setSelectedMarkerId(null);
+                      closeMarkerForm();
                     }
                     return next;
                   });
                 }}
               >
                 <i className="bi bi-bookmark-star" aria-hidden />
+              </button>
+            </span>
+            <span
+              className="centinela-glass__action-wrap"
+              data-sicen-popover="Mis zonas"
+              data-sicen-popover-placement="top"
+            >
+              <button
+                type="button"
+                className={[
+                  "centinela-glass__action-btn",
+                  zonesToolOn ? "is-active" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                aria-pressed={zonesToolOn}
+                aria-label="Mis zonas"
+                onClick={() => {
+                  setZonesToolOn((on) => {
+                    const next = !on;
+                    if (next) {
+                      setPanelOpen(false);
+                    } else {
+                      setZonesListOpen(false);
+                      setSelectedZoneId(null);
+                      closeZoneForm();
+                    }
+                    return next;
+                  });
+                }}
+              >
+                <i className="bi bi-pentagon" aria-hidden />
               </button>
             </span>
             <span

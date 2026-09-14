@@ -1,12 +1,12 @@
 /**
- * Panel lateral: lista de marcadores personales del usuario.
+ * Panel lateral: lista de zonas personales del usuario.
  */
+import { useState } from "react";
 import { formatCoordDms } from "../../utils/geoDms.js";
-import { isMarkerColorLight } from "../../constants/centinelaMarkerIcons.js";
 
-export function UserMarkersPanel({
+export function UserZonesPanel({
   visible,
-  markers = [],
+  zones = [],
   loading = false,
   selectedId = null,
   isMobile = false,
@@ -18,14 +18,16 @@ export function UserMarkersPanel({
   onToggleHidden,
   onSelect,
 }) {
+  const [expandedId, setExpandedId] = useState(null);
+
   if (!visible) return null;
 
-  const n = markers.length;
+  const n = zones.length;
   const statusText = loading
     ? "Cargando…"
     : n === 0
-      ? "Sin marcadores guardados"
-      : `${n} marcador${n === 1 ? "" : "es"}`;
+      ? "Sin zonas guardadas"
+      : `${n} zona${n === 1 ? "" : "s"}`;
 
   return (
     <aside
@@ -33,6 +35,7 @@ export function UserMarkersPanel({
         "centinela-glass",
         "centinela-skylight-list",
         "centinela-markers-list",
+        "centinela-zones-user-list",
         isMobile
           ? "centinela-skylight-list--mobile"
           : "centinela-skylight-list--float",
@@ -42,19 +45,21 @@ export function UserMarkersPanel({
       ]
         .filter(Boolean)
         .join(" ")}
-      aria-label="Mis marcadores"
+      aria-label="Mis zonas"
     >
       <div className="centinela-glass__body centinela-skylight-list__body">
         <div className="centinela-skylight-list__header">
           <div className="centinela-skylight-list__heading">
-            <h2 className="centinela-skylight-list__title centinela-tool-panel__title">Mis marcadores</h2>
+            <h2 className="centinela-skylight-list__title centinela-tool-panel__title">
+              Mis zonas
+            </h2>
             <p className="centinela-skylight-list__status">{statusText}</p>
           </div>
           {onClose ? (
             <button
               type="button"
               className="centinela-skylight-list__close"
-              aria-label="Cerrar lista de marcadores"
+              aria-label="Cerrar lista de zonas"
               onClick={onClose}
             >
               <i className="bi bi-x-lg" aria-hidden />
@@ -67,21 +72,21 @@ export function UserMarkersPanel({
           className="btn btn-sm btn-primary w-100"
           onClick={onNew}
         >
-          Nuevo marcador
+          Nueva zona
         </button>
 
         {n === 0 && !loading ? (
           <p className="centinela-skylight-list__empty mb-0">
-            Creá uno desde acá o con «Agregar marcador» en el mapa.
+            Creá una zona con al menos 3 puntos (manual o en el mapa).
           </p>
         ) : (
           <ul className="centinela-skylight-list__items centinela-markers-list__items">
-            {markers.map((m) => {
-              const id = String(m._id || m.id || "");
+            {zones.map((z) => {
+              const id = String(z._id || z.id || "");
               const selected = selectedId && id === String(selectedId);
-              const hidden = Boolean(m.hidden);
-              const latDms = formatCoordDms(m.lat, "lat");
-              const lngDms = formatCoordDms(m.lng, "lng");
+              const expanded = expandedId === id;
+              const pts = Array.isArray(z.positions) ? z.positions : [];
+              const hidden = Boolean(z.hidden);
               return (
                 <li key={id}>
                   <div
@@ -92,32 +97,20 @@ export function UserMarkersPanel({
                     <button
                       type="button"
                       className="centinela-markers-list__main"
-                      onClick={() => onSelect?.(m)}
+                      onClick={() => onSelect?.(z)}
                     >
                       <span
-                        className={[
-                          "centinela-marker-pin",
-                          "centinela-marker-pin--sm",
-                          isMarkerColorLight(m.color)
-                            ? "centinela-marker-pin--on-light"
-                            : "",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                        style={{ background: m.color }}
+                        className="centinela-zone-swatch"
+                        style={{ background: z.color || "#0d9488" }}
                         aria-hidden
-                      >
-                        <span className="material-symbols-outlined">
-                          {m.icon}
-                        </span>
-                      </span>
+                      />
                       <span className="centinela-markers-list__text">
                         <span className="centinela-markers-list__name">
-                          {m.name || "Sin nombre"}
+                          {z.name || "Sin nombre"}
                         </span>
                         <span className="centinela-markers-list__coords">
-                          {latDms} · {lngDms}
-                          {hidden ? " · oculto" : ""}
+                          {pts.length} punto{pts.length === 1 ? "" : "s"}
+                          {hidden ? " · oculta" : ""}
                         </span>
                       </span>
                     </button>
@@ -125,12 +118,32 @@ export function UserMarkersPanel({
                       <button
                         type="button"
                         className="centinela-markers-list__icon-btn"
+                        aria-expanded={expanded}
+                        aria-label={
+                          expanded
+                            ? "Ocultar coordenadas"
+                            : "Ver coordenadas"
+                        }
+                        onClick={() =>
+                          setExpandedId((cur) => (cur === id ? null : id))
+                        }
+                      >
+                        <i
+                          className={`bi ${
+                            expanded ? "bi-chevron-up" : "bi-chevron-down"
+                          }`}
+                          aria-hidden
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        className="centinela-markers-list__icon-btn"
                         aria-label={
                           hidden
-                            ? `Mostrar ${m.name || "marcador"}`
-                            : `Ocultar ${m.name || "marcador"}`
+                            ? `Mostrar ${z.name || "zona"}`
+                            : `Ocultar ${z.name || "zona"}`
                         }
-                        onClick={() => onToggleHidden?.(m)}
+                        onClick={() => onToggleHidden?.(z)}
                       >
                         <i
                           className={`bi ${
@@ -142,21 +155,43 @@ export function UserMarkersPanel({
                       <button
                         type="button"
                         className="centinela-markers-list__icon-btn"
-                        aria-label={`Editar ${m.name || "marcador"}`}
-                        onClick={() => onEdit?.(m)}
+                        aria-label={`Editar ${z.name || "zona"}`}
+                        onClick={() => onEdit?.(z)}
                       >
                         <i className="bi bi-pencil" aria-hidden />
                       </button>
                       <button
                         type="button"
                         className="centinela-markers-list__icon-btn"
-                        aria-label={`Eliminar ${m.name || "marcador"}`}
-                        onClick={() => onDelete?.(m)}
+                        aria-label={`Eliminar ${z.name || "zona"}`}
+                        onClick={() => onDelete?.(z)}
                       >
                         <i className="bi bi-trash" aria-hidden />
                       </button>
                     </div>
                   </div>
+                  {expanded ? (
+                    <ol className="centinela-zones-user-list__verts">
+                      {pts.map((p, i) => {
+                        const lat = Number(p?.[0]);
+                        const lng = Number(p?.[1]);
+                        return (
+                          <li key={`${id}-v-${i}`}>
+                            <span className="centinela-zones-user-list__vert-idx">
+                              {i + 1}.
+                            </span>{" "}
+                            {Number.isFinite(lat)
+                              ? formatCoordDms(lat, "lat")
+                              : "—"}{" "}
+                            ·{" "}
+                            {Number.isFinite(lng)
+                              ? formatCoordDms(lng, "lng")
+                              : "—"}
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  ) : null}
                 </li>
               );
             })}

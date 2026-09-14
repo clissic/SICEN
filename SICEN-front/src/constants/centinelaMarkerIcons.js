@@ -14,6 +14,11 @@ export const MAP_MARKER_COLORS = [
   "#db2777",
   "#0891b2",
   "#475569",
+  "#ffffff",
+  "#d4d4d4",
+  "#a3a3a3",
+  "#525252",
+  "#000000",
 ];
 
 export const MAP_MARKER_ICON_GROUPS = [
@@ -105,4 +110,12 @@ export function isAllowedMapMarkerIcon(icon) {
 export function isAllowedMapMarkerColor(color) {
   const c = String(color || "").trim();
   return MAP_MARKER_COLORS.includes(c);
+}
+
+/** Blanco del catálogo: ícono y borde negros para contraste. */
+export function isMarkerColorLight(color) {
+  const c = String(color || "")
+    .trim()
+    .toLowerCase();
+  return c === "#ffffff" || c === "#fff";
 }

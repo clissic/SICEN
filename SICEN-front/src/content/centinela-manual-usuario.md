@@ -56,6 +56,7 @@ Según lo que tengas activo o seleccionado, pueden aparecer botones redondos a l
 
 - **Lista** — eventos satelitales visibles en la zona del mapa (cuando hay capas Skylight de eventos encendidas).
 - **Marcadores** — tus marcadores personales (cuando «Mis marcadores» está activo).
+- **Zonas** — tus polígonos personales (cuando «Mis zonas» está activo).
 - **Reloj (Historial / predicción)** — muestra u oculta el dossier del buque seleccionado.
 
 > tip: Si no ves un botón a la derecha, probablemente falta activar la capa o seleccionar un buque. No está “roto”: es contextual.
@@ -200,6 +201,7 @@ Fila de botones al final del panel de capas, repartidos a lo ancho:
 - **Simular deriva SAR** (brújula)
 - **Ir a un punto**
 - **Mis marcadores**
+- **Mis zonas**
 - **Medir**
 
 El **manual** se abre desde el libro de la columna izquierda, no desde esta fila.
@@ -212,7 +214,11 @@ Panel con título **Ir a un punto**. Ingresá latitud y longitud en DMS y pulsá
 
 ### Mis marcadores
 
-Activa tus marcadores personales. Aparece el botón de lista a la derecha para crear, editar, borrar o ir a un marcador. También podés agregar uno desde el popup del mapa («Agregar marcador»): nombre, coordenadas DMS, color e ícono. La **X** de la lista cierra y desactiva la herramienta.
+Activa tus marcadores personales. Aparece el botón de lista a la derecha para crear, editar, ocultar con el ojo, borrar o ir a un marcador. El alta/edición se abre **abajo** (como Medir), sin tapar el mapa: nombre, coords DMS, color e ícono; **Mapa** permite fijar el punto con un clic. También podés agregar uno desde el popup del mapa («Agregar marcador»). La **X** de la lista cierra y desactiva la herramienta.
+
+### Mis zonas
+
+Activa tus polígonos personales. Aparece el botón de lista a la derecha (ícono de pentágono) para crear, editar, ocultar con el ojo, borrar o encuadrar una zona (la lista empieza cerrada). El alta/edición también va **abajo**: cada zona necesita **al menos 3 puntos** en una fila compacta (DMS) o con **Mapa** (cada clic agrega un vértice; ves el preview en vivo y podés **arrastrar** los vértices). Desde el popup de coordenadas del mapa también podés **Crear zona** con ese punto como primero. El desplegable de la fila muestra las coordenadas en orden. La **X** de la lista cierra y desactiva la herramienta. Son independientes de las zonas estáticas del mapa (brevets, límites marítimos, etc.).
 
 ### Medir distancias y radios
 
@@ -373,7 +379,7 @@ Un clic sobre el agua o la costa (fuera de un buque o evento) abre un popup con:
 
 - **Latitud y longitud en DMS**
 - Datos de **viento, corrientes, olas o batimetría** si esas capas están activas
-- Botón **Agregar marcador** (si usás Mis marcadores)
+- Botón **Agregar marcador** / **Crear zona** (desde el popup de coordenadas)
 
 > tip: Es la forma más rápida de anotar un punto o de leer el medio ambiente en una coordenada concreta.
 

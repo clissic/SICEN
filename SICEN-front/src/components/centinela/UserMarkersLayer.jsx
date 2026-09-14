@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
 import {
+  isMarkerColorLight,
   MAP_MARKER_DEFAULT_COLOR,
   MAP_MARKER_DEFAULT_ICON,
 } from "../../constants/centinelaMarkerIcons.js";
@@ -10,9 +11,12 @@ import { formatCoordDms } from "../../utils/geoDms.js";
 function markerIcon(color, icon) {
   const safeColor = color || MAP_MARKER_DEFAULT_COLOR;
   const safeIcon = icon || MAP_MARKER_DEFAULT_ICON;
+  const onLight = isMarkerColorLight(safeColor)
+    ? " centinela-marker-pin--on-light"
+    : "";
   return L.divIcon({
     className: "centinela-user-marker",
-    html: `<span class="centinela-marker-pin" style="background:${safeColor}"><span class="material-symbols-outlined">${safeIcon}</span></span>`,
+    html: `<span class="centinela-marker-pin${onLight}" style="background:${safeColor}"><span class="material-symbols-outlined">${safeIcon}</span></span>`,
     iconSize: [32, 32],
     iconAnchor: [16, 16],
   });
@@ -75,6 +79,7 @@ export function UserMarkersLayer({
     group.clearLayers();
 
     for (const m of markers) {
+      if (m?.hidden) continue;
       if (!Number.isFinite(m?.lat) || !Number.isFinite(m?.lng)) continue;
       const id = String(m._id || m.id || "");
       const latDms = formatCoordDms(m.lat, "lat");
