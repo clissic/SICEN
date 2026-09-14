@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Marker, Polyline, Popup } from "react-leaflet";
+import { Marker, Polyline } from "react-leaflet";
 import L from "leaflet";
 import { formatCoordDms } from "../../utils/geoDms.js";
 import { SportMovementSkipperContactModal } from "../SportMovementSkipperContactModal.jsx";
@@ -34,7 +34,6 @@ function vesselIcon() {
     </div>`,
     iconSize: [20, 20],
     iconAnchor: [10, 10],
-    popupAnchor: [0, -8],
   });
 }
 
@@ -59,10 +58,77 @@ function mapItemToMovement(item) {
   };
 }
 
+function SicenDetailBody({
+  item,
+  onOpenContact,
+  onOpenHistory,
+}) {
+  const lp = item.lastPosition || item.tracking?.lastPosition;
+  const lat = lp?.latitude;
+  const lng = lp?.longitude;
+  const comm = item.tracking?.communicationState || "normal";
+  const etaOverdue = Boolean(
+    item.tracking?.etaOverdueAlertAt || item.delayedNotifiedAt
+  );
+  const skipperLabel =
+    item.skipper?.fullName?.trim() || item.skipperName?.trim() || "";
+
+  return (
+    <div className="centinela-ais-popup">
+      <div className="centinela-ais-popup__name">
+        {item.vesselName?.trim() || "Buque deportivo"}
+      </div>
+      <div className="centinela-ais-popup__ids">
+        {item.vesselReg ? <div>Mat. {item.vesselReg}</div> : null}
+        {skipperLabel ? (
+          <div>
+            Patrón:{" "}
+            <button
+              type="button"
+              className="centinela-sicen-popup__skipper-link"
+              onClick={() => onOpenContact?.(item)}
+            >
+              {skipperLabel}
+            </button>
+          </div>
+        ) : null}
+      </div>
+      <ul className="centinela-ais-popup__meta list-unstyled mb-0">
+        <li>
+          {item.originUnit} → {item.destinationUnit}
+        </li>
+        <li>ETA: {formatTs(item.eta)}</li>
+        <li>Comunicación: {COMM_LABELS[comm] || comm}</li>
+        {etaOverdue ? <li className="text-warning">ETA vencida</li> : null}
+        <li>
+          Última posición: {formatTs(lp?.positionTimestamp || lp?.receivedAt)}
+          {Number.isFinite(lat) && Number.isFinite(lng) ? (
+            <div className="small text-muted">
+              Lat. {formatCoordDms(lat, "lat")}
+              <br />
+              Long. {formatCoordDms(lng, "lng")}
+            </div>
+          ) : null}
+        </li>
+        {typeof lp?.accuracy === "number" ? (
+          <li>Precisión: ±{Math.round(lp.accuracy)} m</li>
+        ) : null}
+      </ul>
+      <button
+        type="button"
+        className="btn btn-sm btn-outline-primary w-100 mt-2"
+        onClick={() => onOpenHistory?.(item)}
+      >
+        Ver historial
+      </button>
+    </div>
+  );
+}
+
 /**
  * Capa de posicionamiento SICEN (movimientos deportivos en tránsito).
  */
-export function SicenPositioningLayer({ items = [] }) {
+export function SicenPositioningLayer({ items = [], onOpenDetail }) {
   const icon = useMemo(() => vesselIcon(), []);
   const [contactItem, setContactItem] = useState(null);
   const [historyItem, setHistoryItem] = useState(null);
@@ -84,13 +150,7 @@ export function SicenPositioningLayer({ items = [] }) {
         const lng = lp?.longitude;
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
         const id = String(item.movementId);
-        const comm = item.tracking?.communicationState || "normal";
-        const etaOverdue = Boolean(
-          item.tracking?.etaOverdueAlertAt || item.delayedNotifiedAt
-        );
         const trackPoints = item.trackPoints;
-        const skipperLabel =
-          item.skipper?.fullName?.trim() || item.skipperName?.trim() || "";
         return (
           <span key={id}>
             {Array.isArray(trackPoints) && trackPoints.length >= 2 ? (
@@ -103,59 +163,27 @@ export function SicenPositioningLayer({ items = [] }) {
                 }}
               />
             ) : null}
-            <Marker position={[lat, lng]} icon={icon}>
-              <Popup className="centinela-ais-leaflet-popup">
-                <div className="centinela-ais-popup">
-                  <div className="centinela-ais-popup__name">
-                    {item.vesselName?.trim() || "Buque deportivo"}
-                  </div>
-                  <div className="centinela-ais-popup__ids">
-                    {item.vesselReg ? <div>Mat. {item.vesselReg}</div> : null}
-                    {skipperLabel ? (
-                      <div>
-                        Patrón:{" "}
-                        <button
-                          type="button"
-                          className="centinela-sicen-popup__skipper-link"
-                          onClick={() => setContactItem(item)}
-                        >
-                          {skipperLabel}
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                  <ul className="centinela-ais-popup__meta list-unstyled mb-0">
-                    <li>
-                      {item.originUnit} → {item.destinationUnit}
-                    </li>
-                    <li>ETA: {formatTs(item.eta)}</li>
-                    <li>Comunicación: {COMM_LABELS[comm] || comm}</li>
-                    {etaOverdue ? (
-                      <li className="text-warning">ETA vencida</li>
-                    ) : null}
-                    <li>
-                      Última posición:{" "}
-                      {formatTs(lp.positionTimestamp || lp.receivedAt)}
-                      <div className="small text-muted">
-                        Lat. {formatCoordDms(lat, "lat")}
-                        <br />
-                        Long. {formatCoordDms(lng, "lng")}
-                      </div>
-                    </li>
-                    {typeof lp.accuracy === "number" ? (
-                      <li>Precisión: ±{Math.round(lp.accuracy)} m</li>
-                    ) : null}
-                  </ul>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-primary w-100 mt-2"
-                    onClick={() => setHistoryItem(item)}
-                  >
-                    Ver historial
-                  </button>
-                </div>
-              </Popup>
-            </Marker>
+            <Marker
+              position={[lat, lng]}
+              icon={icon}
+              eventHandlers={{
+                click: (e) => {
+                  L.DomEvent.stopPropagation(e.originalEvent);
+                  L.DomEvent.preventDefault(e.originalEvent);
+                  onOpenDetail?.({
+                    id: `sicen:${id}`,
+                    title: item.vesselName?.trim() || "Posicionamiento SICEN",
+                    body: (
+                      <SicenDetailBody
+                        item={item}
+                        onOpenContact={setContactItem}
+                        onOpenHistory={setHistoryItem}
+                      />
+                    ),
+                  });
+                },
+              }}
+            />
           </span>
         );
       })}

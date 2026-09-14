@@ -64,6 +64,21 @@ export function useBootstrapTheme() {
   return theme;
 }
 
+/** Persiste y aplica tema Bootstrap (`light` | `dark`). */
+export function setStoredBootstrapTheme(mode) {
+  const next = mode === "dark" ? "dark" : "light";
+  document.documentElement.setAttribute("data-bs-theme", next);
+  localStorage.setItem(KEY, next);
+}
+
+export function toggleStoredBootstrapTheme() {
+  const current =
+    document.documentElement.getAttribute("data-bs-theme") === "dark"
+      ? "dark"
+      : "light";
+  setStoredBootstrapTheme(current === "dark" ? "light" : "dark");
+}
+
 export function ThemeToggle() {
   const [theme, setTheme] = useState(readTheme);
 

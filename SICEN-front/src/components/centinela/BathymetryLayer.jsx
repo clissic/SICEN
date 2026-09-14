@@ -28,6 +28,7 @@ function popupHtml(point) {
 
 /**
  * Profundidades (números coloreados) solo sobre agua.
+ * Popup Leaflet anclado al punto (no ventana arrastrable).
  */
 export function BathymetryLayer({ enabled, onStatusChange }) {
   const map = useMap();

@@ -1692,9 +1692,199 @@ export function bathymetryFetchPoints(points, { signal } = {}) {
   });
 }
 
+/**
+ * Límites marítimos MarineRegions (12 MN / 24 MN / ZEE).
+ * @param {string[]} [layers]
+ */
+export function maritimeBoundariesFetch(layers, { signal } = {}) {
+  const qs =
+    Array.isArray(layers) && layers.length
+      ? `?layers=${encodeURIComponent(layers.join(","))}`
+      : "";
+  return apiFetch(`/api/maritimeBoundaries${qs}`, { signal });
+}
+
+/** Marcadores personales del Centinela. */
+export function listMapMarkers({ signal } = {}) {
+  return apiFetch("/api/mapMarkers", { signal });
+}
+
+export function createMapMarker(body, { signal } = {}) {
+  return apiFetch("/api/mapMarkers", {
+    method: "POST",
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+export function updateMapMarker(id, body, { signal } = {}) {
+  return apiFetch(`/api/mapMarkers/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+export function deleteMapMarker(id, { signal } = {}) {
+  return apiFetch(`/api/mapMarkers/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    signal,
+  });
+}
+
 /** Snapshot de buques AIS en el bbox configurado. */
 export function aisVessels() {
   return apiFetch("/api/ais/vessels");
+}
+
+/** Estado del proxy Skylight (El Centinela). */
+export function skylightStatus() {
+  return apiFetch("/api/skylight/status");
+}
+
+/**
+ * Eventos Skylight (detecciones / pesca / rendezvous) vía proxy autenticado.
+ * @param {{ eventTypes: string[], darkOnly?: boolean, lookbackHours?: number, limit?: number }} body
+ */
+export function skylightFetchEvents(body, { signal } = {}) {
+  return apiFetch("/api/skylight/events", {
+    method: "POST",
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+/**
+ * Pasadas satelitales Skylight (frames).
+ * @param {{ lookbackHours?: number, limit?: number, eventTypes?: string[] }} body
+ */
+export function skylightFetchFrames(body = {}, { signal } = {}) {
+  return apiFetch("/api/skylight/frames", {
+    method: "POST",
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+/**
+ * AOIs Skylight en el bbox operativo.
+ * @param {{ limit?: number }} body
+ */
+export function skylightFetchAois(body = {}, { signal } = {}) {
+  return apiFetch("/api/skylight/aois", {
+    method: "POST",
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+/**
+ * Dossier Skylight de un buque (identidad, track, predicción, eventos).
+ * @param {{
+ *   mmsi: string|number,
+ *   lat?: number,
+ *   lon?: number,
+ *   speedKts?: number,
+ *   heading?: number,
+ *   lookbackHours?: number,
+ * }} body
+ */
+export function skylightFetchVesselDossier(body, { signal } = {}) {
+  return apiFetch("/api/skylight/vessel-dossier", {
+    method: "POST",
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+/** Estado del proxy FIU LAC IUU (El Centinela). */
+export function fiuIuuStatus() {
+  return apiFetch("/api/fiuIuu/status");
+}
+
+/**
+ * Eventos IUU LAC (FIU) vía proxy autenticado (FeatureServers públicos).
+ * @param {{ layerTypes: string[], bbox?: number[], limit?: number }} body
+ */
+export function fiuIuuFetchEvents(body, { signal } = {}) {
+  return apiFetch("/api/fiuIuu/events", {
+    method: "POST",
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+/** Estado del proxy Global Fishing Watch (El Centinela). */
+export function gfwStatus() {
+  return apiFetch("/api/gfw/status");
+}
+
+/** Estado del simulador HC (SICEN-sim vía backend). */
+export function hcSimStatus() {
+  return apiFetch("/api/hc/status");
+}
+
+/**
+ * Encola simulación de derrame HC.
+ * @param {object} body
+ */
+export function hcSimStart(body, { signal } = {}) {
+  return apiFetch("/api/hc/simulate", {
+    method: "POST",
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+/** Poll de job HC. */
+export function hcSimJob(jobId, { signal } = {}) {
+  return apiFetch(`/api/hc/jobs/${encodeURIComponent(jobId)}`, { signal });
+}
+
+/** Estado del simulador SAR (SICEN-sim vía backend). */
+export function sarSimStatus() {
+  return apiFetch("/api/sar/status");
+}
+
+/**
+ * Encola simulación de deriva SAR.
+ * @param {object} body
+ */
+export function sarSimStart(body, { signal } = {}) {
+  return apiFetch("/api/sar/simulate", {
+    method: "POST",
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+/** Poll de job SAR. */
+export function sarSimJob(jobId, { signal } = {}) {
+  return apiFetch(`/api/sar/jobs/${encodeURIComponent(jobId)}`, { signal });
+}
+
+/**
+ * Eventos GFW (pesca / encounters / gaps) vía proxy autenticado.
+ * @param {{ eventTypes: string[], bbox?: number[], lookbackDays?: number, limit?: number }} body
+ */
+export function gfwFetchEvents(body, { signal } = {}) {
+  return apiFetch("/api/gfw/events", {
+    method: "POST",
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+/**
+ * Insights de riesgo GFW por MMSI.
+ * @param {{ mmsi: string }} body
+ */
+export function gfwFetchInsights(body, { signal } = {}) {
+  return apiFetch("/api/gfw/insights", {
+    method: "POST",
+    body: JSON.stringify(body),
+    signal,
+  });
 }
 
 /**

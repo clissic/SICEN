@@ -142,8 +142,16 @@ export function mergeCirclesPolygon(centers, radiusNm, steps = 64, cuts = []) {
 /**
  * Anillo [lon, lat] del lado mar (estribor al recorrer la costa 1→N).
  * Cierra lejos costa afuera para usar como máscara de agua.
+ *
+ * `eastBoundaryBearing`: si se indica (p. ej. 127° en Chuy), el cierre este
+ * sigue ese rumbo desde el último punto de costa en vez de ir al este geográfico
+ * (evita pintar del otro lado del límite marítimo UY–BR).
  */
-export function buildSeawardClipRingLonLat(coastLatLon, offshoreDeg = 1.25) {
+export function buildSeawardClipRingLonLat(
+  coastLatLon,
+  offshoreDeg = 1.25,
+  eastBoundaryBearing = null
+) {
   if (!coastLatLon?.length) return [];
   const ring = coastLatLon.map(([lat, lon]) => [lon, lat]);
   const first = coastLatLon[0];
@@ -154,9 +162,20 @@ export function buildSeawardClipRingLonLat(coastLatLon, offshoreDeg = 1.25) {
   const maxLon = Math.max(...lons) + offshoreDeg;
   const southLat = Math.min(...lats) - offshoreDeg * 1.6;
 
-  /* Chuy → este → sur → oeste → vuelta al km 0 por el agua. */
-  ring.push([last[1] + offshoreDeg, last[0]]);
-  ring.push([maxLon, southLat]);
+  /* Chuy → límite E (rayo o este) → sur → oeste → vuelta al km 0 por el agua. */
+  if (Number.isFinite(eastBoundaryBearing)) {
+    const reachM = Math.max(offshoreDeg, 1.25) * 111_320;
+    const [olat, olon] = destinationPoint(
+      last,
+      eastBoundaryBearing,
+      reachM
+    );
+    ring.push([olon, olat]);
+    ring.push([Math.max(maxLon, olon + 0.15), southLat]);
+  } else {
+    ring.push([last[1] + offshoreDeg, last[0]]);
+    ring.push([maxLon, southLat]);
+  }
   ring.push([minLon, southLat]);
   ring.push([first[1] - offshoreDeg * 0.35, first[0] + 0.05]);
   ring.push([first[1], first[0]]);
@@ -166,11 +185,29 @@ export function buildSeawardClipRingLonLat(coastLatLon, offshoreDeg = 1.25) {
 /**
  * Intersecta el polígono de franja con el lado mar de la costa
  * (saca lo que cae sobre tierra uruguaya hacia el interior).
+ *
+ * @param {[number, number][]} positions
+ * @param {[number, number][]} coastLatLon
+ * @param {{ eastBoundaryBearing?: number|null }} [opts]
  */
-export function clipPolygonToSeawardOfCoast(positions, coastLatLon) {
+export function clipPolygonToSeawardOfCoast(
+  positions,
+  coastLatLon,
+  opts = {}
+) {
   if (!positions?.length || !coastLatLon?.length) return positions || [];
 
-  const waterRing = buildSeawardClipRingLonLat(coastLatLon);
+  const eastBearing =
+    opts.eastBoundaryBearing != null &&
+    Number.isFinite(Number(opts.eastBoundaryBearing))
+      ? Number(opts.eastBoundaryBearing)
+      : null;
+
+  const waterRing = buildSeawardClipRingLonLat(
+    coastLatLon,
+    1.25,
+    eastBearing
+  );
   const subject = [
     [
       [
@@ -198,6 +235,86 @@ export function clipPolygonToSeawardOfCoast(positions, coastLatLon) {
     Number(lat.toFixed(6)),
     Number(lon.toFixed(6)),
   ]);
+}
+
+function bearingDeg(fromLatLon, toLatLon) {
+  const φ1 = toRad(fromLatLon[0]);
+  const φ2 = toRad(toLatLon[0]);
+  const Δλ = toRad(toLatLon[1] - fromLatLon[1]);
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x =
+    Math.cos(φ1) * Math.sin(φ2) -
+    Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
+function angleDiffDeg(a, b) {
+  return Math.min((a - b + 360) % 360, (b - a + 360) % 360);
+}
+
+/**
+ * Desde el extremo E (Chuy), deja un solo tramo al rumbo del límite marítimo:
+ * elimina el gancho inicial hacia Brasil y sale directo desde la costa.
+ */
+export function straightenEastEdgeFromTerminus(
+  positions,
+  terminus,
+  bearing,
+  { bearingTol = 1.25, minKeepDistDeg = 0.12, maxScanDeg = 0.45 } = {}
+) {
+  if (!positions?.length || !terminus) return positions || [];
+  const n = positions.length;
+  let ti = -1;
+  let bestD = Infinity;
+  for (let i = 0; i < n; i++) {
+    const d = Math.hypot(
+      positions[i][0] - terminus[0],
+      positions[i][1] - terminus[1]
+    );
+    if (d < bestD) {
+      bestD = d;
+      ti = i;
+    }
+  }
+  if (ti < 0 || bestD > 0.05) return positions;
+
+  const pts = positions.map((p) => p.slice());
+  pts[ti] = [terminus[0], terminus[1]];
+
+  const prev = (ti - 1 + n) % n;
+  const next = (ti + 1) % n;
+  const brgPrev = bearingDeg(terminus, pts[prev]);
+  const brgNext = bearingDeg(terminus, pts[next]);
+  const dir =
+    angleDiffDeg(brgPrev, bearing) <= angleDiffDeg(brgNext, bearing)
+      ? -1
+      : 1;
+
+  /** @type {number[]} */
+  const drop = [];
+  for (let step = 1; step < n - 2; step++) {
+    const i = (ti + dir * step + n) % n;
+    const p = pts[i];
+    const d = Math.hypot(p[0] - terminus[0], p[1] - terminus[1]);
+    if (d > maxScanDeg) break;
+    const brg = bearingDeg(terminus, p);
+    if (d >= minKeepDistDeg && angleDiffDeg(brg, bearing) <= bearingTol) {
+      break;
+    }
+    drop.push(i);
+  }
+
+  if (!drop.length) {
+    return pts.map((p) => [
+      Number(p[0].toFixed(6)),
+      Number(p[1].toFixed(6)),
+    ]);
+  }
+
+  const dropSet = new Set(drop);
+  return pts
+    .filter((_, i) => !dropSet.has(i))
+    .map((p) => [Number(p[0].toFixed(6)), Number(p[1].toFixed(6))]);
 }
 
 /** Área abs. aproximada (shoelace) en grados² — solo para elegir el anillo mayor. */

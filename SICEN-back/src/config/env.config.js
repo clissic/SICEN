@@ -64,6 +64,33 @@ export default {
   aisStreamApiKey: process.env.AIS_STREAM_API_KEY || "",
   /** Bounding box AIS: latMin,lonMin,latMax,lonMax (default Río de la Plata; AISStream cubre poco MVD). */
   aisBbox: process.env.AIS_BBOX || "",
+  /**
+   * Bounding box Skylight (detecciones / frames / AOIs): latMin,lonMin,latMax,lonMax.
+   * Si está vacío, usa AIS_BBOX y luego el default amplio (Uruguay + Río de la Plata / Atlántico).
+   */
+  skylightBbox: process.env.SKYLIGHT_BBOX || "",
+  /** API key Skylight (detecciones satelitales / IUU). Vacío = capas Skylight deshabilitadas. */
+  skylightApiKey: process.env.SKYLIGHT_API_KEY || "",
+  /** TTL cache proxy Skylight (ms). Default 5 min. */
+  skylightCacheTtlMs: Number(process.env.SKYLIGHT_CACHE_TTL_MS) || 300_000,
+  /**
+   * Token Bearer Global Fishing Watch (identidad MMSI→OMI en capa AIS).
+   * Uso no comercial. Vacío = enriquecimiento GFW deshabilitado.
+   * https://globalfishingwatch.org/our-apis/
+   */
+  gfwApiToken: process.env.GFW_API_TOKEN || "",
+  /** TTL cache identidad GFW (ms). Default 7 días. */
+  gfwIdentityCacheTtlMs:
+    Number(process.env.GFW_IDENTITY_CACHE_TTL_MS) || 604_800_000,
+  /** TTL cache eventos GFW (ms). Default 5 min. */
+  gfwEventsCacheTtlMs: Number(process.env.GFW_EVENTS_CACHE_TTL_MS) || 300_000,
+  /**
+   * Bounding box FIU LAC IUU: latMin,lonMin,latMax,lonMax.
+   * Si vacío → AIS_BBOX → default LAC amplio.
+   */
+  fiuIuuBbox: process.env.FIU_IUU_BBOX || "",
+  /** TTL cache proxy FIU IUU (ms). Default 5 min. */
+  fiuIuuCacheTtlMs: Number(process.env.FIU_IUU_CACHE_TTL_MS) || 300_000,
   /** TTL cache proxy viento Open-Meteo (ms). Default 10 min. */
   windCacheTtlMs: Number(process.env.WIND_CACHE_TTL_MS) || 600_000,
   /** TTL cache proxy corrientes Open-Meteo Marine (ms). Default 10 min. */
@@ -73,4 +100,24 @@ export default {
   /** TTL cache batimetría GEBCO (ms). Default 7 días (dato estático). */
   bathymetryCacheTtlMs:
     Number(process.env.BATHYMETRY_CACHE_TTL_MS) || 604_800_000,
+  /** TTL cache límites marítimos MarineRegions (ms). Default 7 días. */
+  maritimeBoundariesCacheTtlMs:
+    Number(process.env.MARITIME_BOUNDARIES_CACHE_TTL_MS) || 604_800_000,
+  /**
+   * Simulador HC (SICEN-sim). Requiere worker Python en HC_SIM_URL.
+   * HC_SIM_ENABLED=true|1 para habilitar.
+   */
+  hcSimEnabled: /^(1|true|yes)$/i.test(
+    String(process.env.HC_SIM_ENABLED || "").trim()
+  ),
+  hcSimUrl: process.env.HC_SIM_URL || "http://127.0.0.1:8091",
+  /** Timeout llamada a SICEN-sim (ms). Default 120 s. */
+  hcSimTimeoutMs: Number(process.env.HC_SIM_TIMEOUT_MS) || 120_000,
+  /**
+   * Simulador SAR (mismo worker HC_SIM_URL).
+   * SAR_SIM_ENABLED=true|1 para habilitar.
+   */
+  sarSimEnabled: /^(1|true|yes)$/i.test(
+    String(process.env.SAR_SIM_ENABLED || "").trim()
+  ),
 };

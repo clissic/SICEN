@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+data/cache/
+data/spike_result.json
+*.egg-info/
+.pytest_cache/

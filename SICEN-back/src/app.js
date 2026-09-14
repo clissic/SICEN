@@ -42,12 +42,27 @@ import { titlesRouter } from "./routes/titles.router.js";
 import { sportMovementsRouter } from "./routes/sportMovements.router.js";
 import { notificationsRouter } from "./routes/notifications.router.js";
 import { aisRouter } from "./routes/ais.router.js";
+import { skylightRouter } from "./routes/skylight.router.js";
+import { fiuIuuRouter } from "./routes/fiuIuu.router.js";
+import { gfwRouter } from "./routes/gfw.router.js";
+import { hcRouter } from "./routes/hc.router.js";
+import { sarRouter } from "./routes/sar.router.js";
 import { windRouter } from "./routes/wind.router.js";
 import { currentsRouter } from "./routes/currents.router.js";
 import { wavesRouter } from "./routes/waves.router.js";
 import { bathymetryRouter } from "./routes/bathymetry.router.js";
+import { maritimeBoundariesRouter } from "./routes/maritimeBoundaries.router.js";
+import { mapMarkersRouter } from "./routes/mapMarkers.router.js";
 import { seafarerLinksRouter } from "./routes/seafarerLinks.router.js";
 import { warmAisBridge } from "./services/aisBridge.service.js";
+import {
+  getHcStatus,
+  isHcSimEnabled,
+} from "./services/hcSim.service.js";
+import {
+  getSarStatus,
+  isSarSimEnabled,
+} from "./services/sarSim.service.js";
 import { startTrackingMonitor } from "./services/sportMovementTracking.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -145,14 +160,49 @@ app.use("/api/titles", titlesRouter);
 app.use("/api/sportMovements", sportMovementsRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/ais", aisRouter);
+app.use("/api/skylight", skylightRouter);
+app.use("/api/fiuIuu", fiuIuuRouter);
+app.use("/api/gfw", gfwRouter);
+app.use("/api/hc", hcRouter);
+app.use("/api/sar", sarRouter);
 app.use("/api/wind", windRouter);
 app.use("/api/currents", currentsRouter);
 app.use("/api/waves", wavesRouter);
 app.use("/api/bathymetry", bathymetryRouter);
+app.use("/api/maritimeBoundaries", maritimeBoundariesRouter);
+app.use("/api/mapMarkers", mapMarkersRouter);
 app.use("/api/seafarer-links", seafarerLinksRouter);
 
 warmAisBridge();
 startTrackingMonitor();
+
+if (isHcSimEnabled()) {
+  getHcStatus()
+    .then((s) => {
+      logger.info(
+        `HC sim: habilitado · worker=${s.workerOk ? "ok" : "no responde"} (${s.url})`
+      );
+    })
+    .catch(() => {
+      logger.warning("HC sim: habilitado pero no se pudo consultar el worker.");
+    });
+} else {
+  logger.info("HC sim: deshabilitado (HC_SIM_ENABLED)");
+}
+
+if (isSarSimEnabled()) {
+  getSarStatus()
+    .then((s) => {
+      logger.info(
+        `SAR sim: habilitado · worker=${s.workerOk ? "ok" : "no responde"} (${s.url})`
+      );
+    })
+    .catch(() => {
+      logger.warning("SAR sim: habilitado pero no se pudo consultar el worker.");
+    });
+} else {
+  logger.info("SAR sim: deshabilitado (SAR_SIM_ENABLED)");
+}
 
 
 if (hasSpaBuild) {

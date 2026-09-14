@@ -1,10 +1,13 @@
-import { BREVET_B_STRIP_POSITIONS } from "./data/brevetBStripPolygon.js";
+import {
+  BREVET_B_STRIP_POSITIONS,
+  BREVET_B_STRIP_RINGS,
+} from "./data/brevetBStripPolygon.js";
 
 /**
  * Categorías de brevets deportivos en El Centinela.
  * `infoOnly`: no pinta área; al clickear solo muestra un aviso.
  * `infoText`: Swal / popup al clickear la categoría (o su zona).
- * Categoría B: unión de círculos 15 MN (puntos 1–219).
+ * Categoría B: franja oceánica 15 MN (Chuy) ∪ Río de la Plata (mismo recorte que la capa RDP).
  * Categoría C: círculo por puerto (`portPicker`); catálogo en sportPorts.js.
  */
 export const CENTINELA_BREVET_CATEGORIES = [
@@ -22,8 +25,13 @@ export const CENTINELA_BREVET_CATEGORIES = [
     color: "#67e8f9",
     borderColor: "#0891b2",
     positions: BREVET_B_STRIP_POSITIONS,
+    /** Si la unión franja∪RDP deja varios anillos, se dibujan todos. */
+    rings:
+      Array.isArray(BREVET_B_STRIP_RINGS) && BREVET_B_STRIP_RINGS.length > 1
+        ? BREVET_B_STRIP_RINGS
+        : undefined,
     infoText:
-      "Habilitada para navegar en el Río de la Plata y una franja costera oceánica de 15 millas de ancho hasta la desembocadura del Arroyo Chuy.",
+      "Habilitada para navegar en el Río de la Plata, el Río Uruguay (hasta ~30°12′S) y, hacia el este de Punta del Este, en una franja costera oceánica de 15 millas de ancho hasta la desembocadura del Arroyo Chuy.",
   },
   {
     id: "brevet-c",

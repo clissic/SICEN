@@ -225,8 +225,14 @@ export const BREVET_B_COAST_POINTS = [
   [-33.74462, -53.37012], // 219 — extremo E (Chuy); clip NW de este punto
 ];
 
-/** Extremo este de la franja B: nada pintado al noroeste de aquí. */
+/** Extremo este de la franja B (Chuy / Puimayen). */
 export const BREVET_B_EAST_TERMINUS = [-33.74462, -53.37012];
+
+/**
+ * Rumbo del límite marítimo UY–Brasil desde el extremo E (≈ MarineRegions).
+ * El clip de agua cierra por este rayo para no pintar del lado brasileño.
+ */
+export const BREVET_B_EAST_BOUNDARY_BEARING = 127;
 
 /** Radio de cada círculo en millas náuticas. */
 export const BREVET_B_CIRCLE_RADIUS_NM = 15;

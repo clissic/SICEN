@@ -1,11 +1,30 @@
 import WebSocket from "ws";
 import env from "../config/env.config.js";
 import { logger } from "../utils/logger.js";
+import {
+  getGfwVesselIdentity,
+  isGfwAvailable,
+  isGfwConfigured,
+} from "./gfwProxy.service.js";
+import {
+  getSkylightVesselIdentity,
+  isSkylightConfigured,
+  searchSkylightLastKnownPositions,
+} from "./skylightProxy.service.js";
 
 /** TTL de posiciones sin actualizar (ms). */
 const VESSEL_TTL_MS = 30 * 60 * 1000;
 /** Reintento de conexión upstream (ms). */
 const RECONNECT_MS = 8_000;
+/** Poll Skylight last-known (ms). */
+const SKYLIGHT_POLL_MS = 90_000;
+/** Poll enriquecimiento identidad (Skylight + GFW). */
+const IDENTITY_POLL_MS = 90_000;
+/** Si AISStream actualizó hace menos que esto, no pisar posición con Skylight. */
+const AISSTREAM_FRESH_MS = 5 * 60 * 1000;
+/** Identidades a enriquecer por ciclo de poll. */
+const IDENTITY_ENRICH_PER_POLL = 16;
+const IDENTITY_CONCURRENCY = 3;
 
 const POSITION_TYPES = new Set([
   "PositionReport",
@@ -14,8 +33,8 @@ const POSITION_TYPES = new Set([
 ]);
 
 /**
- * Fuente AIS abstracta: hoy AISStream; mañana receptor NMEA propio
- * puede alimentar el mismo `upsertVessel` / fan-out SSE.
+ * Fuente AIS abstracta: AISStream + Skylight last-known + identidad GFW.
+ * Posiciones alimentan el mismo store / fan-out SSE; GFW solo rellena OMI/nombre.
  */
 const vessels = new Map();
 /** @type {Set<import("express").Response>} */
@@ -25,9 +44,19 @@ const sseClients = new Set();
 let upstream = null;
 let reconnectTimer = null;
 let pruneTimer = null;
+let skylightPollTimer = null;
+let identityPollTimer = null;
+let skylightPollInFlight = false;
+let identityPollInFlight = false;
 let intentionalClose = false;
 let msgCount = 0;
 let lastStatsLogAt = 0;
+let skylightLastOkAt = 0;
+let skylightLastError = null;
+let skylightVesselCount = 0;
+let gfwEnrichOk = 0;
+let gfwEnrichMiss = 0;
+let gfwLastError = null;
 
 function parseBbox() {
   const raw = (env.aisBbox || "").trim();
@@ -42,7 +71,7 @@ function parseBbox() {
         ],
       ];
     }
-    logger.warn(
+    logger.warning(
       "AIS_BBOX inválido (esperado latMin,lonMin,latMax,lonMax). Usando bbox por defecto."
     );
   }
@@ -55,8 +84,12 @@ function parseBbox() {
   ];
 }
 
-function isConfigured() {
+function isAisStreamConfigured() {
   return Boolean(env.aisStreamApiKey?.trim());
+}
+
+function isConfigured() {
+  return isAisStreamConfigured() || isSkylightConfigured();
 }
 
 function metaCoord(meta, keyCap, keyLow) {
@@ -65,20 +98,81 @@ function metaCoord(meta, keyCap, keyLow) {
   return Number.isFinite(n) ? n : NaN;
 }
 
-function upsertVessel(partial) {
+/**
+ * @param {object} partial
+ * @param {{ from?: "aisstream"|"skylight"|"identity" }} [opts]
+ */
+function upsertVessel(partial, { from } = {}) {
   const mmsi = String(partial.mmsi || "").trim();
   if (!mmsi) return null;
   const prev = vessels.get(mmsi) || { mmsi };
+  const now = Date.now();
   const cleaned = {};
   for (const [k, v] of Object.entries(partial)) {
     if (v !== undefined) cleaned[k] = v;
   }
-  const next = {
+
+  const sources = {
+    ...(prev.sources || {}),
+    ...(cleaned.sources || {}),
+  };
+  if (from === "aisstream") sources.aisstream = true;
+  if (from === "skylight") sources.skylight = true;
+
+  let next = {
     ...prev,
     ...cleaned,
     mmsi,
-    updatedAt: Date.now(),
+    sources,
   };
+
+  if (from === "aisstream") {
+    next.aisstreamAt = now;
+    next.positionSource = "aisstream";
+  }
+
+  if (from === "skylight") {
+    const aisFresh =
+      prev.aisstreamAt && now - prev.aisstreamAt < AISSTREAM_FRESH_MS;
+    if (aisFresh && prev.positionSource === "aisstream") {
+      // Conservar cinemática fresca de AISStream; solo rellenar huecos de identidad.
+      next = {
+        ...prev,
+        sources,
+        name: prev.name || cleaned.name || undefined,
+        imo: prev.imo != null ? prev.imo : cleaned.imo,
+        callsign: prev.callsign || cleaned.callsign || undefined,
+        flag: prev.flag || cleaned.flag || undefined,
+        shipType: prev.shipType ?? cleaned.shipType ?? null,
+        aisClass: prev.aisClass || cleaned.aisClass || undefined,
+        sentAt: cleaned.sentAt ?? prev.sentAt,
+        ageOfPositionSeconds:
+          cleaned.ageOfPositionSeconds ?? prev.ageOfPositionSeconds,
+        skylightAt: now,
+      };
+    } else {
+      next.skylightAt = now;
+      next.positionSource = "skylight";
+    }
+  }
+
+  if (from === "identity") {
+    next = {
+      ...prev,
+      sources,
+      name: cleaned.name || prev.name || undefined,
+      imo:
+        cleaned.imo != null && Number(cleaned.imo) > 0
+          ? cleaned.imo
+          : prev.imo,
+      callsign: cleaned.callsign || prev.callsign || undefined,
+      flag: cleaned.flag || prev.flag || undefined,
+      shipType: cleaned.shipType ?? prev.shipType ?? null,
+    };
+  }
+
+  next.updatedAt = now;
+
   if (
     typeof next.lat !== "number" ||
     typeof next.lon !== "number" ||
@@ -104,23 +198,26 @@ function applyPosition(type, msg, meta, mmsi) {
       : metaCoord(meta, "Longitude", "longitude");
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
 
-  const vessel = upsertVessel({
-    mmsi,
-    lat,
-    lon,
-    cog: typeof body.Cog === "number" ? body.Cog : null,
-    sog: typeof body.Sog === "number" ? body.Sog : null,
-    heading:
-      typeof body.TrueHeading === "number" && body.TrueHeading !== 511
-        ? body.TrueHeading
-        : null,
-    navStatus:
-      typeof body.NavigationalStatus === "number"
-        ? body.NavigationalStatus
-        : null,
-    name: (meta.ShipName || meta.shipName || "").trim() || undefined,
-    aisClass: type === "PositionReport" ? "A" : "B",
-  });
+  const vessel = upsertVessel(
+    {
+      mmsi,
+      lat,
+      lon,
+      cog: typeof body.Cog === "number" ? body.Cog : null,
+      sog: typeof body.Sog === "number" ? body.Sog : null,
+      heading:
+        typeof body.TrueHeading === "number" && body.TrueHeading !== 511
+          ? body.TrueHeading
+          : null,
+      navStatus:
+        typeof body.NavigationalStatus === "number"
+          ? body.NavigationalStatus
+          : null,
+      name: (meta.ShipName || meta.shipName || "").trim() || undefined,
+      aisClass: type === "PositionReport" ? "A" : "B",
+    },
+    { from: "aisstream" }
+  );
   if (vessel) broadcast("update", vessel);
 }
 
@@ -177,7 +274,7 @@ function handleUpstreamMessage(raw) {
       patch.lat = metaLat;
       patch.lon = metaLon;
     }
-    const vessel = upsertVessel(patch);
+    const vessel = upsertVessel(patch, { from: "aisstream" });
     if (vessel) broadcast("update", vessel);
   }
 }
@@ -213,7 +310,7 @@ function scheduleReconnect() {
 }
 
 function connectUpstream() {
-  if (!isConfigured()) return;
+  if (!isAisStreamConfigured()) return;
   if (
     upstream &&
     (upstream.readyState === WebSocket.OPEN ||
@@ -247,7 +344,7 @@ function connectUpstream() {
   ws.on("message", handleUpstreamMessage);
 
   ws.on("close", (code, reason) => {
-    logger.warn(
+    logger.warning(
       `AISStream: cerrado (${code}) ${reason?.toString?.() || ""}`.trim()
     );
     if (upstream === ws) upstream = null;
@@ -264,17 +361,205 @@ function connectUpstream() {
   }
 }
 
+function needsIdentity(v) {
+  if (!v) return false;
+  const hasName = Boolean(v.name?.trim());
+  const hasImo = v.imo != null && Number(v.imo) > 0;
+  return !hasName || !hasImo;
+}
+
+function applyIdentityPatch(mmsi, id, sourceKey) {
+  if (!id) return null;
+  const patch = {
+    mmsi,
+    sources: { [sourceKey]: true },
+  };
+  if (id.name) patch.name = id.name;
+  if (id.imo != null && Number(id.imo) > 0) patch.imo = id.imo;
+  if (id.callsign) patch.callsign = id.callsign;
+  if (id.flag) patch.flag = id.flag;
+  if (id.shipType) patch.shipType = id.shipType;
+  const vessel = upsertVessel(patch, { from: "identity" });
+  if (vessel) broadcast("update", vessel);
+  return vessel;
+}
+
+async function enrichOneIdentity(mmsi) {
+  let current = vessels.get(mmsi);
+  if (!current || !needsIdentity(current)) return;
+
+  if (isSkylightConfigured() && needsIdentity(current)) {
+    try {
+      const id = await getSkylightVesselIdentity(mmsi);
+      applyIdentityPatch(mmsi, id, "skylightIdentity");
+      current = vessels.get(mmsi);
+    } catch (e) {
+      logger.warning(`AIS Skylight identidad ${mmsi}: ${e?.message || e}`);
+    }
+  }
+
+  if (isGfwAvailable() && needsIdentity(current || vessels.get(mmsi))) {
+    try {
+      const id = await getGfwVesselIdentity(mmsi);
+      gfwLastError = null;
+      if (id?.found) {
+        gfwEnrichOk += 1;
+        applyIdentityPatch(mmsi, id, "gfw");
+      } else {
+        gfwEnrichMiss += 1;
+      }
+    } catch (e) {
+      gfwLastError = e?.message || String(e);
+      /* 401/403: gfwProxy ya loguea una vez y entra en cooldown. */
+      if (e?.status !== 401 && e?.status !== 403) {
+        logger.warning(`AIS GFW identidad ${mmsi}: ${gfwLastError}`);
+      }
+    }
+  }
+}
+
+async function enrichMissingIdentities(candidates) {
+  if (!isSkylightConfigured() && !isGfwConfigured()) return;
+
+  const need = [];
+  for (const mmsi of candidates) {
+    const v = vessels.get(mmsi);
+    if (!v || !needsIdentity(v)) continue;
+    need.push(mmsi);
+    if (need.length >= IDENTITY_ENRICH_PER_POLL) break;
+  }
+
+  for (let i = 0; i < need.length; i += IDENTITY_CONCURRENCY) {
+    const batch = need.slice(i, i + IDENTITY_CONCURRENCY);
+    await Promise.all(batch.map((mmsi) => enrichOneIdentity(mmsi)));
+  }
+}
+
+async function pollIdentityEnrichment() {
+  if (identityPollInFlight) return;
+  if (!isSkylightConfigured() && !isGfwConfigured()) return;
+  identityPollInFlight = true;
+  try {
+    const candidates = [];
+    for (const [mmsi, v] of vessels) {
+      if (
+        typeof v.lat === "number" &&
+        typeof v.lon === "number" &&
+        needsIdentity(v)
+      ) {
+        candidates.push(mmsi);
+      }
+    }
+    if (candidates.length) {
+      await enrichMissingIdentities(candidates);
+      broadcast("status", getAisStatus());
+    }
+  } finally {
+    identityPollInFlight = false;
+  }
+}
+
+function startIdentityEnrichPoll() {
+  if (!isSkylightConfigured() && !isGfwConfigured()) return;
+  if (identityPollTimer) return;
+  logger.info(
+    `AIS identidad: poll activo (Skylight=${isSkylightConfigured()} GFW=${isGfwConfigured()})`
+  );
+  pollIdentityEnrichment();
+  identityPollTimer = setInterval(pollIdentityEnrichment, IDENTITY_POLL_MS);
+  if (!pruneTimer) {
+    pruneTimer = setInterval(pruneStale, 60_000);
+  }
+}
+
+async function pollSkylightAis() {
+  if (!isSkylightConfigured() || skylightPollInFlight) return;
+  skylightPollInFlight = true;
+  try {
+    const data = await searchSkylightLastKnownPositions({ limit: 400 });
+    const list = Array.isArray(data?.vessels) ? data.vessels : [];
+    skylightVesselCount = list.length;
+    skylightLastOkAt = Date.now();
+    skylightLastError = null;
+
+    const touchMmsis = [];
+    for (const row of list) {
+      const vessel = upsertVessel(
+        {
+          mmsi: row.mmsi,
+          lat: row.lat,
+          lon: row.lon,
+          sog: row.sog,
+          cog: row.cog,
+          heading: row.heading,
+          navStatus: row.navStatus,
+          aisClass: row.aisClass || undefined,
+          sentAt: row.sentAt,
+          ageOfPositionSeconds: row.ageOfPositionSeconds,
+        },
+        { from: "skylight" }
+      );
+      if (vessel) {
+        broadcast("update", vessel);
+        touchMmsis.push(String(vessel.mmsi));
+      }
+    }
+
+    await enrichMissingIdentities(touchMmsis);
+    broadcast("status", getAisStatus());
+    logger.info(
+      `AIS Skylight: ${list.length} last-known · ${vessels.size} en cache`
+    );
+  } catch (e) {
+    skylightLastError = e?.message || String(e);
+    logger.warning(`AIS Skylight poll: ${skylightLastError}`);
+    broadcast("status", getAisStatus());
+  } finally {
+    skylightPollInFlight = false;
+  }
+}
+
+function startSkylightAisPoll() {
+  if (!isSkylightConfigured()) return;
+  if (skylightPollTimer) return;
+  logger.info("AIS Skylight: poll de last-known activo");
+  pollSkylightAis();
+  skylightPollTimer = setInterval(pollSkylightAis, SKYLIGHT_POLL_MS);
+  if (!pruneTimer) {
+    pruneTimer = setInterval(pruneStale, 60_000);
+  }
+}
+
 export function getAisStatus() {
   const readyState = upstream?.readyState;
+  const aisstreamConnected = readyState === WebSocket.OPEN;
+  const skylightOk =
+    isSkylightConfigured() &&
+    skylightLastOkAt > 0 &&
+    !skylightLastError;
   return {
     configured: isConfigured(),
-    connected: readyState === WebSocket.OPEN,
+    connected: aisstreamConnected || skylightOk,
     connecting: readyState === WebSocket.CONNECTING,
     vesselCount: listVessels().length,
     cachedTotal: vessels.size,
     clientCount: sseClients.size,
     messagesReceived: msgCount,
-    source: "aisstream",
+    source: "ais",
+    sources: {
+      aisstream: isAisStreamConfigured(),
+      aisstreamConnected,
+      skylight: isSkylightConfigured(),
+      skylightOk,
+      skylightVesselCount,
+      skylightLastError,
+      skylightLastOkAt: skylightLastOkAt || null,
+      gfw: isGfwConfigured(),
+      gfwAvailable: isGfwAvailable(),
+      gfwEnrichOk,
+      gfwEnrichMiss,
+      gfwLastError,
+    },
   };
 }
 
@@ -299,7 +584,9 @@ export function listVessels() {
  */
 export function subscribeSse(res) {
   sseClients.add(res);
-  if (isConfigured()) connectUpstream();
+  if (isAisStreamConfigured()) connectUpstream();
+  startSkylightAisPoll();
+  startIdentityEnrichPoll();
 
   res.write(`event: status\ndata: ${JSON.stringify(getAisStatus())}\n\n`);
   res.write(`event: snapshot\ndata: ${JSON.stringify(listVessels())}\n\n`);
@@ -311,9 +598,28 @@ export function subscribeSse(res) {
 
 /** Mantiene el upstream caliente para que el snapshot ya traiga buques. */
 export function warmAisBridge() {
-  if (!isConfigured()) {
-    logger.info("AISStream: sin AIS_STREAM_API_KEY — capa AIS inactiva");
-    return;
+  if (isAisStreamConfigured()) {
+    connectUpstream();
+  } else {
+    logger.info("AISStream: sin AIS_STREAM_API_KEY — stream AISStream inactivo");
   }
-  connectUpstream();
+  if (isSkylightConfigured()) {
+    startSkylightAisPoll();
+  } else {
+    logger.info(
+      "AIS Skylight: sin SKYLIGHT_API_KEY — refuerzo last-known inactivo"
+    );
+  }
+  if (isSkylightConfigured() || isGfwConfigured()) {
+    startIdentityEnrichPoll();
+  } else {
+    logger.info(
+      "AIS identidad: sin Skylight ni GFW_API_TOKEN — enriquecimiento OMI inactivo"
+    );
+  }
+  if (!isConfigured()) {
+    logger.info(
+      "AIS: ninguna fuente de posición configurada (AISStream ni Skylight)"
+    );
+  }
 }

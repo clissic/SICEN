@@ -9,7 +9,7 @@ export function cartoTileUrl(stylePath) {
 }
 
 export const CARTO_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>';
+  '&copy;&nbsp;<a href="https://www.openstreetmap.org/copyright">OSM</a>&nbsp;&copy;&nbsp;<a href="https://carto.com/">CARTO</a>';
 
 export const CENTINELA_BASE_TILES = {
   light: {

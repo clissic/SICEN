@@ -1,6 +1,6 @@
 {
-  "watch": ["src"],
+  "watch": ["src", ".env.development", ".env.production"],
   "ignore": ["node_modules"],
-  "ext": "js,yaml",
+  "ext": "js,yaml,env",
   "delay": 800
 }

@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useMap } from "react-leaflet";
 
 const GEBCO_ATTRIBUTION =
-  '&copy; <a href="https://www.gebco.net/data_and_products/gridded_bathymetry_data/">GEBCO 2020</a>';
+  '&copy;&nbsp;<a href="https://www.gebco.net/data_and_products/gridded_bathymetry_data/">GEBCO</a>';
 
 /**
  * Agrega o quita la atribución GEBCO en el control nativo de Leaflet.

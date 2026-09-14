@@ -29,6 +29,7 @@ SICEN de popovers Bootstrap.
 |---|---|
 | `data-sicen-popover` | Texto del popover (obligatorio) |
 | `data-sicen-popover-placement` | `top` (default), `bottom`, `left`, `right` |
+| `data-sicen-popover-touch="click"` | En mobile/touch, permite abrir con tap (p. ej. íconos info). Sin esto, en mobile **no** hay popover (evita pelear con botones de menú). |
 | `aria-label` | Accesibilidad (recomendado en botones solo-ícono) |
 
 ## Infraestructura
@@ -39,15 +40,19 @@ SICEN de popovers Bootstrap.
 - `container: "body"`, `sanitize: true`
 - Contenido leído en vivo desde el atributo (`content: () => el.getAttribute(...)`)
 
-### Trigger: solo `hover`
+### Trigger: hover (desktop) / click opt-in (mobile)
 
 ```js
-trigger: "hover"
+// Desktop → hover
+// Mobile → solo si data-sicen-popover-touch="click"; si no, sin tip
+trigger: touchUi ? "click" : "hover"
 ```
 
-**No** usar `focus` ni `hover focus`. Tras un click el botón conserva el foco y
-dejaría el popover abierto; el usuario debe ver el tip solo al pasar el mouse
-y cerrarlo al salir.
+- **Desktop:** solo `hover`. No usar `focus` ni `hover focus`.
+- **Mobile:** los botones de menú **no** abren popover. Solo elementos con
+  `data-sicen-popover-touch="click"` (íconos de información) abren al tap y
+  se cierran al tocar fuera.
+- `body > .popover` usa `z-index: 1300` (por encima del drawer de El Centinela).
 
 ## Cuándo sí / cuándo no
 

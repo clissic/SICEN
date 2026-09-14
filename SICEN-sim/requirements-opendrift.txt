@@ -1,0 +1,3 @@
+# Opcional: motor OpenDrift/OpenOil (imagen Docker Linux recomendada).
+opendrift>=1.11.0
+oil_library-oil>=1.0.0; python_version < "3.12"
