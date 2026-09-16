@@ -100,7 +100,7 @@ export function formatMeasureDistanceParts(meters, unit) {
 }
 
 /**
- * Etiqueta de tramo: `10.56 MN @ 254°`
+ * Etiqueta de tramo: `10.56 MN - R: 254°`
  * @param {number} meters
  * @param {number} bearingDeg
  * @param {'nm' | 'km'} unit
@@ -108,12 +108,14 @@ export function formatMeasureDistanceParts(meters, unit) {
 export function formatSegmentLabel(meters, bearingDeg, unit) {
   const dist = formatMeasureDistance(meters, unit);
   const brg = Math.round(((bearingDeg % 360) + 360) % 360);
-  return `${dist} @ ${brg}°`;
+  return `${dist} - R: ${brg}°`;
 }
 
 /**
- * Rotación CSS (grados) para alinear el texto con el tramo sin dejarlo
- * boca abajo (siempre legible de izquierda a derecha).
+ * Rotación CSS (grados) para alinear el texto con el sentido del tramo,
+ * sin dejarlo boca abajo (legible de izquierda a derecha).
+ * Mediciones: `translateY(-…)` → arriba de la línea.
+ * Nombres: `translateY(+…)` → debajo de la línea.
  * @param {number} bearingDeg rumbo 0–360 (norte = 0)
  */
 export function labelRotationCssDeg(bearingDeg) {
@@ -152,4 +154,72 @@ export function formatScaleBarNm(nm) {
   }
   if (nm >= 0.1) return `${(Math.round(nm * 10) / 10).toFixed(1)} MN`;
   return `${(Math.round(nm * 100) / 100).toFixed(2)} MN`;
+}
+
+const EARTH_RADIUS_M = 6371000;
+export const HECTARE_SQUARE_METERS = 10_000;
+
+/**
+ * Área esférica de un polígono cerrado en m² (anillo simple).
+ * @param {Array<[number, number]|{lat:number,lng:number}>} positions
+ * @returns {number}
+ */
+export function polygonAreaSquareMeters(positions) {
+  if (!Array.isArray(positions) || positions.length < 3) return 0;
+  const pts = [];
+  for (const p of positions) {
+    let lat;
+    let lng;
+    if (Array.isArray(p) && p.length >= 2) {
+      lat = Number(p[0]);
+      lng = Number(p[1]);
+    } else if (p && typeof p === "object") {
+      lat = Number(p.lat);
+      lng = Number(p.lng ?? p.lon);
+    } else {
+      continue;
+    }
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+    pts.push([lat, lng]);
+  }
+  if (pts.length < 3) return 0;
+
+  let total = 0;
+  for (let i = 0; i < pts.length; i += 1) {
+    const [lat1, lon1] = pts[i];
+    const [lat2, lon2] = pts[(i + 1) % pts.length];
+    total +=
+      toRad(lon2 - lon1) *
+      (2 + Math.sin(toRad(lat1)) + Math.sin(toRad(lat2)));
+  }
+  return Math.abs((total * EARTH_RADIUS_M * EARTH_RADIUS_M) / 2);
+}
+
+/**
+ * Formatea un área en m² o hectáreas para la UI.
+ * @param {number} squareMeters
+ * @param {'m2' | 'ha'} unit
+ * @returns {{ value: string, unitLabel: string }}
+ */
+export function formatPolygonAreaParts(squareMeters, unit) {
+  const m2 =
+    Number.isFinite(squareMeters) && squareMeters > 0 ? squareMeters : 0;
+  if (unit === "ha") {
+    const ha = m2 / HECTARE_SQUARE_METERS;
+    let value = "0";
+    if (ha > 0) {
+      if (ha >= 100) value = ha.toLocaleString("es-UY", { maximumFractionDigits: 1 });
+      else if (ha >= 1) value = ha.toLocaleString("es-UY", { maximumFractionDigits: 2 });
+      else value = ha.toLocaleString("es-UY", { maximumFractionDigits: 4 });
+    }
+    return { value, unitLabel: "ha" };
+  }
+  let value = "0";
+  if (m2 > 0) {
+    value =
+      m2 >= 100
+        ? Math.round(m2).toLocaleString("es-UY")
+        : m2.toLocaleString("es-UY", { maximumFractionDigits: 1 });
+  }
+  return { value, unitLabel: "m²" };
 }

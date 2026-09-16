@@ -167,6 +167,8 @@ Buques representados como flechas orientadas según rumbo o COG.
 
 **En el detalle:** nombre, MMSI, OMI (si está disponible), velocidad, rumbo/COG, estado de navegación, indicativo, clase AIS, antigüedad de la posición y fuente. Desde ahí podés abrir **Historial / predicción**.
 
+Con **Mis marcadores**, **Mis zonas** o **Medir distancias** activos aparece, debajo del zoom, el botón **Etiquetas**: abre un menú a la izquierda con checkboxes según lo que esté encendido (AIS si la capa está activa, Marcadores, Zonas, Distancias).
+
 Si el mismo MMSI aparece en AIS y en un evento Skylight, el sistema puede marcar **cruce AIS/Skylight** (destacado visual y badge en el detalle).
 
 > aviso: La cobertura AIS no es uniforme. Un buque “invisible” en vivo no siempre significa que no esté ahí: contrastá con última conocida, satélite u otras fuentes.
@@ -222,7 +224,7 @@ Activa tus polígonos personales. Aparece el botón de lista a la derecha (ícon
 
 ### Medir distancias y radios
 
-Panel **Medir distancia**. Elegí **Herramienta** (reglas = distancia, radar = radio) y **Unidad** (**MN** o **KM**). El **Total** muestra la medida; a la derecha están **Deshacer**, **Reiniciar** y **Fijar**. La **X** (o un segundo clic en el botón de la herramienta) apaga la medición.
+Panel **Medir distancia**. Debajo del título: **Nombre** + botón guardar (disquete). Elegí **Herramienta** (reglas = distancia, radar = radio) y **Unidad** (**MN** o **KM**). El **Total** muestra la medida; a la derecha están **Deshacer**, **Reiniciar** y **Fijar**. Con la herramienta activa aparece a la derecha el FAB de **Mis mediciones** (lista cerrada al inicio): ocultar, editar (carga la geometría en el panel) o eliminar. La **X** (o un segundo clic en el botón de la herramienta) apaga la medición.
 
 > tip: **Fijar** deja la medida en el mapa y te permite seguir mirando sin perder el total. Volvé a tocar Fijar para soltar y seguir midiendo.
 
@@ -367,9 +369,10 @@ Según datos disponibles puede incluir:
 
 - **Identidad** — nombre, MMSI, OMI, indicativo y fuentes (AIS, Skylight, GFW…).
 - **Riesgo GFW** — insights de Global Fishing Watch cuando están disponibles.
-- **Track** — tramos recientes o estado (fondeado, amarrado, en tránsito…).
-- **Predicción** — estimación de posición futura y su dibujo en el mapa.
-- **Eventos relacionados** — por ejemplo Skylight asociados al mismo buque.
+- **Track** — acordeón con tramos AIS (posiciones, ir al tramo).
+- **Eventos STS** — acordeón con rendezvous Skylight del buque.
+- **Eventos Skylight** — acordeón con el resto de eventos vinculados al MMSI.
+- **Predicción** — al final del menú; estimación de posición futura y su dibujo en el mapa.
 
 La **X** del panel lo minimiza; el reloj lo vuelve a mostrar u ocultar.
 
@@ -392,7 +395,7 @@ El Centinela combina varias fuentes. Cada una tiene cobertura, demora y condicio
 - **AIS** — en vivo (AISStream) y/o última conocida (Skylight); identidad OMI enriquecida cuando hay datos.
 - **Skylight** — detecciones, pesca, STS y refuerzo AIS.
 - **FIU / IUU LatAm** — análisis IUU de uso analítico / no comercial según su metodología.
-- **Global Fishing Watch** — eventos e insights; uso **no comercial**. En pantalla aparece «Powered by Global Fishing Watch».
+- **Global Fishing Watch** — eventos e insights; licencia **CC BY-NC 4.0**, uso **no comercial**. La atribución «Powered by Global Fishing Watch» figura en el control de atribuciones del mapa (y en esta documentación), no dentro del menú de historial del buque.
 - **GEBCO** — batimetría.
 - **MarineRegions / VLIZ** — límites marítimos de referencia (12 MN, 24 MN, ZEE).
 - **Open-Meteo** — viento, corrientes, olas y forzado de las simulaciones HC / SAR.

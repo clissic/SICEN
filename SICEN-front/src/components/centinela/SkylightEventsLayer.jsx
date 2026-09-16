@@ -5,7 +5,6 @@ import {
   useMap,
   useMapEvents,
 } from "react-leaflet";
-import L from "leaflet";
 import {
   SKYLIGHT_DEFAULT_LOOKBACK_HOURS,
   SKYLIGHT_EVENT_TYPE_LABELS,
@@ -19,6 +18,9 @@ import {
   skylightHasTrack,
   skylightMarkerColor,
 } from "../../utils/skylightEventHelpers.js";
+import { clientAnchorFromLeafletEvent, clientAnchorFromMapLatLng } from "./CentinelaDetailWindow.jsx";
+import { SkylightDetectionImage } from "./SkylightDetectionImage.jsx";
+import { stopLeafletMapClick } from "../../utils/stopLeafletMapClick.js";
 
 const REFRESH_MS = 5 * 60_000;
 
@@ -86,6 +88,10 @@ export function SkylightEventDetailBody({ event, aisMatched, onOpenDossier }) {
       {aisMatched ? (
         <div className="centinela-skylight-popup__match">Cruce AIS</div>
       ) : null}
+      <SkylightDetectionImage
+        imageUrl={d.imageUrl}
+        alt={`Detección satelital: ${skylightEventTitle(event)}`}
+      />
       <ul className="centinela-skylight-popup__meta list-unstyled mb-0">
         <li>
           Tipo:{" "}
@@ -200,6 +206,7 @@ export function SkylightEventsLayer({
   const onOpenDetailRef = useRef(onOpenDetail);
   const onOpenDossierRef = useRef(onOpenVesselDossier);
   const openedForIdRef = useRef(null);
+  const clickAnchorRef = useRef(null);
   onStatusRef.current = onStatusChange;
   onEventsRef.current = onEventsChange;
   onBoundsRef.current = onBoundsChange;
@@ -352,6 +359,9 @@ export function SkylightEventsLayer({
     onOpenDetailRef.current?.({
       id: `skylight:${ev.eventId}`,
       title: skylightEventTitle(ev),
+      anchor:
+        clickAnchorRef.current ||
+        clientAnchorFromMapLatLng(map, ev.lat, ev.lon),
       body: (
         <SkylightEventDetailBody
           event={ev}
@@ -366,6 +376,7 @@ export function SkylightEventsLayer({
         />
       ),
     });
+    clickAnchorRef.current = null;
   }, [selectedEventId, events, enabled, map, matchedAisMmsis]);
 
   if (!enabled) return null;
@@ -406,6 +417,7 @@ export function SkylightEventsLayer({
             <CircleMarker
               center={[ev.lat, ev.lon]}
               radius={radius}
+              bubblingMouseEvents={false}
               pathOptions={{
                 color: stroke,
                 weight: selected || mmsiSelected || aisMatched ? 2.5 : 1.5,
@@ -414,10 +426,8 @@ export function SkylightEventsLayer({
               }}
               eventHandlers={{
                 click: (e) => {
-                  if (e?.originalEvent) {
-                    L.DomEvent.stopPropagation(e.originalEvent);
-                    L.DomEvent.preventDefault(e.originalEvent);
-                  }
+                  stopLeafletMapClick(e);
+                  clickAnchorRef.current = clientAnchorFromLeafletEvent(e);
                   onSelectEvent?.(ev.eventId);
                 },
               }}

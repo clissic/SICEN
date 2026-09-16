@@ -5,6 +5,7 @@ import {
   formatDmsDigitsInput,
   parseDmsDigits,
 } from "../../utils/geoDms.js";
+import { CentinelaToolPanelHead } from "./CentinelaToolPanelHead.jsx";
 
 function HemiToggle({ options, value, onChange, ariaLabel }) {
   return (
@@ -36,7 +37,12 @@ function HemiToggle({ options, value, onChange, ariaLabel }) {
 /**
  * Flotante: ir a un punto por Lat/Long en DMS (entrada por dígitos + hemi).
  */
-export function GoToPointPanel({ onGo, onClose }) {
+export function GoToPointPanel({
+  onGo,
+  onClose,
+  minimized = false,
+  onToggleMinimized,
+}) {
   const [latDigits, setLatDigits] = useState("");
   const [lngDigits, setLngDigits] = useState("");
   const [latHemi, setLatHemi] = useState("S");
@@ -69,24 +75,25 @@ export function GoToPointPanel({ onGo, onClose }) {
 
   return (
     <form
-      className="centinela-tool-panel centinela-goto-panel"
+      className={[
+        "centinela-tool-panel",
+        "centinela-goto-panel",
+        minimized ? "is-minimized" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       onSubmit={handleSubmit}
       role="dialog"
       aria-label="Ir a un punto"
     >
-      <div className="centinela-goto-panel__head">
-        <strong className="centinela-tool-panel__title">Ir a un punto</strong>
-        {onClose ? (
-          <button
-            type="button"
-            className="centinela-goto-panel__close"
-            aria-label="Cerrar Ir a un punto"
-            onClick={onClose}
-          >
-            <i className="bi bi-x-lg" aria-hidden />
-          </button>
-        ) : null}
-      </div>
+      <CentinelaToolPanelHead
+        className="centinela-goto-panel__head"
+        title="Ir a un punto"
+        minimized={minimized}
+        onToggleMinimized={onToggleMinimized}
+        onClose={onClose}
+        closeLabel="Cerrar Ir a un punto"
+      />
 
       <ErrorAlert message={err} className="alert alert-danger py-2 small mb-0" />
 

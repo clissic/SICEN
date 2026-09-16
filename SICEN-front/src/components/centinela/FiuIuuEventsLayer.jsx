@@ -5,7 +5,6 @@ import {
   useMap,
   useMapEvents,
 } from "react-leaflet";
-import L from "leaflet";
 import {
   FIU_IUU_DASHBOARD_URL,
   FIU_IUU_DISCLAIMER,
@@ -15,6 +14,8 @@ import {
 } from "../../constants/fiuIuuLayers.js";
 import { fiuIuuFetchEvents } from "../../api/client.js";
 import { formatCoordDms } from "../../utils/geoDms.js";
+import { clientAnchorFromLeafletEvent, clientAnchorFromMapLatLng } from "./CentinelaDetailWindow.jsx";
+import { stopLeafletMapClick } from "../../utils/stopLeafletMapClick.js";
 
 const REFRESH_MS = 5 * 60_000;
 const BOUNDS_DEBOUNCE_MS = 800;
@@ -158,6 +159,7 @@ export function FiuIuuEventsLayer({
   const abortRef = useRef(null);
   const debounceRef = useRef(null);
   const openedForIdRef = useRef(null);
+  const clickAnchorRef = useRef(null);
   const onStatusRef = useRef(onStatusChange);
   const onOpenDetailRef = useRef(onOpenDetail);
   onStatusRef.current = onStatusChange;
@@ -283,8 +285,12 @@ export function FiuIuuEventsLayer({
     onOpenDetailRef.current?.({
       id: `fiuIuu:${ev.eventId}`,
       title: fiuIuuEventTitle(ev),
+      anchor:
+        clickAnchorRef.current ||
+        clientAnchorFromMapLatLng(map, ev.lat, ev.lon),
       body: <FiuIuuEventDetailBody event={ev} />,
     });
+    clickAnchorRef.current = null;
   }, [selectedEventId, events, enabled, map]);
 
   if (!enabled) return null;
@@ -318,6 +324,7 @@ export function FiuIuuEventsLayer({
             <CircleMarker
               center={[ev.lat, ev.lon]}
               radius={radius}
+              bubblingMouseEvents={false}
               pathOptions={{
                 color: "#fff",
                 weight: selected ? 2.5 : 1.5,
@@ -326,10 +333,8 @@ export function FiuIuuEventsLayer({
               }}
               eventHandlers={{
                 click: (e) => {
-                  if (e?.originalEvent) {
-                    L.DomEvent.stopPropagation(e.originalEvent);
-                    L.DomEvent.preventDefault(e.originalEvent);
-                  }
+                  stopLeafletMapClick(e);
+                  clickAnchorRef.current = clientAnchorFromLeafletEvent(e);
                   onSelectEvent?.(ev.eventId);
                 },
               }}

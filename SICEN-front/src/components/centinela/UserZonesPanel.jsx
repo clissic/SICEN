@@ -59,10 +59,10 @@ export function UserZonesPanel({
             <button
               type="button"
               className="centinela-skylight-list__close"
-              aria-label="Cerrar lista de zonas"
+              aria-label="Ocultar menú de zonas"
               onClick={onClose}
             >
-              <i className="bi bi-x-lg" aria-hidden />
+              <i className="bi bi-arrow-right" aria-hidden />
             </button>
           ) : null}
         </div>

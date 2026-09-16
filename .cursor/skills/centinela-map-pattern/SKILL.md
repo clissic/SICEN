@@ -8,7 +8,8 @@ description: >-
   límites marítimos MarineRegions 12/24 MN y ZEE).
   Usar al tocar `/centinela`, CentinelaPage, AisVesselLayer, SkylightEventsLayer,
   FiuIuuEventsLayer, HcSpillPanel, SarDriftPanel, MaritimeBoundariesLayer,
-  UserZonesLayer, ZoneFormModal, useAisVessels, /api/ais, /api/skylight, /api/fiuIuu,
+  UserZonesLayer, ZoneFormModal, CentinelaFloatingToolWindow, CentinelaMarineToolsBar,
+  useAisVessels, /api/ais, /api/skylight, /api/fiuIuu,
   /api/hc, /api/sar, /api/mapZones, /api/maritimeBoundaries, /api/wind, /api/currents,
   /api/waves, batimetría GEBCO, AISStream, SICEN-sim o refuerzo Skylight last-known /
   Global Fishing Watch (identidad OMI) en la capa AIS.
@@ -25,11 +26,13 @@ description: >-
 | Capa AIS UI | `AisVesselLayer.jsx` + `aisLayers.js` (fuentes AISStream / Skylight) |
 | Skylight | `SkylightEventsLayer.jsx` + `SkylightFramesLayer.jsx` + `SkylightEventsList.jsx` + `SkylightVesselDossierPanel.jsx` + `SkylightVesselTrackLayer.jsx` + `SkylightAisCrossLinks.jsx` + `skylightLayers.js` + `skylightZoneAoiSync.js` + `skylightEventHelpers.js` + `/api/skylight` |
 | IUU LAC (FIU) | `FiuIuuEventsLayer.jsx` + `CentinelaFiuIuuAttribution.jsx` + `fiuIuuLayers.js` + `/api/fiuIuu` (FeatureServers públicos Windward vía FIU; sin key; uso no comercial) |
-| Medición | `MeasureDistanceLayer.jsx` + `MeasureDistancePanel.jsx` + `utils/geoMeasure.js` |
+| Medición | `MeasureDistanceLayer.jsx` + `MeasureDistancePanel.jsx` + `UserMeasurementsLayer/Panel` + `utils/geoMeasure.js` + `utils/measureSnapshot.js` |
 | Ir al punto | `GoToPointPanel.jsx` + `parseDmsDigits` / hemi N·S E·O + `openMapCoordsPopup` |
 | Marcadores | `UserMarkersLayer.jsx` + `UserMarkersPanel.jsx` + `MarkerFormModal.jsx` + `POST/GET/PUT/DELETE /api/mapMarkers` |
 | Zonas personales | `UserZonesLayer.jsx` + `UserZonesPanel.jsx` + `ZoneFormModal.jsx` + `POST/GET/PUT/DELETE /api/mapZones` |
+| Etiquetas | `CentinelaLabelsOptions` en Capas (debajo de Herramientas) + `labelVisibility` |
 | Detalle mapa | `CentinelaDetailWindow.jsx` (ventana fija arrastrable; skill `centinela-detail-window`) |
+| Ventanas de herramientas | `CentinelaFloatingToolWindow.jsx` + `CentinelaMarineToolsBar.jsx` (dock desktop) |
 | Posicionamiento SICEN | `SicenPositioningLayer.jsx` + `useSportMovementTrackingStream.js` |
 | Seamarks | `SICEN-front/src/components/centinela/SeamarksLayer.jsx` (add/remove imperativo + `overlayPane`) |
 | Batimetría | `BathymetryLayer.jsx` + `BathymetryLegendSection` en `BathymetryLegend.jsx` (GEBCO) |
@@ -39,6 +42,7 @@ description: >-
 | HTTP batimetría | `bathymetry.controller.js` + `bathymetry.router.js` → `/api/bathymetry` |
 | Marcadores API | `mapMarkers.*` + `mapMarkerCatalog.js` → `/api/mapMarkers` |
 | Zonas personales API | `mapZones.*` + `mapZoneCatalog.js` → `/api/mapZones` |
+| Mediciones API | `mapMeasurements.*` + `mapMeasurementCatalog.js` → `/api/mapMeasurements` |
 | Zonas | `centinelaZones.js` + `ZonesLayer.jsx` (polígonos Leaflet) |
 | Límites marítimos | `maritimeBoundaryLayers.js` + `MaritimeBoundariesLayer.jsx` + `/api/maritimeBoundaries` (MarineRegions 12/24 MN + ZEE) |
 | Brevets | `centinelaBrevetCategories.js` (A–D) + `sportPorts.js` (índice Categoría C) |
@@ -48,6 +52,7 @@ description: >-
 | Simulación HC | `HcSpillPanel.jsx` + `HcSpillLayer.jsx` + `/api/hc` + worker `SICEN-sim` |
 | Deriva SAR | `SarDriftPanel.jsx` + `SarDriftLayer.jsx` + `/api/sar` + `SICEN-sim` `/run-sar` |
 | Escala + cursor | `MapCursorScaleBar.jsx` (barra MN + Lat/Long al mover cursor; solo desktop) |
+| Buscar buque | `CentinelaVesselSearch.jsx` (fijo arriba-derecha; nombre / MMSI / OMI sobre AIS) |
 | Viento | `WindLayer.jsx` + `windVelocityData.js` + `WindLegend.jsx` |
 | Corrientes | `CurrentsLayer.jsx` + `currentsVelocityData.js` + `CurrentsLegend.jsx` (Open-Meteo Marine) |
 | Olas | `WavesLayer.jsx` + `wavesVelocityData.js` + `WavesLegend.jsx` (partículas; color = Hs; escala visual ∝ período medio) |
@@ -66,14 +71,19 @@ description: >-
 
 ## Cartografía
 
-- Mapa a **pantalla completa** (sin `Layout`/nav/footer); panel flotante **liquid glass** (`.centinela-glass`) con capas. FABs izquierda: **Inicio** → **tema** (luna/sol) → **Capas** → **zoom +/− unidos** (`.centinela-fab-zoom`, un solo bloque glass). **Sin popovers** en FABs laterales (solo `aria-label`). Panel desktop a la derecha de los FABs (`left: calc(1rem + 2.75rem + 1rem)`); sin solapa de cierre en desktop (se cierra con el FAB Capas). En mobile: drawer + solapa `.centinela-glass__collapse` y menús `z-index` 1110 por encima de FABs.
+- Mapa a **pantalla completa** (sin `Layout`/nav/footer); panel flotante **liquid glass** (`.centinela-glass`) con capas. **Desktop:** marca superior `.centinela-page__brand-bar` (logo PNN opaco + “Centinela” / crédito JPC); FABs y panel Capas bajan bajo la marca (`--centinela-brand-stack-top`). **Mobile:** marca de agua inferior `.centinela-page__brand`. FABs izquierda: **Inicio** → **tema** (luna/sol) → **Capas** → **zoom +/− unidos** (`.centinela-fab-zoom`, un solo bloque glass). **Sin popovers** en FABs laterales (solo `aria-label`). Panel desktop a la derecha de los FABs (`left: calc(1rem + 2.75rem + 1rem)`); sin solapa de cierre en desktop (se cierra con el FAB Capas). En mobile: drawer + solapa `.centinela-glass__collapse`. **z-index (fijo):** leyendas/dock &lt; FABs/menús (`≤1110`) &lt; ventanas dimmed (`--centinela-z-window` 5000) &lt; ventana con foco (`--centinela-z-window-focus` 5010) &lt; popovers (5100) &lt; modal ayuda (11050). Un solo foco entre detalle y herramientas.
+- **PWA / standalone:** toda SICEN es instalable (`vite-plugin-pwa`, skill `sicen-pwa`). En mobile, “Añadir a inicio” abre sin chrome del navegador (`display: standalone`). Meta Apple + `viewport-fit=cover` en `index.html`.
+- FABs de listas a la **derecha** en `.centinela-right-fab-stack` (flex vertical, sin offsets manuales). Arriba-derecha fijo: buscador de buques `.centinela-vessel-search` (`CentinelaVesselSearch`: nombre / MMSI / OMI → `flyTo` + ficha AIS). En desktop con dock, FABs y `.centinela-right-panels` usan `--centinela-right-chrome-top` **=** `--centinela-brand-stack-top` (misma altura que FABs/Capas a la izquierda). Gap horizontal espejo de Capas: `calc(1rem + 2.75rem + 1rem)`. Contenedor de paneles con `overflow: visible` para no matar blur/sombra del glass; scroll dentro del body. En **mobile**: drawer desde la derecha (`.centinela-right-panels--mobile`, espejo de Capas), backdrop + Escape, exclusión mutua con el menú de capas.
 - Base según tema: CARTO Voyager (light) / `dark_all` (dark) vía `useBootstrapTheme`. Key opcional `VITE_CARTO_API_KEY` → `?key=` en la URL de tiles (quita watermark).
 - Overlay seamarks: `SeamarksLayer` + tiles OpenSeaMap. En tema oscuro (`lightenLabels`), aclara **solo trazos finos** de leyendas (morfología erode/dilate para no tocar rellenos negros de boyas); rojo/verde/amarillo saturados intactos.
 - Zonas: desplegable con subgrupos **Fondeo y otros servicios** (`centinelaZones.js`), **Brevets deportivos** y **Límites marítimos** (12 MN / 24 MN / ZEE vía MarineRegions). Checkbox maestro de Zonas prende/apaga los tres. Capas: `<ZonesLayer />` + `<MaritimeBoundariesLayer />`.
 - **Límites marítimos:** proxy `GET /api/maritimeBoundaries?layers=12nm,24nm,eez,rdp`. Subcapas **J.E. 2 MN** / **J.E. 7 MN**: círculos 2/7 MN desde costa UY ∩ RDP; separadas por la línea Colonia–Punta Lara (`jeExclusiveJurisdiction.js`: oeste=2 MN, este=7 MN). Regenerar `build-brevet-b-strip.mjs`.
 - Zonas / brevets (`ZonesLayer`): igual, solo pintura en mapa (sin popup al clic) para no bloquear medir / coords.
 - Brevets deportivos (dentro de Zonas): catálogo en `centinelaBrevetCategories.js` (A–D). Categoría B: franja∪RDP∪Río Uruguay (eje OSM `rioUruguayCenterline.js` + buffer 0.85 MN hasta 30°11′44.6″S 057°38′49.4″O). Regenerar `build-brevet-b-strip.mjs`. Categoría C `portPicker`…
-- Orden de capas en UI: **Posicionamiento SICEN** → Coordenadas → Seamarks OSM → **Inteligencia marítima** (por FUNCIÓN: Detecciones / Pesca / STS / Dark gaps / Posiciones AIS; fuentes Skylight+FIU+GFW+AISStream debajo) → **Zonas** (Fondeo… + Brevets). Pie del panel: **Medio marino** → **Herramientas**. Al entrar: Posicionamiento SICEN, Coordenadas y Seamarks OSM activos.
+- Orden de capas en UI: **Posicionamiento SICEN** → Coordenadas → Seamarks OSM → **Inteligencia marítima** → **Zonas** → **Herramientas** (Mis marcadores / Mis zonas / Mis mediciones: solo capa + FAB derecho, sin abrir ventana) → **Etiquetas**. Al entrar: Posicionamiento SICEN, Coordenadas y Seamarks OSM activos.
+- **Capas → Herramientas:** checkboxes `markersOn` / `zonesToolOn` / `measureToolOn`. Activan pintura en mapa + menús de la derecha. La UI de alta/edición (ventana flotante) **solo** desde el dock; si la capa estaba off, el dock la enciende al abrir.
+- **Desktop (≥768px):** Medio marino + Herramientas en **dock inferior** estilo macOS (`CentinelaMarineToolsBar` `layout="dock"`, `.centinela-dock`): glass centrado, separador vertical entre grupos. Estados del ícono de herramienta: `open` → punto debajo = ventana existente (visible o minimizada), no “capa encendida”; `active` → ventana visible; `focused` → resalte pleno; visible sin focus → resalte más tenue. Cerrar con X quita el punto; minimizar lo deja. Capas ya no lista Medio marino/Herramientas. Orden vertical: borde inferior → carteles de longitud + escala/coords/atribuciones → dock → leyendas `.centinela-env-legends` (`--centinela-map-chrome-bottom` / `--centinela-dock-bottom` / `--centinela-tools-stack-bottom`). **Mobile:** siguen al pie de Capas (`layout="panel"`).
+- **Ventanas flotantes (desktop):** cada herramienta abierta vive en `CentinelaFloatingToolWindow` (arrastre por `[data-tool-head]`, varias a la vez). Apertura/minimizar/cierre animan desde el ícono del dock (`dockId` ↔ `data-centinela-dock-id`). Sin focus: `.is-dimmed`. Solo la ventana **visible y con focus** captura el mapa.
 - **Inteligencia marítima:** catálogo `centinelaIntelLayers.js` + panel `CentinelaIntelLayersPanel`. No agrupar por proveedor. GFW: eventos pesca/encounters/gaps + atribución obligatoria «Powered by Global Fishing Watch» (`CentinelaGfwAttribution`, CC BY-NC 4.0). Insights GFW en dossier del buque.
 - **Skylight / FIU:** siguen como providers detrás de los checkboxes funcionales; AOIs/frames siguen `hiddenInUi` en `skylightLayers.js`.
 - **Posicionamiento SICEN:** checkbox maestro (default **on**) + línea de estado. `SicenPositioningLayer` muestra markers de movimientos `inTransit` con `tracking.active`. Snapshot `GET /api/sportMovements/tracking/active-map` + SSE `GET /api/sportMovements/tracking/stream` (proxy sin timeout en Vite, como AIS).
@@ -82,9 +92,10 @@ description: >-
 - **Viento:** `WindLayer` (`leaflet-velocity`) + `POST /api/wind/points`. Leyenda azul/amarillo/rojo.
 - **Corrientes:** `CurrentsLayer` + `POST /api/currents/points` (Open-Meteo Marine SMOC). Máscara de agua (`currentsWaterMask.js`: anillo seaward costa UY + exclusión tierra AR) aplicada al canvas cada frame — las partículas no se ven sobre tierra. Leyenda teal/verde/violeta. Pane `centinelaCurrentsPane` z 435.
 - **Olas:** `WavesLayer` (`leaflet-velocity`) + `POST /api/waves/points`. **Color = Hs** (paleta sky→rojo, `maxVelocity` 4 m). Dirección = desde. `velocityScale` se ajusta con el período medio del viewport (la lib acopla color y velocidad al mismo campo). Máscara de agua. Pane `centinelaWavesPane` z 430. Hs+período+dir en popup.
-- **Leyendas ambientales:** un solo panel `CentinelaEnvLegendsPanel` en `.centinela-env-legends` (centro inferior; **34.375rem** en desktop, **ancho completo** ≤1024px). Selector único de pronóstico (`CentinelaEnvForecastSelector`) arriba del panel cuando hay viento/corrientes/olas activos; estado compartido `envForecastHours` en `CentinelaPage`. Título de unidad y swatches en la misma fila (`centinela-wind-legend__body`). Atribución **GEBCO 2020** vía `CentinelaGebcoAttribution` en el control nativo de Leaflet cuando batimetría está on. Atribución **Windward vía FIU SRH LAC IUU** (+ Dashboard, Jack Gordon Institute, Daitrix, UF Geomatics) vía `CentinelaFiuIuuAttribution` cuando hay capas IUU LAC activas.
-- Grilla: `GraticuleLayer` + checkbox; click en el mapa → `MapClickCoords` (popup con lat/lon + env si capas activas). **Coordenadas visibles siempre en DMS** (`geoDms.js`; skill `geo-dms-format`).
-- **Escala / cursor:** `MapCursorScaleBar` en la esquina inferior derecha, **una sola línea** con atribuciones Leaflet. Orden: escala MN · Lat · Long (solo desktop) · referencias de mapas.
+- **Leyendas ambientales:** un solo panel `CentinelaEnvLegendsPanel` en `.centinela-env-legends` (centro inferior; **`--centinela-tool-ui-width` = 34rem** en desktop, **ancho completo** ≤1024px; `align-items: stretch` para que leyenda + herramientas compartan el mismo ancho). Selector único de pronóstico (`CentinelaEnvForecastSelector`) arriba del panel cuando hay viento/corrientes/olas activos; estado compartido `envForecastHours` en `CentinelaPage`. Título de unidad y swatches en la misma fila (`centinela-wind-legend__body`). Atribución **GEBCO 2020** vía `CentinelaGebcoAttribution` en el control nativo de Leaflet cuando batimetría está on. Atribución **Windward vía FIU SRH LAC IUU** (+ Dashboard, Jack Gordon Institute, Daitrix, UF Geomatics) vía `CentinelaFiuIuuAttribution` cuando hay capas IUU LAC activas.
+- Grilla: `GraticuleLayer` + checkbox; click en el **mapa vacío** → `MapClickCoords` (popup con lat/lon + env si capas activas). Click sobre un elemento de capa (AIS, Skylight, etc.) **no** abre el cartel: `stopLeafletMapClick` + filtro `.leaflet-interactive`. Si el cartel ya está abierto, el click fuera **solo lo cierra** (no abre otro hasta el click siguiente; `preclick` + `skipNextOpen`). **Coordenadas visibles siempre en DMS** (`geoDms.js`; skill `geo-dms-format`).
+- **Escala / cursor:** `MapCursorScaleBar` en la esquina inferior derecha, **una sola línea** con atribuciones Leaflet. Orden: escala MN · Lat · Long (solo desktop) · referencias de mapas. En **desktop (≥768px)** misma ficha/tamaño que carteles DMS de longitud y pegados al borde inferior (el dock queda arriba); en mobile/tablet franja compacta anterior.
+- **Graticule:** etiquetas de longitud ancladas al **fondo del viewport** (no al sur geográfico); en desktop con dock siguen en el borde inferior bajo el dock. Al acercarse a escala/coords/atribuciones hacen **fade** y no pasan detrás (`GraticuleLayer`).
 - Disclaimer en UI: no sustituye carta oficial.
 
 ### Índice de puertos (Categoría C / unidades)
@@ -111,13 +122,18 @@ Más capas (catastro), tracks históricos, correlación MMSI ↔ `vessels`, rece
 
 ### Medir distancias y radios
 
-- Botón `bi-rulers` → panel inferior (`MeasureDistancePanel`) con herramienta Distancia/Radio, unidad km/MN, totales y acciones **Deshacer / Reiniciar / Fijar** (misma fila, mismo ancho).
-- **Fijar:** el panel **sigue abierto** (no se pierde el total). Desactiva nuevos clicks (`active = measureOn && !measurePinned`). Volver a tocar Fijar suelta y permite seguir midiendo.
-- **Edición al fijar:** handles `L.marker` draggables sobre vértices y bordes de radio; al arrastrar se recalculan distancias/radios en vivo. Sin plugins (Leaflet nativo).
-- **Distancia:** clicks → tramos con etiqueta `10.56 MN @ 254°`.
-- **Radio:** centro = último punto (o 1er click) → click de borde fija `L.circle` + radio.
-- Tras un radio, el siguiente tramo de distancia sale del **centro** pero resta el radio (`max(0, dist − R)`), midiendo desde el perímetro.
-- Capa: `MeasureDistanceLayer` (`active` + `pinned`) + `utils/geoMeasure.js`. Mientras mide (`active`), se desactiva el popup de coordenadas.
+- Botón `bi-rulers` en Capas → `measureToolOn` + panel inferior expandido (sin abrir la lista). A la derecha solo el FAB; la lista se abre a mano. Segundo click en Capas apaga la herramienta.
+- Panel (`MeasureDistancePanel`): **Nombre + Guardar**, Distancia/Radio, km/MN, **Deshacer / Reiniciar / Fijar**. Su X solo cierra el panel; el FAB de registros sigue.
+- Lista `UserMeasurementsPanel`: flecha oculta el menú; **Nueva medición** reabre el panel; ojo / editar / borrar / fitBounds.
+- **Fijar:** panel abierto, sin nuevos clicks (`active = measureOn && !measurePinned`). Handles draggables al fijar.
+- Capa: `MeasureDistanceLayer` + `geoMeasure` / `measureSnapshot`. Mientras mide (`active`), sin popup de coords.
+
+### Etiquetas (en Capas)
+
+- Desplegable **Etiquetas** debajo de **Herramientas** en el menú Capas (mismo patrón chevron + checkbox maestro que Zonas). Sin FAB lateral.
+- Siempre muestra AIS / Marcadores / Zonas / Distancias (`labelVisibility.*`); no depende de que la capa/herramienta esté activa. Se pueden marcar de antemano y al abrir la herramienta ya se ven las etiquetas.
+- Checkbox del header selecciona/deselecciona todas (con `indeterminate` parcial).
+- AIS → `AisVesselLayer showNames`; marcadores → nombre junto al pin; zonas → nombre en centroide; distancias → nombre sobre la medición guardada.
 
 ### Ir al punto (Go-to)
 
@@ -128,17 +144,19 @@ Más capas (catastro), tracks históricos, correlación MMSI ↔ `vessels`, rece
 
 ### Mis marcadores (personales)
 
-- Botón `bi-bookmark-star` en **Herramientas** → muestra/oculta capa `UserMarkersLayer` y habilita FAB de lista (panel empieza **cerrado**).
-- Popup de coords: botón **Agregar marcador** → evento `centinela:add-marker` → `MarkerFormModal` (DMS tipado, nombre, paleta de color, acordeón de Material Symbols). Formulario en margen inferior (sin backdrop); botón **Mapa** para pick.
+- Botón `bi-bookmark-star` en el **dock** → si la capa está off la enciende y abre el formulario; Capas solo prende capa + FAB. Flecha `bi-arrow-right` en la lista solo oculta el menú.
+- Popup de coords: **Agregar marcador** / **Crear zona** / **Crear medición** → eventos `centinela:add-marker|add-zone|add-measurement`; abren la herramienta (en mobile minimizan la que estuviera expandida; en desktop conviven en ventanas flotantes). Medición arranca con ese punto como primer vértice.
 - Panel `UserMarkersPanel`: **Nuevo marcador**, lista con ojo (`hidden` vía `PUT`) / editar/borrar (`confirmDelete`) / flyTo.
 - Persistencia: colección `mapMarkers` ligada a `userId`; API `guarded` `/api/mapMarkers`. Catálogo whitelist en `centinelaMarkerIcons.js` (front) y `mapMarkerCatalog.js` (back).
 
 ### Mis zonas (personales)
 
-- Botón `bi-pentagon` en **Herramientas** → capa `UserZonesLayer` + FAB de lista (panel empieza **cerrado**).
+- Botón `bi-pentagon` en el **dock** → igual que marcadores (capa on + formulario). Capas solo capa + FAB.
 - Panel `UserZonesPanel`: **Nueva zona**, filas con swatch + nombre, desplegable de vértices en DMS (`formatCoordDms`), ojo (`hidden` vía `PUT`), editar/borrar (`confirmDelete`), click → `fitBounds`.
-- `ZoneFormModal` en margen inferior (sin backdrop): nombre, color, filas compactas de vértices DMS + **Mapa** (`ZoneMapPickClick`). Preview `ZoneDraftPreview` con vértices **arrastrables** (sync al formulario al soltar).
-- Popup de coords: botón **Crear zona** → evento `centinela:add-zone` → activa Mis zonas + form con ese punto como vértice 1 (pad a ≥3 slots) y pick activo.
+- `ZoneFormModal` en margen inferior (sin backdrop): nombre, color, filas compactas de vértices DMS + **Mapa** (`ZoneMapPickClick`). Preview `ZoneDraftPreview` con vértices **arrastrables** (sync al formulario al soltar). Pie: **Área** (m²/ha, `polygonAreaSquareMeters`) a la izquierda y acciones ícono **Cancelar** (`bi-x-lg`) / **Guardar** (`bi-floppy`) a la derecha.
+- FABs / paneles de herramientas (Medir, Ir a un punto, HC, SAR, Marcador, Zona): al **activar** en el dock se abre la interfaz. **Desktop:** `CentinelaFloatingToolWindow` arrastrable (varias a la vez); minimizar → oculta ventana, quita `is-active` del dock y deja el punto `open`. Ventanas sin focus más transparentes; resalte del dock sin focus también más tenue. **Mobile:** siguen apiladas en `.centinela-env-legends` con exclusividad al expandir (`expandToolWindow` minimiza las demás). Encabezado `CentinelaToolPanelHead` (`data-tool-head`). Ancho unificado `--centinela-tool-ui-width` = 34rem. **Solo la maximizada/con focus captura el mapa** (medir / pick zona-marcador / HC / SAR).
+- **Medir:** Capas → `measureToolOn` (capa + FAB de registros, sin panel). Dock abre el panel (`measureOn`/`measurePinned`) y enciende la capa si hacía falta. Cerrar ventana (X / dock) no apaga la capa.
+- Popup de coords: ver botones Agregar marcador / Crear zona / Crear medición arriba (Mis marcadores).
 - Persistencia: colección `mapZones` (`userId`, `name`, `color`, `positions`, `hidden`); API `guarded` `/api/mapZones`. Catálogo `mapZoneCatalog.js`. No mezclar con `centinelaZones` / brevets / límites marítimos.
 
 ### Simular incidente de hidrocarburo (HC)
@@ -174,7 +192,7 @@ Más capas (catastro), tracks históricos, correlación MMSI ↔ `vessels`, rece
 4. Fan-out: **SSE** `GET /api/ais/stream` con `...guarded` (Bearer). Front: `fetch` + ReadableStream (`openAisStream`), no `EventSource`.
 5. Eventos SSE: `status`, `snapshot`, `update`, `remove`. Status incluye `sources: { aisstream, aisstreamConnected, skylight, skylightOk, … }`.
 6. `warmAisBridge()` al arrancar: conecta AISStream si hay key y arranca poll Skylight si hay `SKYLIGHT_API_KEY` (independientes).
-7. **UI:** desplegable tipo Skylight/FIU (`aisLayers.js`): maestro + **AISStream (en vivo)** + **Skylight (última conocida)**. Filtra markers en front (`filterVesselsByAisSources`); el SSE sigue unificado. Flechas orientadas a `heading ?? cog` (`AisVesselLayer`). Detalle: fuente, antigüedad, clase AIS; sin destino/ETA. Identidad OMI enriquecida vía Skylight y/o **GFW** (`sources.gfw` → “Identidad: Global Fishing Watch”).
+7. **UI:** desplegable tipo Skylight/FIU (`aisLayers.js`): maestro + **AISStream (en vivo)** + **Skylight (última conocida)**. Filtra markers en front (`filterVesselsByAisSources`); el SSE sigue unificado. Flechas orientadas a `heading ?? cog` (`AisVesselLayer`). Nombres AIS vía desplegable **Etiquetas** en Capas (`labelVisibility.ais`). Detalle: fuente, antigüedad, clase AIS; sin destino/ETA. Identidad OMI enriquecida vía Skylight y/o **GFW** (`sources.gfw` → “Identidad: Global Fishing Watch”).
 8. **GFW (identidad):** token `GFW_API_TOKEN` (Bearer, uso no comercial). Proxy `gfwProxy.service.js` → `GET /v3/vessels/search?query={mmsi}&datasets[0]=public-global-vessel-identity:latest` (**obligatorio** `datasets[0]=`; con `datasets=` GFW responde 403). Solo rellena OMI/nombre/indicativo/bandera (no posiciones). Poll identidad ~90 s junto a Skylight. Cache MMSI (TTL `GFW_IDENTITY_CACHE_TTL_MS`, default 7 d; negativos 6 h). Tras 401/403: cooldown 30 min + un solo warning (no spam por MMSI).
 9. Sin ninguna key de posición: el mapa funciona; la capa AIS muestra aviso de no configurado.
 10. **Cobertura:** AISStream libre suele fallar en Montevideo; Skylight refuerza last-known en el bbox. Para AIS local real: receptor propio / AISHub al mismo `upsertVessel`.
@@ -190,14 +208,15 @@ Más capas (catastro), tracks históricos, correlación MMSI ↔ `vessels`, rece
 6. Pesca/STS: Polyline si `end` ≠ `start`.
 7. **AOIs:** lógica lista (`POST /aois`, match con `CENTINELA_ZONES`, eventos `aoi_visit`/`speed_range`) pero checkboxes **ocultos** (`hiddenInUi: true`) hasta tener AOIs cargados en la cuenta Skylight. Para reactivar: quitar `hiddenInUi` en `skylightLayers.js`.
 8. **Frames:** lógica lista (`POST /frames` → polígonos con conteos correlated/uncorrelated) pero checkbox **oculto** (`hiddenInUi: true`). Para reactivar: quitar `hiddenInUi` en `satellite_frames` en `skylightLayers.js`.
-9. **v4 — dossier + cruce AIS:** clic en buque AIS (o botón «Historial / predicción» en popup Skylight) → `POST /api/skylight/vessel-dossier` (+ insights GFW). Panel `SkylightVesselDossierPanel` (misma cáscara que Eventos; X minimiza a FAB `bi-clock-history`). En desktop el panel **siempre** usa `--float-beside-fab` (`right: calc(1rem + 2.75rem + 1rem)`) para quedar a la izquierda de la columna de FABs con 1rem de margen. Cruce visual por MMSI: markers violeta, `SkylightAisCrossLinks`, badge «Cruce AIS/Skylight».
-10. Sin key: HTTP 503; el mapa sigue funcionando.
-11. Coordenadas siempre DMS (`geo-dms-format`).
+9. **v4 — dossier + cruce AIS:** clic en buque AIS (o botón «Historial / predicción» en popup Skylight) → `POST /api/skylight/vessel-dossier` (+ insights GFW). **Varias fichas** de detalle coexisten (`mapDetails` + foco/dim). Varios historiales en paralelo (`vesselDossiers[]` con `color` de `vesselTrackColors.js`); `SkylightVesselTrackLayer` pinta cada trazo con su color. **Un FAB reloj por buque** (`.centinela-dossier-fab`) teñido con ese color; cada uno abre/cierra su panel. Varios `SkylightVesselDossierPanel` a la vez si hay varios `panelOpen`. Borde de acento (`accentColor`) en la ventana de detalle AIS y en el panel de historial. Acordeones: **Track**, **Eventos STS** (Skylight rendezvous **+** STS FIU/Windward del buque por MMSI u OMI, como principal o segundo), **Eventos Skylight**; **Predicción** al final. En STS, «con …» es la contraparte (no asumir siempre `vessel1`). No repetir «Powered by GFW» en el dossier (atribución en mapa + manual). Cerrar ficha `ais:MMSI` limpia esa sesión de historial.
+10. **Chip satelital:** `details.imageUrl` (EO/VIIRS/SAR) se muestra en `SkylightEventDetailBody` vía `SkylightDetectionImage` → `GET /api/skylight/image-chip?u=` (proxy `fetchSkylightImageChip`, allowlist de hosts, Bearer SICEN en el fetch del front).
+11. Sin key: HTTP 503; el mapa sigue funcionando.
+12. Coordenadas siempre DMS (`geo-dms-format`).
 
 ## IUU LAC / FIU (proxy)
 
 1. **Sin API key de terceros.** FeatureServers públicos ArcGIS del org FIU SRH (`pnYK7hEZV7vyJWwQ`).
-2. Front: `fiuIuuFetchEvents` → `POST /api/fiuIuu/events` (`...guarded`). Body: `{ layerTypes: ["fishing"|"dark"|"sts"], bbox?, limit? }`.
+2. Front: `fiuIuuFetchEvents` → `POST /api/fiuIuu/events` (`...guarded`). Body: `{ layerTypes: ["fishing"|"dark"|"sts"], bbox?, limit? }`. El dossier del buque también consulta STS FIU por MMSI/OMI (`searchFiuIuuEventsForVessel`) y los mezcla en `stsEvents`.
 3. Bbox: viewport del mapa (si viene) → `FIU_IUU_BBOX` → `AIS_BBOX` → default LAC. Cache `FIU_IUU_CACHE_TTL_MS` (default 5 min). **No** guardar eventos en Mongo.
 4. Capas UI en `fiuIuuLayers.js`; mapa `FiuIuuEventsLayer`; atribución `CentinelaFiuIuuAttribution`.
 5. Marco legal: uso no comercial / analítico (metodología FIU); datos Windward vía FIU; disclaimer + links dashboard/metodología en UI.

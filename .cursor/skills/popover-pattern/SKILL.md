@@ -48,9 +48,9 @@ SICEN de popovers Bootstrap.
 trigger: touchUi ? "click" : "hover"
 ```
 
-- **Desktop:** solo `hover`. No usar `focus` ni `hover focus`.
+- **Desktop:** solo `hover`, con **demora de 1 s** al aparecer (`delay: { show: 1000, hide: 0 }`). No usar `focus` ni `hover focus`.
 - **Mobile:** los botones de menú **no** abren popover. Solo elementos con
-  `data-sicen-popover-touch="click"` (íconos de información) abren al tap y
+  `data-sicen-popover-touch="click"` (íconos de información) abren al tap (sin demora) y
   se cierran al tocar fuera.
 - `body > .popover` usa `z-index: 1300` (por encima del drawer de El Centinela).
 

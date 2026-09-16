@@ -60,9 +60,9 @@ export function SkylightEventsList({
               type="button"
               className="centinela-skylight-list__close"
               onClick={onClose}
-              aria-label="Ocultar lista de eventos"
+              aria-label="Ocultar menú de eventos"
             >
-              <i className="bi bi-x-lg" aria-hidden />
+              <i className="bi bi-arrow-right" aria-hidden />
             </button>
           ) : null}
         </div>

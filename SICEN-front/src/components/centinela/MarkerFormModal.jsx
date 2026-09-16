@@ -13,6 +13,7 @@ import {
   formatDmsDigitsInput,
   parseDmsDigits,
 } from "../../utils/geoDms.js";
+import { CentinelaToolPanelHead } from "./CentinelaToolPanelHead.jsx";
 
 function HemiToggle({ options, value, onChange, ariaLabel }) {
   return (
@@ -75,6 +76,8 @@ export function MarkerFormModal({
   onTogglePickMode,
   onSave,
   onClose,
+  minimized = false,
+  onToggleMinimized,
 }) {
   const formId = useId();
   const [state, setState] = useState(() => initialFromMarker(initial));
@@ -152,24 +155,24 @@ export function MarkerFormModal({
 
   return (
     <form
-      className="centinela-tool-panel centinela-marker-form"
+      className={[
+        "centinela-tool-panel",
+        "centinela-marker-form",
+        minimized ? "is-minimized" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       onSubmit={handleSubmit}
       role="dialog"
       aria-label={mode === "edit" ? "Editar marcador" : "Nuevo marcador"}
     >
-      <div className="centinela-goto-panel__head">
-        <strong className="centinela-tool-panel__title">
-          {mode === "edit" ? "Editar marcador" : "Nuevo marcador"}
-        </strong>
-        <button
-          type="button"
-          className="centinela-goto-panel__close"
-          aria-label="Cerrar"
-          onClick={onClose}
-        >
-          <i className="bi bi-x-lg" aria-hidden />
-        </button>
-      </div>
+      <CentinelaToolPanelHead
+        className="centinela-goto-panel__head"
+        title={mode === "edit" ? "Editar marcador" : "Nuevo marcador"}
+        minimized={minimized}
+        onToggleMinimized={onToggleMinimized}
+        onClose={onClose}
+      />
 
       <ErrorAlert
         message={err}
@@ -206,6 +209,27 @@ export function MarkerFormModal({
             autoComplete="off"
           />
         </label>
+      </div>
+
+      <div
+        className="centinela-marker-form__colors"
+        role="group"
+        aria-label="Color"
+      >
+        {MAP_MARKER_COLORS.map((c) => (
+          <button
+            key={c}
+            type="button"
+            className={`centinela-marker-modal__swatch${
+              state.color === c ? " is-active" : ""
+            }`}
+            style={{ background: c }}
+            aria-pressed={state.color === c}
+            aria-label={`Color ${c}`}
+            disabled={saving}
+            onClick={() => setState((s) => ({ ...s, color: c }))}
+          />
+        ))}
       </div>
 
       <div className="centinela-hc-panel__coords">
@@ -275,42 +299,49 @@ export function MarkerFormModal({
         ) : null}
       </div>
 
-      <div
-        className="centinela-marker-form__colors"
-        role="group"
-        aria-label="Color"
-      >
-        {MAP_MARKER_COLORS.map((c) => (
-          <button
-            key={c}
-            type="button"
-            className={`centinela-marker-modal__swatch${
-              state.color === c ? " is-active" : ""
-            }`}
-            style={{ background: c }}
-            aria-pressed={state.color === c}
-            aria-label={`Color ${c}`}
-            disabled={saving}
-            onClick={() => setState((s) => ({ ...s, color: c }))}
-          />
-        ))}
-      </div>
-
       <div className="centinela-marker-form__icons">
-        <button
-          type="button"
-          className="centinela-marker-modal__accordion-btn"
-          aria-expanded={iconsOpen}
-          aria-controls={`${formId}-icons`}
-          disabled={saving}
-          onClick={() => setIconsOpen((o) => !o)}
-        >
-          <span>Ícono</span>
-          <i
-            className={`bi ${iconsOpen ? "bi-chevron-up" : "bi-chevron-down"}`}
-            aria-hidden
-          />
-        </button>
+        <div className="centinela-marker-form__icons-row">
+          <button
+            type="button"
+            className="centinela-marker-modal__accordion-btn"
+            aria-expanded={iconsOpen}
+            aria-controls={`${formId}-icons`}
+            disabled={saving}
+            onClick={() => setIconsOpen((o) => !o)}
+          >
+            <span>Ícono</span>
+            <i
+              className={`bi ${iconsOpen ? "bi-chevron-up" : "bi-chevron-down"}`}
+              aria-hidden
+            />
+          </button>
+          <div className="centinela-tool-save-actions">
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary centinela-tool-save-actions__btn"
+              onClick={onClose}
+              disabled={saving}
+              aria-label="Cancelar"
+              data-sicen-popover="Cancelar"
+              data-sicen-popover-placement="top"
+            >
+              <i className="bi bi-x-lg" aria-hidden />
+            </button>
+            <button
+              type="submit"
+              className="btn btn-sm btn-primary centinela-tool-save-actions__btn"
+              disabled={saving}
+              aria-label={saving ? "Guardando…" : "Guardar"}
+              data-sicen-popover={saving ? "Guardando…" : "Guardar"}
+              data-sicen-popover-placement="top"
+            >
+              <i
+                className={saving ? "bi bi-hourglass-split" : "bi bi-floppy"}
+                aria-hidden
+              />
+            </button>
+          </div>
+        </div>
         {iconsOpen ? (
           <div
             id={`${formId}-icons`}
@@ -342,24 +373,6 @@ export function MarkerFormModal({
             ))}
           </div>
         ) : null}
-      </div>
-
-      <div className="centinela-goto-panel__actions centinela-marker-form__actions">
-        <button
-          type="button"
-          className="btn btn-sm btn-outline-secondary"
-          onClick={onClose}
-          disabled={saving}
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          className="btn btn-sm btn-primary"
-          disabled={saving}
-        >
-          {saving ? "Guardando…" : "Guardar"}
-        </button>
       </div>
     </form>
   );

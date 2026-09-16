@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const DEFAULT_POS = { x: 24, y: 88 };
 const WINDOW_WIDTH = 320;
+const ANCHOR_GAP = 14;
 
 function clampPosition(x, y, width, height) {
   const maxX = Math.max(8, window.innerWidth - width - 8);
@@ -12,62 +13,135 @@ function clampPosition(x, y, width, height) {
   };
 }
 
+function isValidAnchor(anchor) {
+  return (
+    anchor &&
+    Number.isFinite(Number(anchor.x)) &&
+    Number.isFinite(Number(anchor.y))
+  );
+}
+
+/** Posición fija centrada horizontalmente y arriba del punto de ancla. */
+export function positionAboveAnchor(anchor, width = WINDOW_WIDTH, height = 240) {
+  if (!isValidAnchor(anchor)) return DEFAULT_POS;
+  return clampPosition(
+    Number(anchor.x) - width / 2,
+    Number(anchor.y) - height - ANCHOR_GAP,
+    width,
+    height
+  );
+}
+
+/** Ancla en coords de cliente desde un evento Leaflet `click`. */
+export function clientAnchorFromLeafletEvent(e) {
+  const oe = e?.originalEvent;
+  if (!oe) return null;
+  const x = Number(oe.clientX);
+  const y = Number(oe.clientY);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  return { x, y };
+}
+
+/** Ancla en coords de cliente desde lat/lon del mapa Leaflet. */
+export function clientAnchorFromMapLatLng(map, lat, lon) {
+  if (!map || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  try {
+    const pt = map.latLngToContainerPoint([lat, lon]);
+    const rect = map.getContainer().getBoundingClientRect();
+    return { x: rect.left + pt.x, y: rect.top + pt.y };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Ventana fija en pantalla (no anclada al mapa), arrastrable por el encabezado.
- * Reemplaza popups Leaflet para poder panear el mapa sin perder el detalle.
- *
- * @param {{
- *   open: boolean,
- *   title: string,
- *   onClose: () => void,
- *   children: import('react').ReactNode,
- *   initialPosition?: { x: number, y: number },
- * }} props
+ * Soporta varias abiertas a la vez: `focused` / `dimmed` + `onFocus`.
  */
 export function CentinelaDetailWindow({
   open,
   title,
   onClose,
   children,
+  anchor = null,
   initialPosition = DEFAULT_POS,
+  focused = true,
+  onFocus,
+  staggerIndex = 0,
+  accentColor = null,
 }) {
-  const [pos, setPos] = useState(() =>
-    clampPosition(initialPosition.x, initialPosition.y, WINDOW_WIDTH, 200)
-  );
+  const [pos, setPos] = useState(() => {
+    const base = isValidAnchor(anchor)
+      ? positionAboveAnchor(anchor)
+      : clampPosition(initialPosition.x, initialPosition.y, WINDOW_WIDTH, 200);
+    const s = Math.max(0, Number(staggerIndex) || 0) * 22;
+    return clampPosition(base.x + s, base.y + s, WINDOW_WIDTH, 200);
+  });
   const dragRef = useRef(null);
   const winRef = useRef(null);
+  const placedForOpenRef = useRef(false);
 
-  useEffect(() => {
-    if (!open) return undefined;
+  useLayoutEffect(() => {
+    if (!open) {
+      placedForOpenRef.current = false;
+      return undefined;
+    }
+    // Solo reposicionar al abrir / cambiar ancla de esta instancia, no al ganar foco.
+    if (placedForOpenRef.current && !isValidAnchor(anchor)) return undefined;
+    if (isValidAnchor(anchor)) {
+      const apply = () => {
+        const h = winRef.current?.offsetHeight || 240;
+        const base = positionAboveAnchor(anchor, WINDOW_WIDTH, h);
+        const s = Math.max(0, Number(staggerIndex) || 0) * 22;
+        setPos(clampPosition(base.x + s, base.y + s, WINDOW_WIDTH, h));
+        placedForOpenRef.current = true;
+      };
+      apply();
+      const raf = requestAnimationFrame(apply);
+      return () => cancelAnimationFrame(raf);
+    }
+    const s = Math.max(0, Number(staggerIndex) || 0) * 22;
     setPos(
-      clampPosition(initialPosition.x, initialPosition.y, WINDOW_WIDTH, 200)
+      clampPosition(
+        initialPosition.x + s,
+        initialPosition.y + s,
+        WINDOW_WIDTH,
+        200
+      )
     );
-  }, [open, initialPosition.x, initialPosition.y]);
+    placedForOpenRef.current = true;
+    return undefined;
+  }, [open, anchor?.x, anchor?.y, initialPosition.x, initialPosition.y, staggerIndex]);
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open || !focused) return undefined;
     const onKey = (e) => {
-      if (e.key === "Escape") onClose?.();
+      if (e.key !== "Escape") return;
+      onClose?.();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, focused, onClose]);
 
-  const onPointerDownHeader = useCallback((e) => {
-    if (e.button != null && e.button !== 0) return;
-    const el = winRef.current;
-    if (!el) return;
-    e.preventDefault();
-    const rect = el.getBoundingClientRect();
-    dragRef.current = {
-      offsetX: e.clientX - rect.left,
-      offsetY: e.clientY - rect.top,
-      width: rect.width,
-      height: rect.height,
-      pointerId: e.pointerId,
-    };
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-  }, []);
+  const onPointerDownHeader = useCallback(
+    (e) => {
+      if (e.button != null && e.button !== 0) return;
+      onFocus?.();
+      const el = winRef.current;
+      if (!el) return;
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      dragRef.current = {
+        offsetX: e.clientX - rect.left,
+        offsetY: e.clientY - rect.top,
+        width: rect.width,
+        height: rect.height,
+        pointerId: e.pointerId,
+      };
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    },
+    [onFocus]
+  );
 
   const onPointerMoveHeader = useCallback((e) => {
     const drag = dragRef.current;
@@ -98,11 +172,25 @@ export function CentinelaDetailWindow({
   return (
     <aside
       ref={winRef}
-      className="centinela-glass centinela-detail-window"
-      style={{ left: pos.x, top: pos.y }}
+      className={[
+        "centinela-glass",
+        "centinela-detail-window",
+        focused ? "is-focused" : "is-dimmed",
+        accentColor ? "has-accent" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      style={{
+        left: pos.x,
+        top: pos.y,
+        ...(accentColor
+          ? { "--detail-accent": accentColor, borderColor: accentColor }
+          : {}),
+      }}
       role="dialog"
       aria-modal="false"
       aria-label={title || "Detalle del mapa"}
+      onPointerDownCapture={() => onFocus?.()}
     >
       <div
         className="centinela-detail-window__header"

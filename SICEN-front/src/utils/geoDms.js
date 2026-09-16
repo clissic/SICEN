@@ -79,6 +79,31 @@ export function formatCoordDms(value, kind) {
 }
 
 /**
+ * Solo grados y minutos (p. ej. graticule: segundos siempre ~0).
+ * Redondea al minuto más cercano.
+ * @param {number} value
+ * @param {"lat"|"lng"} kind
+ * @returns {string} Ej. `34° 54′ S` / `056° 30′ O`
+ */
+export function formatCoordDm(value, kind) {
+  if (!Number.isFinite(value)) return "—";
+  const hemi =
+    kind === "lat" ? (value >= 0 ? "N" : "S") : value >= 0 ? "E" : "O";
+  let totalMin = Math.round(Math.abs(value) * 60);
+  let degrees = Math.floor(totalMin / 60);
+  let minutes = totalMin % 60;
+  const maxDeg = kind === "lat" ? 90 : 180;
+  if (degrees > maxDeg) {
+    degrees = maxDeg;
+    minutes = 0;
+  }
+  const degLen = dmsDegreeDigitCount(kind);
+  const degStr = String(degrees).padStart(degLen, "0");
+  const minStr = String(minutes).padStart(2, "0");
+  return `${degStr}° ${minStr}′ ${hemi}`;
+}
+
+/**
  * Formatea dígitos progresivos a DMS visible (sin hemisferio).
  * Lat: GG MM SS.d — Lng: GGG MM SS.d (grados con ceros a la izquierda).
  */

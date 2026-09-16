@@ -7,6 +7,7 @@ import {
   formatDmsDigitsInput,
   parseDmsDigits,
 } from "../../utils/geoDms.js";
+import { CentinelaToolPanelHead } from "./CentinelaToolPanelHead.jsx";
 
 const DEFAULT_OILS = [
   { id: "diesel", label: "Diesel / gasoil" },
@@ -137,6 +138,8 @@ export function HcSpillPanel({
   onTimeIndexChange,
   playing = false,
   onPlayingChange,
+  minimized = false,
+  onToggleMinimized,
 }) {
   const [oils, setOils] = useState(DEFAULT_OILS);
   const [configEnabled, setConfigEnabled] = useState(null);
@@ -276,33 +279,34 @@ export function HcSpillPanel({
   if (showCompact) {
     return (
       <div
-        className="centinela-tool-panel centinela-hc-panel centinela-hc-panel--compact"
+        className={[
+          "centinela-tool-panel",
+          "centinela-hc-panel",
+          "centinela-hc-panel--compact",
+          minimized ? "is-minimized" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         role="region"
         aria-label="Reproducción de simulación HC"
       >
-        <div className="centinela-hc-panel__head centinela-hc-panel__head--compact">
-          <strong className="centinela-tool-panel__title">Derrame HC</strong>
-          <div className="centinela-hc-panel__head-actions">
-            <button
-              type="button"
-              className="centinela-hc-panel__icon-btn"
-              onClick={() => setCompact(false)}
-              aria-label="Ampliar panel"
-            >
-              <i className="bi bi-arrows-angle-expand" aria-hidden />
-            </button>
-            {onClose ? (
-              <button
-                type="button"
-                className="centinela-goto-panel__close"
-                onClick={onClose}
-                aria-label="Cerrar simulación HC"
-              >
-                <i className="bi bi-x-lg" aria-hidden />
-              </button>
-            ) : null}
-          </div>
-        </div>
+        <CentinelaToolPanelHead
+          className="centinela-hc-panel__head centinela-hc-panel__head--compact"
+          title="Derrame HC"
+          minimized={minimized}
+          onToggleMinimized={onToggleMinimized}
+          onClose={onClose}
+          closeLabel="Cerrar simulación HC"
+        >
+          <button
+            type="button"
+            className="centinela-hc-panel__icon-btn"
+            onClick={() => setCompact(false)}
+            aria-label="Ampliar panel"
+          >
+            <i className="bi bi-arrows-angle-expand" aria-hidden />
+          </button>
+        </CentinelaToolPanelHead>
         <HcTimelineControls
           nSteps={nSteps}
           timeIndex={timeIndex}
@@ -318,36 +322,36 @@ export function HcSpillPanel({
 
   return (
     <form
-      className="centinela-tool-panel centinela-hc-panel"
+      className={[
+        "centinela-tool-panel",
+        "centinela-hc-panel",
+        minimized ? "is-minimized" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       onSubmit={handleSubmit}
       role="dialog"
       aria-label="Simular derrame de hidrocarburo"
     >
-      <div className="centinela-hc-panel__head centinela-hc-panel__head--row">
-        <strong className="centinela-tool-panel__title">Simular derrame HC</strong>
-        <div className="centinela-hc-panel__head-actions">
-          {result ? (
-            <button
-              type="button"
-              className="centinela-hc-panel__icon-btn"
-              onClick={() => setCompact(true)}
-              aria-label="Achicar panel"
-            >
-              <i className="bi bi-arrows-angle-contract" aria-hidden />
-            </button>
-          ) : null}
-          {onClose ? (
-            <button
-              type="button"
-              className="centinela-goto-panel__close"
-              onClick={onClose}
-              aria-label="Cerrar simulación HC"
-            >
-              <i className="bi bi-x-lg" aria-hidden />
-            </button>
-          ) : null}
-        </div>
-      </div>
+      <CentinelaToolPanelHead
+        className="centinela-hc-panel__head centinela-hc-panel__head--row"
+        title="Simular derrame HC"
+        minimized={minimized}
+        onToggleMinimized={onToggleMinimized}
+        onClose={onClose}
+        closeLabel="Cerrar simulación HC"
+      >
+        {result ? (
+          <button
+            type="button"
+            className="centinela-hc-panel__icon-btn"
+            onClick={() => setCompact(true)}
+            aria-label="Achicar panel"
+          >
+            <i className="bi bi-arrows-angle-contract" aria-hidden />
+          </button>
+        ) : null}
+      </CentinelaToolPanelHead>
 
       <ErrorAlert message={err} className="alert alert-danger py-2 small mb-0" />
 

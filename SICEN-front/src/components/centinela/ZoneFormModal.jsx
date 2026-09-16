@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { ErrorAlert } from "../ErrorAlert.jsx";
 import {
   MAP_MARKER_COLORS,
@@ -10,6 +10,11 @@ import {
   formatDmsDigitsInput,
   parseDmsDigits,
 } from "../../utils/geoDms.js";
+import {
+  formatPolygonAreaParts,
+  polygonAreaSquareMeters,
+} from "../../utils/geoMeasure.js";
+import { CentinelaToolPanelHead } from "./CentinelaToolPanelHead.jsx";
 
 function HemiToggle({ options, value, onChange, ariaLabel }) {
   return (
@@ -104,15 +109,28 @@ export function ZoneFormModal({
   onSave,
   onClose,
   onPointsChange,
+  minimized = false,
+  onToggleMinimized,
 }) {
   const formId = useId();
   const [state, setState] = useState(() => initialFromZone(initial));
   const [err, setErr] = useState(null);
+  const [areaUnit, setAreaUnit] = useState("m2");
 
   useEffect(() => {
     setState(initialFromZone(initial));
     setErr(null);
   }, [initial, mode]);
+
+  const areaParts = useMemo(() => {
+    const positions = [];
+    for (const pt of state.points) {
+      const parsed = parsePoint(pt);
+      if (parsed) positions.push(parsed);
+    }
+    const m2 = polygonAreaSquareMeters(positions);
+    return formatPolygonAreaParts(m2, areaUnit);
+  }, [state.points, areaUnit]);
 
   useEffect(() => {
     const vertices = state.points.flatMap((pt, index) => {
@@ -259,24 +277,24 @@ export function ZoneFormModal({
 
   return (
     <form
-      className="centinela-tool-panel centinela-zone-form"
+      className={[
+        "centinela-tool-panel",
+        "centinela-zone-form",
+        minimized ? "is-minimized" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       onSubmit={handleSubmit}
       role="dialog"
       aria-label={mode === "edit" ? "Editar zona" : "Nueva zona"}
     >
-      <div className="centinela-goto-panel__head">
-        <strong className="centinela-tool-panel__title">
-          {mode === "edit" ? "Editar zona" : "Nueva zona"}
-        </strong>
-        <button
-          type="button"
-          className="centinela-goto-panel__close"
-          aria-label="Cerrar"
-          onClick={onClose}
-        >
-          <i className="bi bi-x-lg" aria-hidden />
-        </button>
-      </div>
+      <CentinelaToolPanelHead
+        className="centinela-goto-panel__head"
+        title={mode === "edit" ? "Editar zona" : "Nueva zona"}
+        minimized={minimized}
+        onToggleMinimized={onToggleMinimized}
+        onClose={onClose}
+      />
 
       <ErrorAlert
         message={err}
@@ -400,54 +418,109 @@ export function ZoneFormModal({
               ariaLabel={`Hemisferio longitud punto ${idx + 1}`}
             />
             <div className="centinela-zone-form__point-btns">
-              <button
-                type="button"
-                className="centinela-markers-list__icon-btn"
-                aria-label="Subir"
-                disabled={saving || idx === 0}
-                onClick={() => movePoint(idx, -1)}
-              >
-                <i className="bi bi-arrow-up" aria-hidden />
-              </button>
-              <button
-                type="button"
-                className="centinela-markers-list__icon-btn"
-                aria-label="Bajar"
-                disabled={saving || idx === state.points.length - 1}
-                onClick={() => movePoint(idx, 1)}
-              >
-                <i className="bi bi-arrow-down" aria-hidden />
-              </button>
-              <button
-                type="button"
-                className="centinela-markers-list__icon-btn"
-                aria-label="Quitar punto"
-                disabled={saving || state.points.length <= 3}
-                onClick={() => removePoint(idx)}
-              >
-                <i className="bi bi-trash" aria-hidden />
-              </button>
+              <div className="centinela-zone-form__point-btns-move">
+                <button
+                  type="button"
+                  className="centinela-markers-list__icon-btn"
+                  aria-label="Subir"
+                  disabled={saving || idx === 0}
+                  onClick={() => movePoint(idx, -1)}
+                >
+                  <i className="bi bi-arrow-up" aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  className="centinela-markers-list__icon-btn"
+                  aria-label="Bajar"
+                  disabled={saving || idx === state.points.length - 1}
+                  onClick={() => movePoint(idx, 1)}
+                >
+                  <i className="bi bi-arrow-down" aria-hidden />
+                </button>
+              </div>
+              <div className="centinela-zone-form__point-btns-delete">
+                <button
+                  type="button"
+                  className="centinela-markers-list__icon-btn"
+                  aria-label="Quitar punto"
+                  disabled={saving || state.points.length <= 3}
+                  onClick={() => removePoint(idx)}
+                >
+                  <i className="bi bi-trash" aria-hidden />
+                </button>
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="centinela-goto-panel__actions centinela-marker-form__actions">
-        <button
-          type="button"
-          className="btn btn-sm btn-outline-secondary"
-          onClick={onClose}
-          disabled={saving}
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          className="btn btn-sm btn-primary"
-          disabled={saving}
-        >
-          {saving ? "Guardando…" : "Guardar"}
-        </button>
+      <div className="centinela-zone-form__footer">
+        <div className="centinela-zone-form__area" aria-live="polite">
+          <span className="centinela-zone-form__area-label">
+            Área:{" "}
+            <strong className="centinela-zone-form__area-value">
+              {areaParts.value} {areaParts.unitLabel}
+            </strong>
+          </span>
+          <div
+            className="centinela-measure-panel__toggles"
+            role="group"
+            aria-label="Unidad de área"
+          >
+            <button
+              type="button"
+              className={[
+                "centinela-measure-panel__unit-btn",
+                areaUnit === "m2" ? "is-active" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              aria-pressed={areaUnit === "m2"}
+              onClick={() => setAreaUnit("m2")}
+            >
+              m²
+            </button>
+            <button
+              type="button"
+              className={[
+                "centinela-measure-panel__unit-btn",
+                areaUnit === "ha" ? "is-active" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              aria-pressed={areaUnit === "ha"}
+              onClick={() => setAreaUnit("ha")}
+            >
+              ha
+            </button>
+          </div>
+        </div>
+        <div className="centinela-zone-form__actions centinela-tool-save-actions">
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary centinela-tool-save-actions__btn"
+            onClick={onClose}
+            disabled={saving}
+            aria-label="Cancelar"
+            data-sicen-popover="Cancelar"
+            data-sicen-popover-placement="top"
+          >
+            <i className="bi bi-x-lg" aria-hidden />
+          </button>
+          <button
+            type="submit"
+            className="btn btn-sm btn-primary centinela-tool-save-actions__btn"
+            disabled={saving}
+            aria-label={saving ? "Guardando…" : "Guardar"}
+            data-sicen-popover={saving ? "Guardando…" : "Guardar"}
+            data-sicen-popover-placement="top"
+          >
+            <i
+              className={saving ? "bi bi-hourglass-split" : "bi bi-floppy"}
+              aria-hidden
+            />
+          </button>
+        </div>
       </div>
     </form>
   );

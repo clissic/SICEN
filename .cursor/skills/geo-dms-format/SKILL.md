@@ -18,6 +18,7 @@ description: >-
 ```js
 import {
   formatCoordDms,
+  formatCoordDm,
   formatCoordPairLabel,
   parseCoordDms,
   formatDmsDigitsInput,
@@ -26,6 +27,8 @@ import {
 
 formatCoordDms(-34.8954, "lat");   // → 34° 53′ 43.4″ S
 formatCoordDms(-56.1901, "lng");   // → 056° 11′ 24.4″ O
+formatCoordDm(-34.5, "lat");       // → 34° 30′ S  (graticule)
+formatCoordDm(-56.5, "lng");       // → 056° 30′ O
 
 formatCoordPairLabel(lat, lng);    // → Lat. … · Long. …
 
@@ -45,8 +48,9 @@ parseDmsDigits("05611244", "lng", "O"); // → -56.190...
 4. Grados: lat **2** cifras; long **3** cifras con cero a la izquierda si &lt; 100 (`056°`).
 5. Valor inválido → `—` (formato) o `null` (`parseCoordDms` / `parseDmsDigits`).
 6. En BD y APIs se siguen guardando/enviando **números decimales**; solo la **presentación** (y el ingreso tipado) es DMS.
-7. Grillas, popups de Centinela, tracking GPS, tablas de historial y emails usan el mismo helper.
-8. Texto libre → **`parseCoordDms(text, "lat"|"lng")`**. Entrada enmascarada → **`parseDmsDigits(digits, kind, hemi)`** + toggle hemi (N/S · E/O).
+7. Popups de Centinela, tracking GPS, tablas de historial y emails usan **`formatCoordDms`**.
+8. Graticule de El Centinela (`GraticuleLayer`): etiquetas con **`formatCoordDm`** (solo grados + minutos).
+9. Texto libre → **`parseCoordDms(text, "lat"|"lng")`**. Entrada enmascarada → **`parseDmsDigits(digits, kind, hemi)`** + toggle hemi (N/S · E/O).
 
 ## Entrada tipada (Ir al punto)
 

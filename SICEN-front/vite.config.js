@@ -1,11 +1,16 @@
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
 import { writeOserpManifestFile } from "./scripts/generate-oserp-manifest.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OSERP_ROOT = path.resolve(__dirname, "public", "files", "OSERP");
+const CLIENT_OUT = path.resolve(__dirname, "../SICEN-back/public");
+/** `npm run build:watch` (dev local): sin PWA para no cachear la SPA. */
+const isWatchBuild = process.argv.includes("--watch");
 
 /**
  * Regenera `src/generated/oserpFilesManifest.js` en cada build (y en dev al
@@ -43,8 +48,143 @@ function oserpFilesManifestPlugin() {
   };
 }
 
+/** Borra sw.js / workbox residuales cuando el watch no genera PWA. */
+function clearServiceWorkerArtifactsPlugin() {
+  return {
+    name: "clear-sw-artifacts-on-watch",
+    closeBundle() {
+      if (!isWatchBuild) return;
+      try {
+        for (const name of fs.readdirSync(CLIENT_OUT)) {
+          if (
+            name === "sw.js" ||
+            name === "sw.js.map" ||
+            /^workbox-.*\.js(\.map)?$/.test(name)
+          ) {
+            fs.unlinkSync(path.join(CLIENT_OUT, name));
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), oserpFilesManifestPlugin()],
+  define: {
+    __SICEN_ENABLE_PWA__: JSON.stringify(!isWatchBuild),
+  },
+  plugins: [
+    react(),
+    oserpFilesManifestPlugin(),
+    clearServiceWorkerArtifactsPlugin(),
+    VitePWA({
+      /* En watch: plugin off (no injecta SW). Producción: PWA normal. */
+      disable: isWatchBuild,
+      registerType: "autoUpdate",
+      includeAssets: [
+        "img/favicon.png",
+        "img/Franja-PNN-CUADRADO.png",
+        "img/Logo-PNN.png",
+      ],
+      manifest: {
+        id: "/",
+        name: "SICEN — Sistema Centinela",
+        short_name: "SICEN",
+        description:
+          "Sistema Centinela — Prefectura Nacional Naval (mapa, despachos, inspecciones).",
+        lang: "es-UY",
+        dir: "ltr",
+        start_url: "/",
+        scope: "/",
+        display: "standalone",
+        orientation: "any",
+        background_color: "#0b1220",
+        theme_color: "#0b1220",
+        categories: ["navigation", "government", "utilities"],
+        icons: [
+          {
+            src: "/img/Franja-PNN-CUADRADO.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: "/img/Franja-PNN-CUADRADO.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: "/img/Franja-PNN-CUADRADO.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
+        ],
+      },
+      workbox: {
+        /* No precachear index.html: el hash de assets cambia en cada build. */
+        navigateFallback: "/index.html",
+        navigateFallbackDenylist: [/^\/api\//, /^\/uploads\//],
+        globPatterns: ["manifest.webmanifest"],
+        globIgnores: [
+          "**/files/**",
+          "**/units/**",
+          "**/img/**",
+          "**/assets/**",
+        ],
+        maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
+            handler: "NetworkOnly",
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith("/uploads/"),
+            handler: "NetworkOnly",
+          },
+          {
+            urlPattern: ({ request }) => request.mode === "navigate",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "sicen-nav",
+              networkTimeoutSeconds: 5,
+            },
+          },
+          {
+            urlPattern: ({ request }) =>
+              request.destination === "script" ||
+              request.destination === "style",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "sicen-shell",
+              networkTimeoutSeconds: 5,
+              expiration: {
+                maxEntries: 32,
+                maxAgeSeconds: 60 * 60 * 24,
+              },
+            },
+          },
+          {
+            urlPattern: ({ request }) => request.destination === "image",
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "sicen-images",
+              expiration: {
+                maxEntries: 64,
+                maxAgeSeconds: 60 * 60 * 24 * 7,
+              },
+            },
+          },
+        ],
+      },
+      devOptions: {
+        enabled: false,
+      },
+    }),
+  ],
   build: {
     outDir: "../SICEN-back/public",
     /* No vaciar todo public/ en cada rebuild: en Windows + OneDrive el rmdir de

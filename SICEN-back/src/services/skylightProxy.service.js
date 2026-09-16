@@ -1,5 +1,6 @@
 import env from "../config/env.config.js";
 import { logger } from "../utils/logger.js";
+import { searchFiuIuuEventsForVessel } from "./fiuIuuProxy.service.js";
 
 const GRAPHQL_URL = "https://api.skylight.earth/graphql";
 
@@ -17,6 +18,11 @@ const AOI_EVENT_TYPES = new Set(["aoi_visit", "speed_range"]);
 
 const BEHAVIOR_EVENT_TYPES = new Set([
   "fishing_activity_history",
+  "standard_rendezvous",
+  "dark_rendezvous",
+]);
+
+const STS_EVENT_TYPES = new Set([
   "standard_rendezvous",
   "dark_rendezvous",
 ]);
@@ -346,7 +352,63 @@ function normalizeEvent(raw) {
       : null,
     createdAt: raw.createdAt ?? null,
     updatedAt: raw.updatedAt ?? null,
+    source: "skylight",
   };
+}
+
+/** Adapta un evento STS FIU/Windward a la forma del dossier. */
+function fiuStsToDossierEvent(ev) {
+  const mapVessel = (v) => {
+    if (!v) return null;
+    return {
+      vesselId: v.vesselId ?? null,
+      name: v.name ?? null,
+      displayName: v.name ?? null,
+      mmsi: v.mmsi != null ? String(v.mmsi) : null,
+      imo: v.imo ?? null,
+      length: v.length ?? null,
+      vesselType: v.class ?? v.subclass ?? null,
+      displayCountry: v.flag ?? null,
+      countryCode: null,
+    };
+  };
+  return {
+    eventId: ev.eventId,
+    eventType: "fiu_sts",
+    startTime: ev.startTime ?? null,
+    endTime: ev.endTime ?? null,
+    lat: ev.lat ?? null,
+    lon: ev.lon ?? null,
+    endLat: ev.endLat ?? null,
+    endLon: ev.endLon ?? null,
+    vessels: {
+      vessel0: mapVessel(ev.vessel),
+      vessel1: mapVessel(ev.secondVessel),
+    },
+    details: {
+      activityType: ev.activityType ?? null,
+      durationHours: ev.durationHours ?? null,
+      osrScore: null,
+    },
+    aoi: null,
+    createdAt: null,
+    updatedAt: null,
+    source: "fiu-lac-iuu",
+  };
+}
+
+function dossierImoFromIdentity(identity, fallbackImo) {
+  if (fallbackImo != null && Number(fallbackImo) > 0) {
+    return Math.trunc(Number(fallbackImo));
+  }
+  for (const src of identity?.sources || []) {
+    for (const e of src.entries || []) {
+      if (e?.imo != null && Number(e.imo) > 0) {
+        return Math.trunc(Number(e.imo));
+      }
+    }
+  }
+  return null;
 }
 
 /** GeoJSON lon/lat rings → Leaflet [lat, lon][]. */
@@ -962,6 +1024,7 @@ function predictionToLatLon(geometry) {
  */
 export async function getSkylightVesselDossier({
   mmsi,
+  imo,
   lat,
   lon,
   speedKts,
@@ -991,7 +1054,28 @@ export async function getSkylightVesselDossier({
   });
   const hit = cache.get(cacheKey);
   if (hit && now - hit.at < env.skylightCacheTtlMs) {
-    return { ...hit.data, cacheHit: true };
+    // Re-mezclar STS FIU aunque el dossier Skylight venga de cache.
+    const cached = { ...hit.data, cacheHit: true };
+    try {
+      const focusImo = dossierImoFromIdentity(cached.identity, imo);
+      const fiu = await searchFiuIuuEventsForVessel({
+        mmsi: mmsiStr,
+        imo: focusImo,
+        layerTypes: ["sts"],
+        lookbackHours: hours,
+        limit: 50,
+      });
+      const fiuSts = (fiu.events || []).map(fiuStsToDossierEvent);
+      cached.stsEvents = mergeStsEvents(
+        cached.stsEvents || [],
+        fiuSts,
+        mmsiStr,
+        focusImo
+      );
+    } catch (e) {
+      /* no bloquear dossier cacheado */
+    }
+    return cached;
   }
 
   const warnings = [];
@@ -1098,7 +1182,7 @@ export async function getSkylightVesselDossier({
   try {
     const eventTypes = [
       ...DETECTION_EVENT_TYPES,
-      ...BEHAVIOR_EVENT_TYPES,
+      "fishing_activity_history",
       ...AOI_EVENT_TYPES,
     ];
     const evData = await skylightGraphql(SEARCH_EVENTS_BY_VESSEL_QUERY, {
@@ -1119,6 +1203,41 @@ export async function getSkylightVesselDossier({
     warnings.push(`Eventos relacionados: ${e.message}`);
   }
 
+  let stsEvents = [];
+  try {
+    const stsData = await skylightGraphql(SEARCH_EVENTS_BY_VESSEL_QUERY, {
+      input: {
+        eventType: { inc: [...STS_EVENT_TYPES] },
+        startTime: { gte: startIso, lte: endIso },
+        vesselMain: { mmsi: { eq: mmsiStr } },
+        limit: 50,
+        offset: 0,
+        sortBy: "created",
+        sortDirection: "desc",
+      },
+    });
+    stsEvents = (stsData?.searchEventsV2?.records || [])
+      .map(normalizeEvent)
+      .filter((e) => e.lat != null && e.lon != null);
+  } catch (e) {
+    warnings.push(`Eventos STS Skylight: ${e.message}`);
+  }
+
+  try {
+    const focusImo = dossierImoFromIdentity(identity, imo);
+    const fiu = await searchFiuIuuEventsForVessel({
+      mmsi: mmsiStr,
+      imo: focusImo,
+      layerTypes: ["sts"],
+      lookbackHours: hours,
+      limit: 50,
+    });
+    const fiuSts = (fiu.events || []).map(fiuStsToDossierEvent);
+    stsEvents = mergeStsEvents(stsEvents, fiuSts, mmsiStr, focusImo);
+  } catch (e) {
+    warnings.push(`Eventos STS FIU: ${e.message}`);
+  }
+
   const recentName =
     identity?.sources
       ?.flatMap((s) => s.entries || [])
@@ -1134,6 +1253,7 @@ export async function getSkylightVesselDossier({
     tracks,
     prediction,
     relatedEvents,
+    stsEvents,
     warnings,
     source: "skylight",
     fetchedAt: new Date(now).toISOString(),
@@ -1142,6 +1262,60 @@ export async function getSkylightVesselDossier({
   pruneCache(now);
   cache.set(cacheKey, { at: now, data: result });
   return { ...result, cacheHit: false };
+}
+
+function mergeStsEvents(primary = [], secondary = [], focusMmsi = null, focusImo = null) {
+  const byId = new Map();
+  for (const ev of [...primary, ...secondary]) {
+    if (!ev?.eventId) continue;
+    if (!byId.has(ev.eventId)) byId.set(ev.eventId, ev);
+  }
+  const list = [...byId.values()];
+  // Preferir la orientación donde el buque del dossier es vessel0.
+  const focus = String(focusMmsi || "").trim();
+  const imo =
+    focusImo != null && Number(focusImo) > 0
+      ? Math.trunc(Number(focusImo))
+      : null;
+  const isFocus = (v) => {
+    if (!v) return false;
+    if (focus && String(v.mmsi || "").trim() === focus) return true;
+    if (imo != null && v.imo != null && Math.trunc(Number(v.imo)) === imo) {
+      return true;
+    }
+    return false;
+  };
+  const pairKey = (ev) => {
+    const ids = [ev.vessels?.vessel0, ev.vessels?.vessel1]
+      .map(
+        (v) =>
+          v?.mmsi ||
+          (v?.imo != null ? `imo:${v.imo}` : "") ||
+          v?.name ||
+          ""
+      )
+      .filter(Boolean)
+      .sort()
+      .join("|");
+    return `${ev.startTime || ""}|${ids || ev.eventId}`;
+  };
+  const preferred = new Map();
+  for (const ev of list) {
+    const key = pairKey(ev);
+    const prev = preferred.get(key);
+    if (!prev) {
+      preferred.set(key, ev);
+      continue;
+    }
+    const prevFocus = isFocus(prev.vessels?.vessel0);
+    const nextFocus = isFocus(ev.vessels?.vessel0);
+    if (!prevFocus && nextFocus) preferred.set(key, ev);
+  }
+  return [...preferred.values()].sort((a, b) => {
+    const ta = a.startTime ? Date.parse(a.startTime) : 0;
+    const tb = b.startTime ? Date.parse(b.startTime) : 0;
+    return tb - ta;
+  });
 }
 
 const SEARCH_LAST_KNOWN_POSITIONS_QUERY = `
@@ -1396,3 +1570,113 @@ export async function getSkylightVesselIdentity(mmsi) {
   identityCache.set(mmsiStr, { at: now, data: identity });
   return { ...identity, cacheHit: false };
 }
+
+const IMAGE_CHIP_HOST_SUFFIXES = [
+  "skylight.earth",
+  "skylight.global",
+  "amazonaws.com",
+  "cloudfront.net",
+  "googleapis.com",
+  "googleusercontent.com",
+  "blob.core.windows.net",
+  "allenai.org",
+];
+
+/** Hosts de API Skylight que requieren Bearer; los CDN firmados lo rechazan. */
+function shouldAttachSkylightBearer(host) {
+  const h = String(host || "").toLowerCase();
+  if (!h) return false;
+  if (h.startsWith("cdn.") || h.includes("cloudfront") || h.includes("amazonaws")) {
+    return false;
+  }
+  return (
+    h === "api.skylight.earth" ||
+    h === "api.skylight.global" ||
+    h.endsWith(".api.skylight.earth") ||
+    h.endsWith(".api.skylight.global")
+  );
+}
+
+function assertSafeSkylightImageUrl(raw) {
+  let parsed;
+  try {
+    parsed = new URL(String(raw || "").trim());
+  } catch {
+    throw httpError("URL de imagen satelital inválida.");
+  }
+  if (parsed.protocol !== "https:") {
+    throw httpError("La imagen satelital debe ser HTTPS.");
+  }
+  const host = parsed.hostname.toLowerCase();
+  const ok = IMAGE_CHIP_HOST_SUFFIXES.some(
+    (suffix) => host === suffix || host.endsWith(`.${suffix}`)
+  );
+  if (!ok) {
+    throw httpError("Host de imagen satelital no permitido.", 400);
+  }
+  return parsed.href;
+}
+
+/**
+ * Descarga el chip/crop satelital de una detección Skylight (proxy SSRF-safe).
+ * @param {string} rawUrl
+ * @returns {Promise<{ buffer: Buffer, contentType: string }>}
+ */
+export async function fetchSkylightImageChip(rawUrl) {
+  if (!isSkylightConfigured()) {
+    throw httpError(
+      "Skylight no está configurado (falta SKYLIGHT_API_KEY).",
+      503
+    );
+  }
+  const href = assertSafeSkylightImageUrl(rawUrl);
+  const host = new URL(href).hostname.toLowerCase();
+  const headers = {
+    Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+    // Algunos CDN firman por User-Agent / Referer; un UA de navegador suele pasar.
+    "User-Agent":
+      "Mozilla/5.0 (compatible; SICEN-Centinela/1.0; +https://localhost)",
+  };
+  if (shouldAttachSkylightBearer(host)) {
+    headers.Authorization = `Bearer ${env.skylightApiKey}`;
+  }
+  let res;
+  try {
+    res = await fetch(href, {
+      method: "GET",
+      headers,
+      redirect: "follow",
+    });
+  } catch (e) {
+    logger.warn("Skylight image chip fetch falló: " + (e?.message || e));
+    throw httpError("No se pudo descargar la imagen satelital.", 502);
+  }
+  if (!res.ok) {
+    logger.warn(
+      `Skylight image chip upstream ${res.status} host=${host}`
+    );
+    throw httpError(
+      `Imagen satelital no disponible (${res.status}).`,
+      res.status === 404 ? 404 : 502
+    );
+  }
+  const contentType = String(res.headers.get("content-type") || "image/jpeg")
+    .split(";")[0]
+    .trim();
+  if (contentType && !contentType.startsWith("image/")) {
+    logger.warn(
+      `Skylight image chip content-type inesperado: ${contentType} host=${host}`
+    );
+    throw httpError("La URL no devolvió una imagen.", 502);
+  }
+  const ab = await res.arrayBuffer();
+  const buffer = Buffer.from(ab);
+  if (buffer.length === 0) {
+    throw httpError("Imagen satelital vacía.", 502);
+  }
+  if (buffer.length > 8 * 1024 * 1024) {
+    throw httpError("Imagen satelital demasiado grande.", 413);
+  }
+  return { buffer, contentType: contentType || "image/jpeg" };
+}
+

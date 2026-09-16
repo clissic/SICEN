@@ -54,6 +54,7 @@ import { bathymetryRouter } from "./routes/bathymetry.router.js";
 import { maritimeBoundariesRouter } from "./routes/maritimeBoundaries.router.js";
 import { mapMarkersRouter } from "./routes/mapMarkers.router.js";
 import { mapZonesRouter } from "./routes/mapZones.router.js";
+import { mapMeasurementsRouter } from "./routes/mapMeasurements.router.js";
 import { seafarerLinksRouter } from "./routes/seafarerLinks.router.js";
 import { warmAisBridge } from "./services/aisBridge.service.js";
 import {
@@ -173,6 +174,7 @@ app.use("/api/bathymetry", bathymetryRouter);
 app.use("/api/maritimeBoundaries", maritimeBoundariesRouter);
 app.use("/api/mapMarkers", mapMarkersRouter);
 app.use("/api/mapZones", mapZonesRouter);
+app.use("/api/mapMeasurements", mapMeasurementsRouter);
 app.use("/api/seafarer-links", seafarerLinksRouter);
 
 warmAisBridge();

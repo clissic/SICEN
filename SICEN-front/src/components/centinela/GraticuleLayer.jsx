@@ -1,7 +1,13 @@
 import { useEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
-import { formatCoordDms } from "../../utils/geoDms.js";
+import { formatCoordDm } from "../../utils/geoDms.js";
+
+const DESKTOP_MQ = "(min-width: 768px)";
+/** Zona de fade horizontal antes de la barra escala/coords/atribuciones. */
+const LNG_FADE_ZONE_PX = 80;
+/** Mitad aprox. del cartel DM (`056° 30′ O`) para no invadir la barra. */
+const LNG_LABEL_HALF_W_PX = 52;
 
 function stepForZoom(zoom) {
   if (zoom >= 15) return 0.05;
@@ -14,7 +20,20 @@ function stepForZoom(zoom) {
 }
 
 function formatLineLabel(value, kind) {
-  return formatCoordDms(value, kind);
+  return formatCoordDm(value, kind);
+}
+
+/** X (coords del mapa) donde empieza el bloque inferior derecho; solo desktop. */
+function desktopAttributionLeftX(map) {
+  if (typeof window === "undefined") return null;
+  if (!window.matchMedia(DESKTOP_MQ).matches) return null;
+  const container = map.getContainer();
+  const corner = container?.querySelector(".leaflet-bottom.leaflet-right");
+  if (!container || !corner) return null;
+  const mapRect = container.getBoundingClientRect();
+  const cornerRect = corner.getBoundingClientRect();
+  if (!(cornerRect.width > 0)) return null;
+  return cornerRect.left - mapRect.left;
 }
 
 /**
@@ -61,6 +80,7 @@ export function GraticuleLayer({ enabled = true }) {
       };
 
       const edgePad = 18;
+      const attribLeft = desktopAttributionLeftX(map);
 
       for (
         let i = Math.ceil(south / step);
@@ -102,8 +122,20 @@ export function GraticuleLayer({ enabled = true }) {
           pathOpts
         ).addTo(group);
 
-        const pt = map.latLngToContainerPoint([south, x]);
-        if (pt.x < edgePad + 36 || pt.x > size.x - edgePad) continue;
+        /* X del meridiano a la altura del borde inferior del viewport (no del sur geográfico). */
+        const bottomLat = map.containerPointToLatLng([size.x / 2, size.y - 1]).lat;
+        const pt = map.latLngToContainerPoint([bottomLat, x]);
+        if (pt.x < edgePad + 36 || pt.x > size.x - edgePad - 8) continue;
+
+        let opacity = 1;
+        if (attribLeft != null) {
+          const labelRight = pt.x + LNG_LABEL_HALF_W_PX;
+          const room = attribLeft - labelRight;
+          if (room <= 0) continue;
+          if (room < LNG_FADE_ZONE_PX) {
+            opacity = room / LNG_FADE_ZONE_PX;
+          }
+        }
 
         const el = L.DomUtil.create(
           "div",
@@ -112,6 +144,9 @@ export function GraticuleLayer({ enabled = true }) {
         );
         el.textContent = formatLineLabel(x, "lng");
         el.style.left = `${pt.x}px`;
+        el.style.top = "auto";
+        el.style.bottom = "";
+        el.style.opacity = String(opacity);
       }
     }
 

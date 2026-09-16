@@ -1,4 +1,5 @@
 import { formatMeasureDistanceParts } from "../../utils/geoMeasure.js";
+import { CentinelaToolPanelHead } from "./CentinelaToolPanelHead.jsx";
 
 /**
  * Menú inferior: medición de distancias y radios.
@@ -10,6 +11,14 @@ export function MeasureDistancePanel({
   onModeChange,
   totalMeters,
   pinned = false,
+  name = "",
+  onNameChange,
+  onSave,
+  saving = false,
+  saveDisabled = false,
+  editing = false,
+  minimized = false,
+  onToggleMinimized,
   onReset,
   onUndo,
   onPin,
@@ -19,22 +28,55 @@ export function MeasureDistancePanel({
 
   return (
     <div
-      className="centinela-tool-panel centinela-measure-panel"
+      className={[
+        "centinela-tool-panel",
+        "centinela-measure-panel",
+        minimized ? "is-minimized" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       role="region"
       aria-label="Medir distancia"
     >
-      <div className="centinela-measure-panel__head">
-        <strong className="centinela-tool-panel__title">Medir distancia</strong>
-        {onClose ? (
-          <button
-            type="button"
-            className="centinela-goto-panel__close"
-            aria-label="Cerrar medición"
-            onClick={onClose}
-          >
-            <i className="bi bi-x-lg" aria-hidden />
-          </button>
-        ) : null}
+      <CentinelaToolPanelHead
+        className="centinela-measure-panel__head"
+        title="Medir distancia"
+        minimized={minimized}
+        onToggleMinimized={onToggleMinimized}
+        onClose={onClose}
+        closeLabel="Cerrar medición"
+      />
+
+      <div className="centinela-measure-panel__save-row">
+        <label className="centinela-measure-panel__name">
+          <span className="centinela-measure-panel__label">Nombre</span>
+          <input
+            type="text"
+            className="form-control form-control-sm"
+            value={name}
+            maxLength={80}
+            placeholder="Ej. Tránsito a boya"
+            onChange={(e) => onNameChange?.(e.target.value)}
+          />
+        </label>
+        <button
+          type="button"
+          className="btn btn-sm btn-primary centinela-tool-save-actions__btn centinela-measure-panel__save-btn"
+          disabled={saving || saveDisabled || !String(name || "").trim()}
+          onClick={onSave}
+          aria-label={
+            saving ? "Guardando…" : editing ? "Actualizar" : "Guardar"
+          }
+          data-sicen-popover={
+            saving ? "Guardando…" : editing ? "Actualizar" : "Guardar"
+          }
+          data-sicen-popover-placement="top"
+        >
+          <i
+            className={saving ? "bi bi-hourglass-split" : "bi bi-floppy"}
+            aria-hidden
+          />
+        </button>
       </div>
 
       <div className="centinela-measure-panel__meta">

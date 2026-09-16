@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CircleMarker, useMap, useMapEvents } from "react-leaflet";
-import L from "leaflet";
 import {
   GFW_DISCLAIMER,
   GFW_TERMS_URL,
@@ -8,6 +7,7 @@ import {
 } from "../../constants/centinelaIntelLayers.js";
 import { gfwFetchEvents } from "../../api/client.js";
 import { formatCoordDms } from "../../utils/geoDms.js";
+import { stopLeafletMapClick } from "../../utils/stopLeafletMapClick.js";
 
 const REFRESH_MS = 5 * 60_000;
 const BOUNDS_DEBOUNCE_MS = 800;
@@ -181,6 +181,7 @@ export function GfwEventsLayer({
             key={ev.eventId}
             center={[ev.lat, ev.lon]}
             radius={selected ? 9 : 6}
+            bubblingMouseEvents={false}
             pathOptions={{
               color: selected ? "#111" : "#fff",
               weight: selected ? 2 : 1,
@@ -189,11 +190,17 @@ export function GfwEventsLayer({
             }}
             eventHandlers={{
               click: (e) => {
-                L.DomEvent.stopPropagation(e.originalEvent);
+                stopLeafletMapClick(e);
+                const oe = e.originalEvent;
                 onSelectEvent?.(ev.eventId);
                 onOpenDetail?.({
                   id: `gfw:${ev.eventId}`,
                   title: gfwEventTitle(ev),
+                  anchor:
+                    Number.isFinite(oe?.clientX) &&
+                    Number.isFinite(oe?.clientY)
+                      ? { x: oe.clientX, y: oe.clientY }
+                      : null,
                   body: <GfwEventDetailBody event={ev} />,
                 });
               },

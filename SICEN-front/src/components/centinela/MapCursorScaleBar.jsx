@@ -9,6 +9,8 @@ import {
 } from "../../utils/geoMeasure.js";
 
 const MAX_BAR_PX = 96;
+const EMPTY_LAT_DMS = "00° 00′ 00.0″ X";
+const EMPTY_LNG_DMS = "000° 00′ 00.0″ X";
 
 /**
  * Escala MN (+ Lat/Long en desktop) en la esquina inferior derecha,
@@ -114,7 +116,9 @@ export function MapCursorScaleBar({
           className="centinela-map-scale__bar"
           style={{ width: `${bar.widthPx}px` }}
         />
-        <span className="centinela-map-scale__label">{bar.label}</span>
+        <span className="centinela-map-scale__label centinela-map-scale__accent">
+          {bar.label}
+        </span>
       </span>
       {showCursorCoords ? (
         <>
@@ -122,13 +126,19 @@ export function MapCursorScaleBar({
             ·
           </span>
           <span className="centinela-map-scale__line">
-            Lat. {coords ? formatCoordDms(coords.lat, "lat") : "—"}
+            Lat.{" "}
+            <span className="centinela-map-scale__accent">
+              {coords ? formatCoordDms(coords.lat, "lat") : EMPTY_LAT_DMS}
+            </span>
           </span>
           <span className="centinela-map-scale__sep" aria-hidden>
             ·
           </span>
           <span className="centinela-map-scale__line">
-            Long. {coords ? formatCoordDms(coords.lng, "lng") : "—"}
+            Long.{" "}
+            <span className="centinela-map-scale__accent">
+              {coords ? formatCoordDms(coords.lng, "lng") : EMPTY_LNG_DMS}
+            </span>
           </span>
         </>
       ) : null}

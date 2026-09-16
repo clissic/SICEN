@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Marker, Polyline } from "react-leaflet";
 import L from "leaflet";
 import { formatCoordDms } from "../../utils/geoDms.js";
+import { stopLeafletMapClick } from "../../utils/stopLeafletMapClick.js";
 import { SportMovementSkipperContactModal } from "../SportMovementSkipperContactModal.jsx";
 import { SportMovementPositionHistoryModal } from "../SportMovementPositionHistoryModal.jsx";
 
@@ -166,13 +167,19 @@ export function SicenPositioningLayer({ items = [], onOpenDetail }) {
             <Marker
               position={[lat, lng]}
               icon={icon}
+              bubblingMouseEvents={false}
               eventHandlers={{
                 click: (e) => {
-                  L.DomEvent.stopPropagation(e.originalEvent);
-                  L.DomEvent.preventDefault(e.originalEvent);
+                  stopLeafletMapClick(e);
+                  const oe = e.originalEvent;
                   onOpenDetail?.({
                     id: `sicen:${id}`,
                     title: item.vesselName?.trim() || "Posicionamiento SICEN",
+                    anchor:
+                      Number.isFinite(oe?.clientX) &&
+                      Number.isFinite(oe?.clientY)
+                        ? { x: oe.clientX, y: oe.clientY }
+                        : null,
                     body: (
                       <SicenDetailBody
                         item={item}

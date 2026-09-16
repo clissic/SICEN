@@ -76,6 +76,8 @@ export function useDocumentSicenPopovers() {
             el.getAttribute("data-sicen-popover-placement") || "top",
           container: "body",
           sanitize: true,
+          // Hover: demora 1 s en aparecer. Click (mobile info): sin demora.
+          delay: touchUi ? 0 : { show: 1000, hide: 0 },
           content: () => el.getAttribute(SICEN_POPOVER_ATTR) || "",
         });
       } catch {

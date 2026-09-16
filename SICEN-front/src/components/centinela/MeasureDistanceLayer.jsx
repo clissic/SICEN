@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
 import {
-  destinationLatLng,
   distanceMeters,
   formatMeasureDistance,
   formatSegmentLabel,
@@ -10,6 +9,10 @@ import {
   labelRotationCssDeg,
   midpointLatLng,
 } from "../../utils/geoMeasure.js";
+import {
+  normalizeMeasurementSnapshot,
+  segmentNet,
+} from "../../utils/measureSnapshot.js";
 
 const VERTEX_STYLE = {
   radius: 5,
@@ -94,24 +97,6 @@ function ll(latlng) {
   return { lat: latlng.lat, lng: latlng.lng };
 }
 
-function segmentNet(a, b, deductRadiusM = 0) {
-  const raw = distanceMeters(a.lat, a.lng, b.lat, b.lng);
-  const bearing = initialBearingDeg(a.lat, a.lng, b.lat, b.lng);
-  const meters = Math.max(0, raw - (deductRadiusM || 0));
-  let lineStart = a;
-  let mid;
-  if (deductRadiusM > 0 && raw > deductRadiusM) {
-    lineStart = destinationLatLng(a.lat, a.lng, bearing, deductRadiusM);
-    mid = midpointLatLng(lineStart.lat, lineStart.lng, b.lat, b.lng);
-  } else if (deductRadiusM > 0) {
-    lineStart = null;
-    mid = midpointLatLng(a.lat, a.lng, b.lat, b.lng);
-  } else {
-    mid = midpointLatLng(a.lat, a.lng, b.lat, b.lng);
-  }
-  return { raw, meters, bearing, mid, lineStart };
-}
-
 /**
  * Distancia + radio en la misma sesión.
  * Tras un círculo, el siguiente tramo sale del centro pero resta el radio
@@ -120,29 +105,32 @@ function segmentNet(a, b, deductRadiusM = 0) {
 export function MeasureDistanceLayer({
   active,
   pinned = false,
+  /** Si false, no captura clics ni arrastre (p. ej. panel minimizado), pero mantiene el dibujo. */
+  mapInteractive = true,
   mode = "distance",
   unit = "nm",
   resetKey = 0,
   undoKey = 0,
+  loadKey = 0,
+  loadSnapshot = null,
+  snapshotApiRef = null,
   onTotalMetersChange,
   onRadiusMetersChange,
 }) {
   const map = useMap();
   const pointsRef = useRef([]);
-  /** Deducción aplicada a cada tramo points[i]→points[i+1]. */
   const deductsRef = useRef([]);
-  /** Índice de círculo que originó cada deducción (−1 si ninguna). */
   const deductSourceRef = useRef([]);
   const circlesRef = useRef([]);
   const pendingCenterRef = useRef(null);
   const nextDeductRef = useRef(0);
-  /** Historial: 'vertex' | 'segment' | 'circle' */
   const historyRef = useRef([]);
   const undoApiRef = useRef({ undo: () => {} });
-  const paintApiRef = useRef({ paintAll: () => {} });
   const prevResetKeyRef = useRef(resetKey);
+  const prevLoadKeyRef = useRef(loadKey);
   const pinnedRef = useRef(pinned);
   const activeRef = useRef(active);
+  const mapInteractiveRef = useRef(mapInteractive);
 
   const committedRef = useRef(null);
   const handlesRef = useRef(null);
@@ -152,13 +140,18 @@ export function MeasureDistanceLayer({
   const unitRef = useRef(unit);
   const onTotalRef = useRef(onTotalMetersChange);
   const onRadiusRef = useRef(onRadiusMetersChange);
+  const loadSnapshotRef = useRef(loadSnapshot);
+  const snapshotApiOuterRef = useRef(snapshotApiRef);
 
   modeRef.current = mode;
   unitRef.current = unit;
   pinnedRef.current = pinned;
   activeRef.current = active;
+  mapInteractiveRef.current = mapInteractive;
   onTotalRef.current = onTotalMetersChange;
   onRadiusRef.current = onRadiusMetersChange;
+  loadSnapshotRef.current = loadSnapshot;
+  snapshotApiOuterRef.current = snapshotApiRef;
 
   const visible = active || pinned;
 
@@ -195,8 +188,6 @@ export function MeasureDistanceLayer({
         const { meters } = segmentNet(pts[i - 1], pts[i], deducts[i - 1] || 0);
         total += meters;
       }
-      // Los radios se restan del tramo siguiente: hay que sumarlos al total
-      // para que la distancia acumulada refleje el recorrido completo.
       for (const c of circlesRef.current) {
         total += c.radiusM || 0;
       }
@@ -208,7 +199,6 @@ export function MeasureDistanceLayer({
       onRadiusRef.current?.(lastR);
     }
 
-    /** Geometría (líneas, círculos, etiquetas) sin handles de edición. */
     function paintGeometry() {
       const group = committedRef.current;
       if (!group) return;
@@ -238,10 +228,7 @@ export function MeasureDistanceLayer({
           c.edge.lng
         );
         L.marker(mid, {
-          icon: radiusLabelIcon(
-            formatMeasureDistance(c.radiusM, u),
-            bearing
-          ),
+          icon: radiusLabelIcon(formatMeasureDistance(c.radiusM, u), bearing),
           interactive: false,
           keyboard: false,
         }).addTo(group);
@@ -330,7 +317,7 @@ export function MeasureDistanceLayer({
       const group = handlesRef.current;
       if (!group) return;
       group.clearLayers();
-      if (!pinnedRef.current) return;
+      if (!pinnedRef.current || !mapInteractiveRef.current) return;
 
       const pts = pointsRef.current;
       const circles = circlesRef.current;
@@ -382,6 +369,36 @@ export function MeasureDistanceLayer({
       paintHandles();
     }
 
+    function getSnapshot() {
+      return {
+        points: pointsRef.current.map((p) => ({ lat: p.lat, lng: p.lng })),
+        deducts: [...deductsRef.current],
+        deductSource: [...deductSourceRef.current],
+        circles: circlesRef.current.map((c) => ({
+          center: { lat: c.center.lat, lng: c.center.lng },
+          edge: { lat: c.edge.lat, lng: c.edge.lng },
+          radiusM: c.radiusM,
+          centerIdx: c.centerIdx,
+        })),
+        unit: unitRef.current,
+      };
+    }
+
+    function applySnapshot(raw) {
+      const snap = normalizeMeasurementSnapshot(raw || {});
+      pointsRef.current = snap.points;
+      deductsRef.current = snap.deducts;
+      deductSourceRef.current = snap.deductSource;
+      circlesRef.current = snap.circles;
+      pendingCenterRef.current =
+        snap.points.length > 0 ? snap.points[snap.points.length - 1] : null;
+      const lastCircle = snap.circles[snap.circles.length - 1];
+      nextDeductRef.current = lastCircle ? lastCircle.radiusM : 0;
+      historyRef.current = [];
+      clearPreview();
+      paintAll();
+    }
+
     function ensureRadiusCenter() {
       if (pendingCenterRef.current) return pendingCenterRef.current;
       const pts = pointsRef.current;
@@ -395,7 +412,13 @@ export function MeasureDistanceLayer({
     function updatePreview(latlng) {
       clearPreview();
       const preview = previewGroupRef.current;
-      if (!activeRef.current || pinnedRef.current || !preview || !latlng) {
+      if (
+        !mapInteractiveRef.current ||
+        !activeRef.current ||
+        pinnedRef.current ||
+        !preview ||
+        !latlng
+      ) {
         return;
       }
       const u = unitRef.current;
@@ -507,24 +530,56 @@ export function MeasureDistanceLayer({
     }
 
     undoApiRef.current = { undo: undoLast };
-    paintApiRef.current = { paintAll, clearPreview };
+
+    const api = {
+      getSnapshot,
+      loadSnapshot: applySnapshot,
+      clear: clearAll,
+    };
+    if (snapshotApiOuterRef.current) {
+      snapshotApiOuterRef.current.current = api;
+    }
+
+    const didLoad = prevLoadKeyRef.current !== loadKey;
+    prevLoadKeyRef.current = loadKey;
+    if (didLoad && loadSnapshotRef.current) {
+      applySnapshot(loadSnapshotRef.current);
+    }
 
     const didReset = prevResetKeyRef.current !== resetKey;
     prevResetKeyRef.current = resetKey;
-    if (didReset) {
+    if (didReset && !didLoad) {
       clearAll();
     }
 
     if (!visible) {
-      if (!didReset) clearAll();
+      if (!didReset && !didLoad) clearAll();
       map.getContainer().classList.remove(
         "centinela-map--measuring",
         "centinela-map--measure-pinned"
       );
-      return undefined;
+      return () => {
+        if (snapshotApiOuterRef.current?.current === api) {
+          snapshotApiOuterRef.current.current = null;
+        }
+      };
     }
 
-    paintAll();
+    if (!didLoad) paintAll();
+
+    if (!mapInteractive) {
+      clearPreview();
+      handlesRef.current?.clearLayers();
+      map.getContainer().classList.remove(
+        "centinela-map--measuring",
+        "centinela-map--measure-pinned"
+      );
+      return () => {
+        if (snapshotApiOuterRef.current?.current === api) {
+          snapshotApiOuterRef.current.current = null;
+        }
+      };
+    }
 
     if (pinned) {
       clearPreview();
@@ -533,6 +588,9 @@ export function MeasureDistanceLayer({
       return () => {
         map.getContainer().classList.remove("centinela-map--measure-pinned");
         handlesRef.current?.clearLayers();
+        if (snapshotApiOuterRef.current?.current === api) {
+          snapshotApiOuterRef.current.current = null;
+        }
       };
     }
 
@@ -544,6 +602,9 @@ export function MeasureDistanceLayer({
     }
 
     function onClick(e) {
+      if (!mapInteractiveRef.current || !activeRef.current || pinnedRef.current) {
+        return;
+      }
       L.DomEvent.stopPropagation(e);
       const latlng = ll(e.latlng);
       const m = modeRef.current;
@@ -581,7 +642,8 @@ export function MeasureDistanceLayer({
             center,
             edge: latlng,
             radiusM,
-            centerIdx: centerIdx >= 0 ? centerIdx : pointsRef.current.length - 1,
+            centerIdx:
+              centerIdx >= 0 ? centerIdx : pointsRef.current.length - 1,
           },
         ];
         nextDeductRef.current = radiusM;
@@ -600,16 +662,16 @@ export function MeasureDistanceLayer({
         updatePreview(cursorRef.current);
         return;
       }
+
       const deduct = nextDeductRef.current || 0;
-      const source =
-        deduct > 0 && circlesRef.current.length > 0
-          ? circlesRef.current.length - 1
-          : -1;
-      nextDeductRef.current = 0;
+      const sourceIdx =
+        deduct > 0 ? Math.max(0, circlesRef.current.length - 1) : -1;
       pointsRef.current = [...pts, latlng];
       deductsRef.current = [...deductsRef.current, deduct];
-      deductSourceRef.current = [...deductSourceRef.current, source];
+      deductSourceRef.current = [...deductSourceRef.current, sourceIdx];
+      nextDeductRef.current = 0;
       historyRef.current.push({ type: "segment" });
+      pendingCenterRef.current = latlng;
       paintAll();
       updatePreview(cursorRef.current);
     }
@@ -627,33 +689,18 @@ export function MeasureDistanceLayer({
       map.off("mousemove", onMove);
       map.getContainer().classList.remove("centinela-map--measuring");
       clearPreview();
-    };
-  }, [map, active, pinned, visible, resetKey]);
-
-  useEffect(() => {
-    if (!active || pinned || undoKey < 1) return;
-    undoApiRef.current.undo();
-  }, [undoKey, active, pinned]);
-
-  useEffect(() => {
-    if (!active || pinned) return;
-    if (mode === "radius") {
-      const pts = pointsRef.current;
-      if (pts.length > 0) {
-        pendingCenterRef.current = pts[pts.length - 1];
+      if (snapshotApiOuterRef.current?.current === api) {
+        snapshotApiOuterRef.current.current = null;
       }
-    } else {
-      pendingCenterRef.current = null;
-    }
-  }, [mode, active, pinned]);
+    };
+  }, [map, active, pinned, mapInteractive, mode, unit, resetKey, loadKey, visible]);
 
   useEffect(() => {
-    if (!visible) return;
-    paintApiRef.current.paintAll?.();
-    if (!active || pinned) {
-      paintApiRef.current.clearPreview?.();
-    }
-  }, [unit, mode, active, pinned, visible]);
+    if (!visible) return undefined;
+    undoApiRef.current.undo();
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al cambiar undoKey
+  }, [undoKey]);
 
   return null;
 }

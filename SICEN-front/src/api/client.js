@@ -1760,6 +1760,34 @@ export function deleteMapZone(id, { signal } = {}) {
   });
 }
 
+/** Mediciones personales (distancia/radio) del Centinela. */
+export function listMapMeasurements({ signal } = {}) {
+  return apiFetch("/api/mapMeasurements", { signal });
+}
+
+export function createMapMeasurement(body, { signal } = {}) {
+  return apiFetch("/api/mapMeasurements", {
+    method: "POST",
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+export function updateMapMeasurement(id, body, { signal } = {}) {
+  return apiFetch(`/api/mapMeasurements/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+export function deleteMapMeasurement(id, { signal } = {}) {
+  return apiFetch(`/api/mapMeasurements/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    signal,
+  });
+}
+
 /** Snapshot de buques AIS en el bbox configurado. */
 export function aisVessels() {
   return apiFetch("/api/ais/vessels");
@@ -1810,6 +1838,7 @@ export function skylightFetchAois(body = {}, { signal } = {}) {
  * Dossier Skylight de un buque (identidad, track, predicción, eventos).
  * @param {{
  *   mmsi: string|number,
+ *   imo?: string|number,
  *   lat?: number,
  *   lon?: number,
  *   speedKts?: number,
@@ -1823,6 +1852,37 @@ export function skylightFetchVesselDossier(body, { signal } = {}) {
     body: JSON.stringify(body),
     signal,
   });
+}
+
+/**
+ * Chip satelital de una detección Skylight (proxy autenticado → Blob).
+ * @param {string} imageUrl URL original de Skylight (`details.imageUrl`)
+ * @returns {Promise<Blob>}
+ */
+export async function skylightFetchImageChip(imageUrl, { signal } = {}) {
+  const token = getAuthToken();
+  const q = encodeURIComponent(String(imageUrl || "").trim());
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(`/api/skylight/image-chip?u=${q}`, {
+    method: "GET",
+    credentials: "include",
+    headers,
+    signal,
+  });
+  if (!res.ok) {
+    let msg = res.statusText;
+    try {
+      const data = await res.json();
+      msg = data?.msg || data?.message || msg;
+    } catch {
+      /* ignore */
+    }
+    const err = new Error(msg || "No se pudo cargar la imagen satelital.");
+    err.status = res.status;
+    throw err;
+  }
+  return res.blob();
 }
 
 /** Estado del proxy FIU LAC IUU (El Centinela). */

@@ -7,6 +7,7 @@ import {
   formatDmsDigitsInput,
   parseDmsDigits,
 } from "../../utils/geoDms.js";
+import { CentinelaToolPanelHead } from "./CentinelaToolPanelHead.jsx";
 
 const DEFAULT_OBJECTS = [
   {
@@ -163,6 +164,8 @@ export function SarDriftPanel({
   onTimeIndexChange,
   playing = false,
   onPlayingChange,
+  minimized = false,
+  onToggleMinimized,
 }) {
   const [objects, setObjects] = useState(DEFAULT_OBJECTS);
   const [configEnabled, setConfigEnabled] = useState(null);
@@ -316,33 +319,34 @@ export function SarDriftPanel({
   if (showCompact) {
     return (
       <div
-        className="centinela-tool-panel centinela-hc-panel centinela-hc-panel--compact"
+        className={[
+          "centinela-tool-panel",
+          "centinela-hc-panel",
+          "centinela-hc-panel--compact",
+          minimized ? "is-minimized" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         role="region"
         aria-label="Reproducción de deriva SAR"
       >
-        <div className="centinela-hc-panel__head centinela-hc-panel__head--compact">
-          <strong className="centinela-tool-panel__title">Deriva SAR</strong>
-          <div className="centinela-hc-panel__head-actions">
-            <button
-              type="button"
-              className="centinela-hc-panel__icon-btn"
-              onClick={() => setCompact(false)}
-              aria-label="Ampliar panel"
-            >
-              <i className="bi bi-arrows-angle-expand" aria-hidden />
-            </button>
-            {onClose ? (
-              <button
-                type="button"
-                className="centinela-goto-panel__close"
-                onClick={onClose}
-                aria-label="Cerrar simulación SAR"
-              >
-                <i className="bi bi-x-lg" aria-hidden />
-              </button>
-            ) : null}
-          </div>
-        </div>
+        <CentinelaToolPanelHead
+          className="centinela-hc-panel__head centinela-hc-panel__head--compact"
+          title="Deriva SAR"
+          minimized={minimized}
+          onToggleMinimized={onToggleMinimized}
+          onClose={onClose}
+          closeLabel="Cerrar simulación SAR"
+        >
+          <button
+            type="button"
+            className="centinela-hc-panel__icon-btn"
+            onClick={() => setCompact(false)}
+            aria-label="Ampliar panel"
+          >
+            <i className="bi bi-arrows-angle-expand" aria-hidden />
+          </button>
+        </CentinelaToolPanelHead>
         <SarTimelineControls
           nSteps={nSteps}
           timeIndex={timeIndex}
@@ -359,36 +363,36 @@ export function SarDriftPanel({
 
   return (
     <form
-      className="centinela-tool-panel centinela-hc-panel"
+      className={[
+        "centinela-tool-panel",
+        "centinela-hc-panel",
+        minimized ? "is-minimized" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       onSubmit={handleSubmit}
       role="dialog"
       aria-label="Simular deriva SAR"
     >
-      <div className="centinela-hc-panel__head centinela-hc-panel__head--row">
-        <strong className="centinela-tool-panel__title">Simular deriva SAR</strong>
-        <div className="centinela-hc-panel__head-actions">
-          {result ? (
-            <button
-              type="button"
-              className="centinela-hc-panel__icon-btn"
-              onClick={() => setCompact(true)}
-              aria-label="Achicar panel"
-            >
-              <i className="bi bi-arrows-angle-contract" aria-hidden />
-            </button>
-          ) : null}
-          {onClose ? (
-            <button
-              type="button"
-              className="centinela-goto-panel__close"
-              onClick={onClose}
-              aria-label="Cerrar simulación SAR"
-            >
-              <i className="bi bi-x-lg" aria-hidden />
-            </button>
-          ) : null}
-        </div>
-      </div>
+      <CentinelaToolPanelHead
+        className="centinela-hc-panel__head centinela-hc-panel__head--row"
+        title="Simular deriva SAR"
+        minimized={minimized}
+        onToggleMinimized={onToggleMinimized}
+        onClose={onClose}
+        closeLabel="Cerrar simulación SAR"
+      >
+        {result ? (
+          <button
+            type="button"
+            className="centinela-hc-panel__icon-btn"
+            onClick={() => setCompact(true)}
+            aria-label="Achicar panel"
+          >
+            <i className="bi bi-arrows-angle-contract" aria-hidden />
+          </button>
+        ) : null}
+      </CentinelaToolPanelHead>
 
       <p className="centinela-hc-panel__disclaimer mb-0">
         Apoyo a la búsqueda: área probable, no ubicación certe.

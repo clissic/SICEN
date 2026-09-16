@@ -7,16 +7,30 @@ import {
   MAP_MARKER_DEFAULT_ICON,
 } from "../../constants/centinelaMarkerIcons.js";
 import { formatCoordDms } from "../../utils/geoDms.js";
+import { stopLeafletMapClick } from "../../utils/stopLeafletMapClick.js";
 
-function markerIcon(color, icon) {
+function markerIcon(color, icon, name = "") {
   const safeColor = color || MAP_MARKER_DEFAULT_COLOR;
   const safeIcon = icon || MAP_MARKER_DEFAULT_ICON;
   const onLight = isMarkerColorLight(safeColor)
     ? " centinela-marker-pin--on-light"
     : "";
+  const label = String(name || "").trim();
+  const labelHtml = label
+    ? `<span class="centinela-feature-name-label__text">${escapeHtml(label)}</span>`
+    : "";
+  /* iconSize/iconAnchor fijos al pin: la etiqueta no debe mover el punto en el mapa. */
   return L.divIcon({
-    className: "centinela-user-marker",
-    html: `<span class="centinela-marker-pin${onLight}" style="background:${safeColor}"><span class="material-symbols-outlined">${safeIcon}</span></span>`,
+    className: [
+      "centinela-user-marker",
+      label ? "has-name" : "",
+    ]
+      .filter(Boolean)
+      .join(" "),
+    html: `<div class="centinela-user-marker__wrap">
+      <span class="centinela-marker-pin${onLight}" style="background:${safeColor}"><span class="material-symbols-outlined">${safeIcon}</span></span>
+      ${labelHtml}
+    </div>`,
     iconSize: [32, 32],
     iconAnchor: [16, 16],
   });
@@ -50,6 +64,7 @@ function popupHtml(m, latDms, lngDms) {
 export function UserMarkersLayer({
   markers = [],
   selectedId = null,
+  showNames = false,
   onSelect,
   onEdit,
   onDelete,
@@ -85,9 +100,10 @@ export function UserMarkersLayer({
       const latDms = formatCoordDms(m.lat, "lat");
       const lngDms = formatCoordDms(m.lng, "lng");
       const marker = L.marker([m.lat, m.lng], {
-        icon: markerIcon(m.color, m.icon),
+        icon: markerIcon(m.color, m.icon, showNames ? m.name : ""),
         zIndexOffset: selectedId && id === String(selectedId) ? 800 : 500,
         keyboard: false,
+        bubblingMouseEvents: false,
       });
       marker.bindPopup(popupHtml(m, latDms, lngDms), {
         className: "centinela-coords-popup",
@@ -115,12 +131,13 @@ export function UserMarkersLayer({
           }
         });
       });
-      marker.on("click", () => {
+      marker.on("click", (e) => {
+        stopLeafletMapClick(e);
         onSelectRef.current?.(m);
       });
       marker.addTo(group);
     }
-  }, [map, markers, selectedId]);
+  }, [map, markers, selectedId, showNames]);
 
   return null;
 }

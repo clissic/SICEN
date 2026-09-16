@@ -6,6 +6,7 @@ import {
 } from "../../constants/skylightLayers.js";
 import { skylightFetchFrames } from "../../api/client.js";
 import { formatSkylightWhen } from "../../utils/skylightEventHelpers.js";
+import { stopLeafletMapClick } from "../../utils/stopLeafletMapClick.js";
 
 const REFRESH_MS = 5 * 60_000;
 const FRAME_COLOR = "#64748b";
@@ -106,7 +107,10 @@ export function SkylightFramesLayer({
               fillOpacity: selected ? 0.22 : 0.1,
             }}
             eventHandlers={{
-              click: () => onSelectFrame?.(frame.frameId),
+              click: (e) => {
+                stopLeafletMapClick(e);
+                onSelectFrame?.(frame.frameId);
+              },
             }}
           >
             <Popup className="centinela-skylight-leaflet-popup">

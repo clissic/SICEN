@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Marker } from "react-leaflet";
 import L from "leaflet";
 import { formatCoordDms } from "../../utils/geoDms.js";
+import { stopLeafletMapClick } from "../../utils/stopLeafletMapClick.js";
 
 const NAV_STATUS = {
   0: "En navegación con motor",
@@ -48,28 +49,44 @@ function aisSourceLabel(vessel) {
   return null;
 }
 
-function shipIcon(heading, { matched, selected } = {}) {
+function shipIcon(heading, { matched, selected, name } = {}) {
   const rot =
     typeof heading === "number" && Number.isFinite(heading) ? heading : 0;
   const fill = selected ? "#6c3483" : matched ? "#8e44ad" : "#0b3d91";
   const ring = selected || matched ? "2.2" : "1.2";
+  const label = String(name || "").trim();
+  const labelHtml = label
+    ? `<span class="centinela-ais-marker__name">${escapeHtml(label)}</span>`
+    : "";
   return L.divIcon({
     className: [
       "centinela-ais-marker",
       matched ? "is-skylight-matched" : "",
       selected ? "is-selected" : "",
+      label ? "has-name" : "",
     ]
       .filter(Boolean)
       .join(" "),
-    html: `<div class="centinela-ais-marker__body" style="transform:rotate(${rot}deg)" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="22" height="22">
-        <path fill="${fill}" stroke="#fff" stroke-width="${ring}"
-          d="M12 2 L19 20 L12 16 L5 20 Z"/>
-      </svg>
+    html: `<div class="centinela-ais-marker__wrap">
+      <div class="centinela-ais-marker__body" style="transform:rotate(${rot}deg)" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22">
+          <path fill="${fill}" stroke="#fff" stroke-width="${ring}"
+            d="M12 2 L19 20 L12 16 L5 20 Z"/>
+        </svg>
+      </div>
+      ${labelHtml}
     </div>`,
-    iconSize: [24, 24],
+    iconSize: label ? [140, 24] : [24, 24],
     iconAnchor: [12, 12],
   });
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 /** Cuerpo de detalle AIS (ventana fija). */
@@ -144,6 +161,7 @@ export function AisVesselLayer({
   vessels,
   matchedMmsis = null,
   selectedMmsi = null,
+  showNames = false,
   onSelectVessel,
 }) {
   const matched =
@@ -153,16 +171,18 @@ export function AisVesselLayer({
     const map = new Map();
     for (const v of vessels) {
       const mmsi = String(v.mmsi);
+      const name = showNames ? String(v.name || "").trim() : "";
       map.set(
         mmsi,
         shipIcon(v.heading ?? v.cog, {
           matched: matched.has(mmsi),
           selected: selectedMmsi != null && String(selectedMmsi) === mmsi,
+          name: name || null,
         })
       );
     }
     return map;
-  }, [vessels, matched, selectedMmsi]);
+  }, [vessels, matched, selectedMmsi, showNames]);
 
   return (
     <>
@@ -175,11 +195,15 @@ export function AisVesselLayer({
             key={mmsi}
             position={[v.lat, v.lon]}
             icon={icons.get(mmsi)}
+            bubblingMouseEvents={false}
             eventHandlers={{
               click: (e) => {
-                L.DomEvent.stopPropagation(e.originalEvent);
-                L.DomEvent.preventDefault(e.originalEvent);
-                onSelectVessel?.(v);
+                stopLeafletMapClick(e);
+                const oe = e.originalEvent;
+                onSelectVessel?.(v, {
+                  clientX: oe?.clientX,
+                  clientY: oe?.clientY,
+                });
               },
             }}
             zIndexOffset={

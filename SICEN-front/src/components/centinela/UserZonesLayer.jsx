@@ -39,6 +39,7 @@ function pathLatLngs(verts) {
 export function ZoneDraftPreview({
   vertices = [],
   color = "#0d9488",
+  interactive = true,
   onVertexDragEnd,
 }) {
   const icon = useMemo(() => vertexIcon(color), [color]);
@@ -89,10 +90,11 @@ export function ZoneDraftPreview({
           key={`zd-v-${v.index}`}
           position={[v.lat, v.lng]}
           icon={icon}
-          draggable
+          draggable={Boolean(interactive)}
           autoPan={false}
           eventHandlers={{
             drag(e) {
+              if (!interactive) return;
               const ll = e.target.getLatLng();
               const next = (vertsRef.current || []).map((item) =>
                 item.index === v.index
@@ -102,6 +104,7 @@ export function ZoneDraftPreview({
               applyPathFromVerts(next);
             },
             dragend(e) {
+              if (!interactive) return;
               const ll = e.target.getLatLng();
               const next = (vertsRef.current || []).map((item) =>
                 item.index === v.index
@@ -138,9 +141,9 @@ export function ZoneDraftPreview({
  * Polígonos de zonas personales del usuario.
  * Solo visual (`interactive: false`); no se dibujan las ocultas.
  *
- * @param {{ zones: object[] }} props
+ * @param {{ zones: object[], showNames?: boolean }} props
  */
-export function UserZonesLayer({ zones = [] }) {
+export function UserZonesLayer({ zones = [], showNames = false }) {
   const visible = (zones || []).filter(
     (z) =>
       !z.hidden &&
@@ -152,20 +155,62 @@ export function UserZonesLayer({ zones = [] }) {
     <>
       {visible.map((z) => {
         const id = String(z._id || z.id || "");
+        const centroid = zoneCentroid(z.positions);
         return (
-          <Polygon
-            key={id}
-            positions={z.positions}
-            pathOptions={{
-              color: z.color || "#0d9488",
-              weight: 2,
-              fillColor: z.color || "#0d9488",
-              fillOpacity: 0.25,
-              interactive: false,
-            }}
-          />
+          <span key={id}>
+            <Polygon
+              positions={z.positions}
+              pathOptions={{
+                color: z.color || "#0d9488",
+                weight: 2,
+                fillColor: z.color || "#0d9488",
+                fillOpacity: 0.25,
+                interactive: false,
+              }}
+            />
+            {showNames && z.name && centroid ? (
+              <Marker
+                position={centroid}
+                interactive={false}
+                keyboard={false}
+                icon={L.divIcon({
+                  className: "centinela-feature-name-label",
+                  html: `<span class="centinela-feature-name-label__text" style="transform:translate(-50%,-50%)">${escapeHtml(
+                    z.name
+                  )}</span>`,
+                  iconSize: [0, 0],
+                  iconAnchor: [0, 0],
+                })}
+              />
+            ) : null}
+          </span>
         );
       })}
     </>
   );
+}
+
+function zoneCentroid(positions) {
+  if (!Array.isArray(positions) || positions.length === 0) return null;
+  let latSum = 0;
+  let lngSum = 0;
+  let n = 0;
+  for (const p of positions) {
+    const lat = Number(Array.isArray(p) ? p[0] : p?.lat);
+    const lng = Number(Array.isArray(p) ? p[1] : p?.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+    latSum += lat;
+    lngSum += lng;
+    n += 1;
+  }
+  if (!n) return null;
+  return [latSum / n, lngSum / n];
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
