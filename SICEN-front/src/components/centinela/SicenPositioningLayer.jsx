@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
-import { Marker, Polyline } from "react-leaflet";
+import { useEffect, useMemo, useState } from "react";
+import { Marker, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import { formatCoordDms } from "../../utils/geoDms.js";
 import { stopLeafletMapClick } from "../../utils/stopLeafletMapClick.js";
+import { clientAnchorFromMapLatLng } from "./CentinelaDetailWindow.jsx";
 import { SportMovementSkipperContactModal } from "../SportMovementSkipperContactModal.jsx";
 import { SportMovementPositionHistoryModal } from "../SportMovementPositionHistoryModal.jsx";
 
@@ -129,10 +130,43 @@ function SicenDetailBody({
 /**
  * Capa de posicionamiento SICEN (movimientos deportivos en tránsito).
  */
-export function SicenPositioningLayer({ items = [], onOpenDetail }) {
+export function SicenPositioningLayer({
+  items = [],
+  onOpenDetail,
+  focusRequest = null,
+}) {
+  const map = useMap();
   const icon = useMemo(() => vesselIcon(), []);
   const [contactItem, setContactItem] = useState(null);
   const [historyItem, setHistoryItem] = useState(null);
+
+  useEffect(() => {
+    if (!focusRequest?.id) return;
+    const item = (items || []).find(
+      (it) => String(it.movementId) === String(focusRequest.id)
+    );
+    if (!item) return;
+    const lp = item.lastPosition || item.tracking?.lastPosition;
+    const lat = Number(lp?.latitude);
+    const lng = Number(lp?.longitude);
+    onOpenDetail?.({
+      id: `sicen:${item.movementId}`,
+      title: item.vesselName?.trim() || "Posicionamiento SICEN",
+      anchor:
+        Number.isFinite(lat) && Number.isFinite(lng)
+          ? clientAnchorFromMapLatLng(map, lat, lng)
+          : null,
+      body: (
+        <SicenDetailBody
+          item={item}
+          onOpenContact={setContactItem}
+          onOpenHistory={setHistoryItem}
+        />
+      ),
+    });
+    // Solo al pedir foco desde el buscador (token nuevo).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusRequest]);
 
   const contactMovement = useMemo(
     () => mapItemToMovement(contactItem),

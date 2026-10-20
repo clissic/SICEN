@@ -150,6 +150,7 @@ export function FiuIuuEventsLayer({
   enabled,
   selectedEventId = null,
   onStatusChange,
+  onEventsChange,
   onSelectEvent,
   onOpenDetail,
 }) {
@@ -161,8 +162,10 @@ export function FiuIuuEventsLayer({
   const openedForIdRef = useRef(null);
   const clickAnchorRef = useRef(null);
   const onStatusRef = useRef(onStatusChange);
+  const onEventsRef = useRef(onEventsChange);
   const onOpenDetailRef = useRef(onOpenDetail);
   onStatusRef.current = onStatusChange;
+  onEventsRef.current = onEventsChange;
   onOpenDetailRef.current = onOpenDetail;
 
   const typesKey = useMemo(
@@ -188,6 +191,7 @@ export function FiuIuuEventsLayer({
   useEffect(() => {
     if (!enabled) {
       setEvents([]);
+      onEventsRef.current?.([]);
       onStatusRef.current?.({
         loading: false,
         error: null,
@@ -199,6 +203,7 @@ export function FiuIuuEventsLayer({
 
     if (!layerTypes?.length) {
       setEvents([]);
+      onEventsRef.current?.([]);
       onStatusRef.current?.({
         loading: false,
         error: null,
@@ -235,6 +240,7 @@ export function FiuIuuEventsLayer({
         if (cancelled) return;
         const list = Array.isArray(data?.events) ? data.events : [];
         setEvents(list);
+        onEventsRef.current?.(list);
         onStatusRef.current?.({
           loading: false,
           error: null,
@@ -250,6 +256,7 @@ export function FiuIuuEventsLayer({
           e?.msg ||
           "No se pudieron cargar los eventos IUU LAC (FIU).";
         setEvents([]);
+        onEventsRef.current?.([]);
         onStatusRef.current?.({
           loading: false,
           error: msg,
@@ -281,7 +288,9 @@ export function FiuIuuEventsLayer({
     if (openedForIdRef.current === selectedEventId) return;
     openedForIdRef.current = selectedEventId;
 
-    map.panTo([ev.lat, ev.lon], { animate: true });
+    map.flyTo([ev.lat, ev.lon], Math.max(map.getZoom(), 12), {
+      duration: 0.6,
+    });
     onOpenDetailRef.current?.({
       id: `fiuIuu:${ev.eventId}`,
       title: fiuIuuEventTitle(ev),

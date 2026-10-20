@@ -74,6 +74,7 @@ export function GfwEventsLayer({
   eventTypes = [],
   selectedEventId = null,
   onStatusChange,
+  onEventsChange,
   onSelectEvent,
   onOpenDetail,
 }) {
@@ -82,6 +83,8 @@ export function GfwEventsLayer({
   const [boundsVersion, setBoundsVersion] = useState(0);
   const abortRef = useRef(null);
   const debounceRef = useRef(null);
+  const onEventsRef = useRef(onEventsChange);
+  onEventsRef.current = onEventsChange;
 
   const typesKey = useMemo(
     () => [...eventTypes].filter(Boolean).sort().join(","),
@@ -100,6 +103,7 @@ export function GfwEventsLayer({
   useEffect(() => {
     if (!enabled || !typesKey) {
       setEvents([]);
+      onEventsRef.current?.([]);
       onStatusChange?.({
         loading: false,
         error: null,
@@ -141,6 +145,7 @@ export function GfwEventsLayer({
         if (cancelled) return;
         const list = Array.isArray(data?.events) ? data.events : [];
         setEvents(list);
+        onEventsRef.current?.(list);
         onStatusChange?.({
           loading: false,
           error: null,

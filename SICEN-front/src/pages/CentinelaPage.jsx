@@ -63,7 +63,11 @@ import { SkylightAisCrossLinks } from "../components/centinela/SkylightAisCrossL
 import { SkylightVesselDossierPanel } from "../components/centinela/SkylightVesselDossierPanel.jsx";
 import { SkylightVesselTrackLayer } from "../components/centinela/SkylightVesselTrackLayer.jsx";
 import { FiuIuuEventsLayer, FiuIuuEventDetailBody, fiuIuuEventTitle } from "../components/centinela/FiuIuuEventsLayer.jsx";
-import { GfwEventsLayer } from "../components/centinela/GfwEventsLayer.jsx";
+import {
+  GfwEventDetailBody,
+  GfwEventsLayer,
+  gfwEventTitle,
+} from "../components/centinela/GfwEventsLayer.jsx";
 import {
   CENTINELA_BREVET_CATEGORIES,
   CENTINELA_BREVET_MAP_CATEGORIES,
@@ -241,6 +245,7 @@ export function CentinelaPage() {
     configured: true,
   });
   const [selectedFiuIuuEventId, setSelectedFiuIuuEventId] = useState(null);
+  const [fiuIuuEvents, setFiuIuuEvents] = useState([]);
   const [gfwStatus, setGfwStatus] = useState({
     loading: false,
     error: null,
@@ -248,6 +253,8 @@ export function CentinelaPage() {
     configured: true,
   });
   const [selectedGfwEventId, setSelectedGfwEventId] = useState(null);
+  const [gfwEvents, setGfwEvents] = useState([]);
+  const [sicenFocus, setSicenFocus] = useState(null);
   const [skylightStatus, setSkylightStatus] = useState({
     loading: false,
     error: null,
@@ -1069,16 +1076,60 @@ export function CentinelaPage() {
   );
 
   const handleVesselSearchSelect = useCallback(
-    (v) => {
+    (hit) => {
+      if (!hit) return;
       const map = mapRef.current;
-      if (map && Number.isFinite(v.lat) && Number.isFinite(v.lon)) {
-        map.flyTo([v.lat, v.lon], Math.max(map.getZoom(), 12), {
+      const fly = () => {
+        if (!map || !Number.isFinite(hit.lat) || !Number.isFinite(hit.lon)) return;
+        map.flyTo([hit.lat, hit.lon], Math.max(map.getZoom(), 12), {
           duration: 0.75,
         });
+      };
+      const anchor =
+        map && Number.isFinite(hit.lat) && Number.isFinite(hit.lon)
+          ? clientAnchorFromMapLatLng(map, hit.lat, hit.lon)
+          : null;
+
+      if (hit.kind === "ais") {
+        fly();
+        selectAisVessel(hit.vessel);
+        return;
       }
-      selectAisVessel(v);
+      if (hit.kind === "fiu") {
+        if (selectedFiuIuuEventId === hit.event?.eventId) fly();
+        else setSelectedFiuIuuEventId(hit.event.eventId);
+        return;
+      }
+      if (hit.kind === "skylight") {
+        if (selectedSkylightEventId === hit.event?.eventId) fly();
+        else setSelectedSkylightEventId(hit.event.eventId);
+        return;
+      }
+      if (hit.kind === "gfw") {
+        fly();
+        setSelectedGfwEventId(hit.event.eventId);
+        openMapDetail({
+          id: `gfw:${hit.event.eventId}`,
+          title: gfwEventTitle(hit.event),
+          anchor,
+          body: <GfwEventDetailBody event={hit.event} />,
+        });
+        return;
+      }
+      if (hit.kind === "sicen") {
+        fly();
+        setSicenFocus({
+          id: String(hit.item?.movementId),
+          token: Date.now(),
+        });
+      }
     },
-    [selectAisVessel]
+    [
+      openMapDetail,
+      selectAisVessel,
+      selectedFiuIuuEventId,
+      selectedSkylightEventId,
+    ]
   );
 
   const goToVesselTrack = useCallback((track) => {
@@ -2578,6 +2629,7 @@ export function CentinelaPage() {
           {sicenPositioningOn ? (
             <SicenPositioningLayer
               items={trackingItems}
+              focusRequest={sicenFocus}
               onOpenDetail={openMapDetail}
             />
           ) : null}
@@ -2655,6 +2707,7 @@ export function CentinelaPage() {
             layerTypes={fiuIuuActiveLayerTypes}
             selectedEventId={selectedFiuIuuEventId}
             onStatusChange={setFiuIuuStatus}
+            onEventsChange={setFiuIuuEvents}
             onSelectEvent={setSelectedFiuIuuEventId}
             onOpenDetail={openMapDetail}
           />
@@ -2663,6 +2716,7 @@ export function CentinelaPage() {
             eventTypes={gfwEventTypes}
             selectedEventId={selectedGfwEventId}
             onStatusChange={setGfwStatus}
+            onEventsChange={setGfwEvents}
             onSelectEvent={setSelectedGfwEventId}
             onOpenDetail={openMapDetail}
           />
@@ -3335,9 +3389,12 @@ export function CentinelaPage() {
       </div>
 
       <CentinelaVesselSearch
-        vessels={visibleAisVessels}
-        aisLayerOn={aisLayerOn}
-        onSelectVessel={handleVesselSearchSelect}
+        vessels={vessels}
+        skylightEvents={skylightEvents}
+        fiuEvents={fiuIuuEvents}
+        gfwEvents={gfwEvents}
+        trackingItems={trackingItems}
+        onSelectHit={handleVesselSearchSelect}
       />
 
       <div className="centinela-right-fab-stack" role="toolbar" aria-label="Listas laterales">

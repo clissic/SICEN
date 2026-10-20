@@ -346,7 +346,9 @@ export function SkylightEventsLayer({
     if (openedForIdRef.current === selectedEventId) return;
     openedForIdRef.current = selectedEventId;
 
-    map.panTo([ev.lat, ev.lon], { animate: true });
+    map.flyTo([ev.lat, ev.lon], Math.max(map.getZoom(), 12), {
+      duration: 0.6,
+    });
 
     const eventMmsis = skylightEventMmsis(ev);
     const aisMatched = eventMmsis.some((m) => {

@@ -18,6 +18,7 @@ No hace falta memorizar todo. Abrí **Capas**, encendé lo que necesitás y expl
 - **Panel Capas** — casi todo lo que se prende y apaga en el mapa.
 - **Botones a la derecha** — aparecen según el contexto (listas, historial, marcadores).
 - **Clic en el mapa** — coordenadas y, si hay capas ambientales activas, viento / corrientes / olas / profundidad.
+- **Buscador (arriba a la derecha)** — nombre, MMSI, OMI, indicativo o matrícula. Revisa las posiciones AIS, los eventos de las capas de inteligencia que estén encendidas y el posicionamiento SICEN. Si hay una sola coincidencia, el mapa va hasta ese punto y abre el detalle. Si hay varias, elegí en la lista: cada fila dice de dónde sale el dato (por ejemplo un encuentro STS).
 
 ### Un recorrido rápido
 
