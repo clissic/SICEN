@@ -1,6 +1,9 @@
-import { useMemo } from "react";
-import { Marker } from "react-leaflet";
+import { useMemo, useEffect, useRef } from "react";
+import { Marker, useMap } from "react-leaflet";
 import L from "leaflet";
+import "leaflet.markercluster";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import { formatCoordDms } from "../../utils/geoDms.js";
 import { stopLeafletMapClick } from "../../utils/stopLeafletMapClick.js";
 
@@ -155,7 +158,8 @@ export function AisVesselDetailBody({
 }
 
 /**
- * Capa de markers AIS. El padre controla si se monta (toggle de capa).
+ * Capa de markers AIS con clustering. El padre controla si se monta (toggle de capa).
+ * El clustering se desactiva automáticamente a alto zoom (>= 12) para mostrar buques individuales.
  */
 export function AisVesselLayer({
   vessels,
@@ -164,15 +168,19 @@ export function AisVesselLayer({
   showNames = false,
   onSelectVessel,
 }) {
+  const map = useMap();
+  const clusterGroupRef = useRef(null);
+  const markersRef = useRef(new Map());
+
   const matched =
     matchedMmsis instanceof Set ? matchedMmsis : new Set(matchedMmsis || []);
 
   const icons = useMemo(() => {
-    const map = new Map();
+    const iconMap = new Map();
     for (const v of vessels) {
       const mmsi = String(v.mmsi);
       const name = showNames ? String(v.name || "").trim() : "";
-      map.set(
+      iconMap.set(
         mmsi,
         shipIcon(v.heading ?? v.cog, {
           matched: matched.has(mmsi),
@@ -181,41 +189,136 @@ export function AisVesselLayer({
         })
       );
     }
-    return map;
+    return iconMap;
   }, [vessels, matched, selectedMmsi, showNames]);
 
-  return (
-    <>
-      {vessels.map((v) => {
-        if (!Number.isFinite(v.lat) || !Number.isFinite(v.lon)) return null;
-        const mmsi = String(v.mmsi);
-        const isMatched = matched.has(mmsi);
-        return (
-          <Marker
-            key={mmsi}
-            position={[v.lat, v.lon]}
-            icon={icons.get(mmsi)}
-            bubblingMouseEvents={false}
-            eventHandlers={{
-              click: (e) => {
-                stopLeafletMapClick(e);
-                const oe = e.originalEvent;
-                onSelectVessel?.(v, {
-                  clientX: oe?.clientX,
-                  clientY: oe?.clientY,
-                });
-              },
-            }}
-            zIndexOffset={
-              selectedMmsi != null && String(selectedMmsi) === mmsi
-                ? 800
-                : isMatched
-                  ? 400
-                  : 0
-            }
-          />
+  useEffect(() => {
+    if (!map) return;
+
+    // Crear el grupo de clusters si no existe
+    if (!clusterGroupRef.current) {
+      clusterGroupRef.current = L.markerClusterGroup({
+        disableClusteringAtZoom: 12,
+        maxClusterRadius: 60,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true,
+        iconCreateFunction: function (cluster) {
+          const count = cluster.getChildCount();
+          let sizeClass = "small";
+          if (count >= 100) {
+            sizeClass = "large";
+          } else if (count >= 10) {
+            sizeClass = "medium";
+          }
+          return L.divIcon({
+            html: `<div><span>${count}</span></div>`,
+            className: `marker-cluster marker-cluster-${sizeClass} centinela-ais-cluster`,
+            iconSize: L.point(40, 40),
+          });
+        },
+      });
+      map.addLayer(clusterGroupRef.current);
+    }
+
+    const clusterGroup = clusterGroupRef.current;
+    const currentMarkers = markersRef.current;
+    const newMarkers = new Map();
+
+    // Actualizar marcadores
+    for (const v of vessels) {
+      if (!Number.isFinite(v.lat) || !Number.isFinite(v.lon)) continue;
+
+      const mmsi = String(v.mmsi);
+      const isMatched = matched.has(mmsi);
+      const position = [v.lat, v.lon];
+      const icon = icons.get(mmsi);
+
+      let marker = currentMarkers.get(mmsi);
+
+      if (marker) {
+        // Actualizar marcador existente
+        marker.setLatLng(position);
+        marker.setIcon(icon);
+        marker.setZIndexOffset(
+          selectedMmsi != null && String(selectedMmsi) === mmsi
+            ? 800
+            : isMatched
+              ? 400
+              : 0
         );
-      })}
-    </>
-  );
+      } else {
+        // Crear nuevo marcador
+        marker = L.marker(position, {
+          icon,
+          bubblingMouseEvents: false,
+          zIndexOffset:
+            selectedMmsi != null && String(selectedMmsi) === mmsi
+              ? 800
+              : isMatched
+                ? 400
+                : 0,
+        });
+
+        marker.on("click", (e) => {
+          stopLeafletMapClick(e);
+          const oe = e.originalEvent;
+          onSelectVessel?.(v, {
+            clientX: oe?.clientX,
+            clientY: oe?.clientY,
+          });
+        });
+
+        clusterGroup.addLayer(marker);
+      }
+
+      // Actualizar datos del buque en el marcador para el click handler
+      marker._vesselData = v;
+
+      newMarkers.set(mmsi, marker);
+    }
+
+    // Remover marcadores que ya no existen
+    for (const [mmsi, marker] of currentMarkers.entries()) {
+      if (!newMarkers.has(mmsi)) {
+        clusterGroup.removeLayer(marker);
+      }
+    }
+
+    markersRef.current = newMarkers;
+
+    // Actualizar click handlers con datos actuales
+    for (const [mmsi, marker] of newMarkers.entries()) {
+      const v = vessels.find((vessel) => String(vessel.mmsi) === mmsi);
+      if (v) {
+        marker.off("click");
+        marker.on("click", (e) => {
+          stopLeafletMapClick(e);
+          const oe = e.originalEvent;
+          onSelectVessel?.(v, {
+            clientX: oe?.clientX,
+            clientY: oe?.clientY,
+          });
+        });
+      }
+    }
+
+    // Cleanup
+    return () => {
+      // No remover el clusterGroup aquí porque se reusa
+    };
+  }, [map, vessels, icons, matched, selectedMmsi, onSelectVessel]);
+
+  // Cleanup al desmontar el componente
+  useEffect(() => {
+    return () => {
+      if (clusterGroupRef.current && map) {
+        map.removeLayer(clusterGroupRef.current);
+        clusterGroupRef.current = null;
+        markersRef.current.clear();
+      }
+    };
+  }, [map]);
+
+  return null;
 }
