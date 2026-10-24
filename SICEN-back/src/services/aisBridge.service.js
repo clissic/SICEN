@@ -1,6 +1,7 @@
 import WebSocket from "ws";
 import env from "../config/env.config.js";
 import { logger } from "../utils/logger.js";
+import { getNmeaReceiverStatus } from "./aisNmeaReceiver.service.js";
 import {
   getGfwVesselIdentity,
   isGfwAvailable,
@@ -548,9 +549,10 @@ export function getAisStatus() {
     isSkylightConfigured() &&
     skylightLastOkAt > 0 &&
     !skylightLastError;
+  const nmea = getNmeaReceiverStatus();
   return {
-    configured: isConfigured(),
-    connected: aisstreamConnected || skylightOk,
+    configured: isConfigured() || nmea.enabled,
+    connected: aisstreamConnected || skylightOk || nmea.receiving,
     connecting: readyState === WebSocket.CONNECTING,
     vesselCount: listVessels().length,
     cachedTotal: vessels.size,
@@ -571,6 +573,12 @@ export function getAisStatus() {
       gfwEnrichMiss,
       gfwLastError,
       nmeaUdp: env.aisNmeaUdpEnabled,
+      nmeaUdpReceiving: nmea.receiving,
+    },
+    nmea: {
+      enabled: nmea.enabled,
+      listening: nmea.listening,
+      receiving: nmea.receiving,
     },
   };
 }
@@ -645,3 +653,4 @@ export function upsertVesselFromNmea(partial) {
   if (vessel) {
     broadcast("update", vessel);
   }
+}

@@ -15,6 +15,53 @@ const multipartBuffer = new Map();
 /** TTL del buffer multipartes (60 segundos). */
 const MULTIPART_TTL_MS = 60_000;
 
+/** Métricas básicas del receptor (se exponen en /api/ais/nmea/status). */
+const metrics = {
+  datagrams: 0,
+  rejectedSource: 0,
+  received: 0,
+  valid: 0,
+  invalidChecksum: 0,
+  malformed: 0,
+  decoded: 0,
+  lastValidAt: null,
+  lastSource: null,
+  startedAt: null,
+};
+
+/**
+ * Normaliza una IP (quita prefijo IPv4-mapped "::ffff:").
+ * @param {string} ip
+ */
+function normalizeIp(ip) {
+  return String(ip || "").trim().replace(/^::ffff:/i, "");
+}
+
+/**
+ * ¿La IP origen está permitida? Lista vacía = se permite todo.
+ * @param {string} ip
+ * @param {string[]} allowed
+ */
+export function isSourceAllowed(ip, allowed = []) {
+  if (!Array.isArray(allowed) || allowed.length === 0) return true;
+  const n = normalizeIp(ip);
+  return allowed.some((a) => normalizeIp(a) === n);
+}
+
+/**
+ * Valida el checksum NMEA 0183 (XOR de los caracteres entre '!'/'$' y '*').
+ * @param {string} line
+ * @returns {boolean}
+ */
+export function hasValidNmeaChecksum(line) {
+  const t = String(line || "").trim();
+  const m = /^[!$]([^*]+)\*([0-9A-Fa-f]{2})$/.exec(t);
+  if (!m) return false;
+  let x = 0;
+  for (let i = 0; i < m[1].length; i++) x ^= m[1].charCodeAt(i);
+  return x === parseInt(m[2], 16);
+}
+
 /**
  * Decodifica un payload AIS de 6 bits a binario.
  * Cada carácter NMEA representa 6 bits (armored ASCII).
@@ -209,6 +256,12 @@ function decodeClassBStaticData(binary) {
  * @returns {object|null} Buque decodificado o null
  */
 function processAisMessage(payload, fillBits) {
+  const out = processAisMessageInner(payload, fillBits);
+  if (out && out.mmsi) metrics.decoded++;
+  return out;
+}
+
+function processAisMessageInner(payload, fillBits) {
   try {
     const binary = decodeAisPayload(payload);
     const messageType = extractInt(binary, 0, 6);
@@ -239,15 +292,25 @@ function processAisMessage(payload, fillBits) {
  * @param {string} line
  * @returns {object|null}
  */
-function parseNmeaLine(line) {
-  const trimmed = line.trim();
+export function parseNmeaLine(line, { source = "" } = {}) {
+  const trimmed = String(line || "").trim();
   if (!trimmed.startsWith("!AIVDM") && !trimmed.startsWith("!AIVDO")) {
+    metrics.malformed++;
     return null;
   }
+  if (!hasValidNmeaChecksum(trimmed)) {
+    metrics.invalidChecksum++;
+    return null;
+  }
+  metrics.valid++;
+  metrics.lastValidAt = Date.now();
 
   // Formato: !AIVDM,fragmentCount,fragmentNumber,messageId,channel,payload,fillBits*checksum
   const parts = trimmed.split(",");
-  if (parts.length < 7) return null;
+  if (parts.length < 7) {
+    metrics.malformed++;
+    return null;
+  }
 
   try {
     const fragmentCount = parseInt(parts[1], 10);
@@ -261,7 +324,8 @@ function parseNmeaLine(line) {
       return processAisMessage(payload, fillBits);
     } else {
       // Mensaje multiparte
-      const key = messageId || `${Date.now()}`;
+      // Clave estable: id secuencial + canal + origen (el id puede venir vacío).
+      const key = `${source}|${messageId}|${parts[4] || ""}|${fragmentCount}`;
       if (!multipartBuffer.has(key)) {
         multipartBuffer.set(key, { fragments: [], createdAt: Date.now() });
       }
@@ -270,7 +334,7 @@ function parseNmeaLine(line) {
 
       // Verificar si tenemos todos los fragmentos
       if (entry.fragments.filter((f) => f).length === fragmentCount) {
-        const fullPayload = entry.fragments.join("");
+        const fullPayload = entry.fragments.slice(0, fragmentCount).join("");
         multipartBuffer.delete(key);
         return processAisMessage(fullPayload, fillBits);
       }
@@ -306,7 +370,9 @@ export function startNmeaReceiver() {
     return;
   }
 
-  const host = env.aisNmeaUdpHost || "0.0.0.0";
+  const host = env.aisNmeaUdpHost || "127.0.0.1";
+  const allowed = env.aisNmeaUdpAllowedIps || [];
+  metrics.startedAt = Date.now();
   const port = env.aisNmeaUdpPort || 10110;
 
   udpSocket = dgram.createSocket("udp4");
@@ -316,11 +382,19 @@ export function startNmeaReceiver() {
     udpSocket?.close();
   });
 
-  udpSocket.on("message", async (msg) => {
+  udpSocket.on("message", async (msg, rinfo) => {
+    metrics.datagrams++;
+    const src = normalizeIp(rinfo?.address);
+    if (!isSourceAllowed(src, allowed)) {
+      metrics.rejectedSource++;
+      return;
+    }
+    metrics.lastSource = src;
     const lines = msg.toString("utf8").split(/\r?\n/);
     for (const line of lines) {
       if (!line.trim()) continue;
-      const vessel = parseNmeaLine(line);
+      metrics.received++;
+      const vessel = parseNmeaLine(line, { source: src });
       if (vessel && vessel.mmsi) {
         // Importar dinámicamente para evitar ciclos
         const { upsertVesselFromNmea } = await import(
@@ -339,9 +413,16 @@ export function startNmeaReceiver() {
   });
 
   udpSocket.bind(port, host);
+  if (allowed.length) {
+    logger.info(`Receptor NMEA UDP: allowlist de origen = ${allowed.join(", ")}`);
+  } else if (host !== "127.0.0.1" && host !== "localhost") {
+    logger.warning(
+      `Receptor NMEA UDP en ${host} sin AIS_NMEA_UDP_ALLOWED_IPS: cualquier origen puede inyectar blancos.`
+    );
+  }
 
   // Limpiar buffer multipartes periódicamente
-  setInterval(pruneMultipartBuffer, MULTIPART_TTL_MS);
+  setInterval(pruneMultipartBuffer, MULTIPART_TTL_MS).unref?.();
 }
 
 /**
@@ -353,4 +434,36 @@ export function stopNmeaReceiver() {
     udpSocket = null;
     logger.info("Receptor NMEA UDP detenido");
   }
+}
+
+/** Ventana para considerar que el receptor "está recibiendo". */
+const RECEIVING_WINDOW_MS = 5 * 60_000;
+
+/**
+ * Estado + métricas del receptor NMEA.
+ */
+export function getNmeaReceiverStatus() {
+  const now = Date.now();
+  return {
+    enabled: Boolean(env.aisNmeaUdpEnabled),
+    listening: Boolean(udpSocket),
+    host: env.aisNmeaUdpHost,
+    port: env.aisNmeaUdpPort,
+    allowlist: (env.aisNmeaUdpAllowedIps || []).length > 0,
+    receiving: Boolean(
+      metrics.lastValidAt && now - metrics.lastValidAt < RECEIVING_WINDOW_MS
+    ),
+    metrics: {
+      ...metrics,
+      discarded: metrics.rejectedSource + metrics.invalidChecksum + metrics.malformed,
+    },
+  };
+}
+
+/** Solo para tests. */
+export function _resetNmeaReceiverForTests() {
+  for (const k of Object.keys(metrics)) {
+    metrics[k] = typeof metrics[k] === "number" ? 0 : null;
+  }
+  multipartBuffer.clear();
 }
