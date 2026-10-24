@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   collectVesselSearchHits,
   mergeRemoteAisHits,
-} from "../../../SICEN-front/src/components/centinela/CentinelaVesselSearch.jsx";
+} from "./CentinelaVesselSearch.jsx";
 
 const remote = [
   { mmsi: "770000001", name: "DEMO RIO PLATA", callsign: "DEMO", lat: -34.93, lon: -56.2, positionSource: "nmea-udp", updatedAt: 2 },
