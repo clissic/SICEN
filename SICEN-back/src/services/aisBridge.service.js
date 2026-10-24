@@ -1,6 +1,7 @@
 import WebSocket from "ws";
 import env from "../config/env.config.js";
 import { logger } from "../utils/logger.js";
+import { getNmeaReceiverStatus } from "./aisNmeaReceiver.service.js";
 import {
   getGfwVesselIdentity,
   isGfwAvailable,
@@ -100,7 +101,7 @@ function metaCoord(meta, keyCap, keyLow) {
 
 /**
  * @param {object} partial
- * @param {{ from?: "aisstream"|"skylight"|"identity" }} [opts]
+ * @param {{ from?: "aisstream"|"skylight"|"identity"|"nmea-udp" }} [opts]
  */
 function upsertVessel(partial, { from } = {}) {
   const mmsi = String(partial.mmsi || "").trim();
@@ -118,6 +119,7 @@ function upsertVessel(partial, { from } = {}) {
   };
   if (from === "aisstream") sources.aisstream = true;
   if (from === "skylight") sources.skylight = true;
+  if (from === "nmea-udp") sources.nmeaUdp = true;
 
   let next = {
     ...prev,
@@ -131,10 +133,20 @@ function upsertVessel(partial, { from } = {}) {
     next.positionSource = "aisstream";
   }
 
+  if (from === "nmea-udp") {
+    next.nmeaUdpAt = now;
+    next.positionSource = "nmea-udp";
+  }
+
   if (from === "skylight") {
     const aisFresh =
       prev.aisstreamAt && now - prev.aisstreamAt < AISSTREAM_FRESH_MS;
-    if (aisFresh && prev.positionSource === "aisstream") {
+    const nmeaFresh =
+      prev.nmeaUdpAt && now - prev.nmeaUdpAt < AISSTREAM_FRESH_MS;
+    if (
+      (aisFresh && prev.positionSource === "aisstream") ||
+      (nmeaFresh && prev.positionSource === "nmea-udp")
+    ) {
       // Conservar cinemática fresca de AISStream; solo rellenar huecos de identidad.
       next = {
         ...prev,
@@ -537,9 +549,10 @@ export function getAisStatus() {
     isSkylightConfigured() &&
     skylightLastOkAt > 0 &&
     !skylightLastError;
+  const nmea = getNmeaReceiverStatus();
   return {
-    configured: isConfigured(),
-    connected: aisstreamConnected || skylightOk,
+    configured: isConfigured() || nmea.enabled,
+    connected: aisstreamConnected || skylightOk || nmea.receiving,
     connecting: readyState === WebSocket.CONNECTING,
     vesselCount: listVessels().length,
     cachedTotal: vessels.size,
@@ -559,6 +572,13 @@ export function getAisStatus() {
       gfwEnrichOk,
       gfwEnrichMiss,
       gfwLastError,
+      nmeaUdp: env.aisNmeaUdpEnabled,
+      nmeaUdpReceiving: nmea.receiving,
+    },
+    nmea: {
+      enabled: nmea.enabled,
+      listening: nmea.listening,
+      receiving: nmea.receiving,
     },
   };
 }
@@ -621,5 +641,16 @@ export function warmAisBridge() {
     logger.info(
       "AIS: ninguna fuente de posición configurada (AISStream ni Skylight)"
     );
+  }
+}
+
+/**
+ * Inserta o actualiza un buque desde datos NMEA UDP (receptor local).
+ * @param {object} partial Datos del buque decodificados del NMEA
+ */
+export function upsertVesselFromNmea(partial) {
+  const vessel = upsertVessel(partial, { from: "nmea-udp" });
+  if (vessel) {
+    broadcast("update", vessel);
   }
 }

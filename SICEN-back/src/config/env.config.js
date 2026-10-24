@@ -120,4 +120,25 @@ export default {
   sarSimEnabled: /^(1|true|yes)$/i.test(
     String(process.env.SAR_SIM_ENABLED || "").trim()
   ),
+  /**
+   * Habilitar receptor UDP NMEA AIS local (receptor RTL-SDR con AIS-catcher).
+   * AIS_NMEA_UDP_ENABLED=true|1 para habilitar.
+   * Default: false (deshabilitado hasta que se configure el hardware).
+   */
+  aisNmeaUdpEnabled: /^(1|true|yes)$/i.test(
+    String(process.env.AIS_NMEA_UDP_ENABLED || "").trim()
+  ),
+  /** Puerto UDP donde escuchar mensajes NMEA (!AIVDM / !AIVDO). Default: 10110. */
+  aisNmeaUdpPort: Number(process.env.AIS_NMEA_UDP_PORT) || 10110,
+  /**
+   * Host donde escuchar UDP NMEA. Default: 127.0.0.1 (solo local).
+   * Usar 0.0.0.0 únicamente si AIS-catcher corre en otra máquina/contenedor,
+   * junto con AIS_NMEA_UDP_ALLOWED_IPS y/o firewall.
+   */
+  aisNmeaUdpHost: String(process.env.AIS_NMEA_UDP_HOST || "").trim() || "127.0.0.1",
+  /** Allowlist opcional de IPs origen (coma-separadas). Vacío = cualquier origen que llegue al bind. */
+  aisNmeaUdpAllowedIps: String(process.env.AIS_NMEA_UDP_ALLOWED_IPS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
 };

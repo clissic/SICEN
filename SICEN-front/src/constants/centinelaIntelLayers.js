@@ -2,7 +2,7 @@
  * Capas de inteligencia marítima en El Centinela — organizadas por FUNCIÓN
  * (no por proveedor). Cada ítem declara de qué fuente se alimenta.
  *
- * Proveedores: skylight | fiu | gfw | aisstream
+ * Proveedores: skylight | fiu | gfw | aisstream | nmea
  */
 
 export const INTEL_PROVIDER = {
@@ -10,6 +10,7 @@ export const INTEL_PROVIDER = {
   fiu: "fiu",
   gfw: "gfw",
   aisstream: "aisstream",
+  nmea: "nmea",
 };
 
 /**
@@ -21,7 +22,7 @@ export const INTEL_PROVIDER = {
  * @property {string} [skylightId] id en skylightLayers.js
  * @property {string} [fiuId] id en fiuIuuLayers.js
  * @property {string} [gfwType] fishing | encounter | gap | sar_unmatched
- * @property {string} [aisSourceId] aisstream | skylight
+ * @property {string} [aisSourceId] aisstream | skylight | nmea-udp
  * @property {string} [infoText]
  * @property {boolean} [hiddenInUi]
  * @property {boolean} [isFilter] filtro (ej. dark_only), no cuenta como capa de eventos
@@ -208,6 +209,15 @@ export const INTEL_GROUPS = [
         infoText:
           "Últimas posiciones AIS conocidas vía Skylight (poll). Refuerza cobertura en el bbox.",
       },
+      {
+        id: "ais_nmea",
+        name: "Receptor local (NMEA)",
+        color: "#117a65",
+        provider: "nmea",
+        aisSourceId: "nmea-udp",
+        infoText:
+          "Blancos del receptor AIS propio (AIS-catcher + RTL-SDR) recibidos por UDP NMEA en el backend (AIS_NMEA_UDP_ENABLED).",
+      },
     ],
   },
 ];
@@ -266,6 +276,7 @@ export function deriveAisSourceVisibility(intelVisibility) {
   return {
     aisstream: Boolean(intelVisibility.ais_live),
     skylight: Boolean(intelVisibility.ais_lastknown),
+    nmeaUdp: Boolean(intelVisibility.ais_nmea),
   };
 }
 

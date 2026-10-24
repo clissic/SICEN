@@ -4,6 +4,7 @@ import {
   subscribeSse,
 } from "../services/aisBridge.service.js";
 import { logger } from "../utils/logger.js";
+import { getNmeaReceiverStatus } from "../services/aisNmeaReceiver.service.js";
 
 function handleError(res, e, fallbackMsg) {
   const code = e.status || e.statusCode || 500;
@@ -20,6 +21,14 @@ export const aisController = {
       return res.json({ ok: true, ...getAisStatus() });
     } catch (e) {
       return handleError(res, e, "No se pudo obtener el estado AIS.");
+    }
+  },
+
+  nmeaStatus(req, res) {
+    try {
+      return res.json({ ok: true, ...getNmeaReceiverStatus() });
+    } catch (e) {
+      return handleError(res, e, "No se pudo obtener el estado del receptor NMEA.");
     }
   },
 

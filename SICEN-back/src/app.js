@@ -57,6 +57,7 @@ import { mapZonesRouter } from "./routes/mapZones.router.js";
 import { mapMeasurementsRouter } from "./routes/mapMeasurements.router.js";
 import { seafarerLinksRouter } from "./routes/seafarerLinks.router.js";
 import { warmAisBridge } from "./services/aisBridge.service.js";
+import { startNmeaReceiver } from "./services/aisNmeaReceiver.service.js";
 import {
   getHcStatus,
   isHcSimEnabled,
@@ -178,6 +179,7 @@ app.use("/api/mapMeasurements", mapMeasurementsRouter);
 app.use("/api/seafarer-links", seafarerLinksRouter);
 
 warmAisBridge();
+startNmeaReceiver();
 startTrackingMonitor();
 
 if (isHcSimEnabled()) {
