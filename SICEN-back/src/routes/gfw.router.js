@@ -6,4 +6,6 @@ export const gfwRouter = express.Router();
 
 gfwRouter.get("/status", ...guarded, gfwController.status);
 gfwRouter.post("/events", ...guarded, gfwController.events);
+gfwRouter.post("/stored/events", ...guarded, gfwController.storedEvents);
+gfwRouter.get("/stored/status", ...guarded, gfwController.storedStatus);
 gfwRouter.post("/insights", ...guarded, gfwController.insights);

@@ -9,12 +9,20 @@ from .engine import run_simulation
 from .leeway_engine import run_sar_simulation
 from .oils import list_oils
 from .sar_objects import list_sar_objects
+from .gfw_fetch import is_gfw_configured, run_gfw_fetch_job
+from .gfw_scheduler import start_gfw_scheduler
 
 app = FastAPI(
     title="SICEN-sim",
-    description="Worker de simulación HC (OpenOil) y deriva SAR (Leeway).",
-    version="0.2.0",
+    description="Worker de simulación HC (OpenOil), deriva SAR (Leeway) y datos GFW.",
+    version="0.3.0",
 )
+
+# Iniciar scheduler GFW en background
+@app.on_event("startup")
+def startup_event():
+    """Inicia servicios en background al arrancar."""
+    start_gfw_scheduler()
 
 
 class RunRequest(BaseModel):
@@ -42,7 +50,14 @@ class SarRunRequest(BaseModel):
 
 @app.get("/health")
 def health() -> dict[str, Any]:
-    return {"ok": True, "service": "sicen-sim", "features": ["hc", "sar"]}
+    return {
+        "ok": True,
+        "service": "sicen-sim",
+        "features": ["hc", "sar", "gfw"],
+        "gfw": {
+            "configured": is_gfw_configured(),
+        },
+    }
 
 
 @app.get("/oils")
@@ -75,3 +90,35 @@ async def run_sar(body: SarRunRequest) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Simulación SAR fallida: {e}") from e
+
+
+@app.get("/gfw/status")
+def gfw_status() -> dict[str, Any]:
+    """Estado de la integración GFW."""
+    return {
+        "ok": True,
+        "configured": is_gfw_configured(),
+    }
+
+
+@app.post("/gfw/fetch")
+def gfw_fetch() -> dict[str, Any]:
+    """
+    Ejecuta el job de fetch GFW manualmente.
+    En producción, esto se ejecuta periódicamente via scheduler.
+    """
+    if not is_gfw_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="GFW_API_TOKEN no configurado",
+        )
+    
+    result = run_gfw_fetch_job()
+    
+    if not result.get("ok"):
+        raise HTTPException(
+            status_code=500,
+            detail=result.get("msg", "Error en fetch GFW"),
+        )
+    
+    return result

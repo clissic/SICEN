@@ -5,7 +5,7 @@ import {
   GFW_TERMS_URL,
   INTEL_ITEMS_BY_ID,
 } from "../../constants/centinelaIntelLayers.js";
-import { gfwFetchEvents } from "../../api/client.js";
+import { gfwFetchEvents, gfwFetchStoredEvents } from "../../api/client.js";
 import { formatCoordDms } from "../../utils/geoDms.js";
 import { stopLeafletMapClick } from "../../utils/stopLeafletMapClick.js";
 
@@ -68,11 +68,13 @@ export function GfwEventDetailBody({ event }) {
 
 /**
  * Capa de eventos GFW (pesca / encounters / gaps) por bbox del viewport.
+ * @param {boolean} useStoredData - Si true, usa datos almacenados en BD (sin lookbackDays); si false, usa proxy en línea.
  */
 export function GfwEventsLayer({
   enabled,
   eventTypes = [],
   selectedEventId = null,
+  useStoredData = true,
   onStatusChange,
   onEventsChange,
   onSelectEvent,
@@ -133,15 +135,26 @@ export function GfwEventsLayer({
           b.getNorth(),
           b.getEast(),
         ];
-        const data = await gfwFetchEvents(
-          {
-            eventTypes: typesKey.split(","),
-            bbox,
-            lookbackDays: 14,
-            limit: 250,
-          },
-          { signal: ac.signal }
-        );
+
+        const data = useStoredData
+          ? await gfwFetchStoredEvents(
+              {
+                eventTypes: typesKey.split(","),
+                bbox,
+                limit: 250,
+              },
+              { signal: ac.signal }
+            )
+          : await gfwFetchEvents(
+              {
+                eventTypes: typesKey.split(","),
+                bbox,
+                lookbackDays: 14,
+                limit: 250,
+              },
+              { signal: ac.signal }
+            );
+
         if (cancelled) return;
         const list = Array.isArray(data?.events) ? data.events : [];
         setEvents(list);
@@ -171,7 +184,7 @@ export function GfwEventsLayer({
       clearInterval(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- events.length solo status inicial
-  }, [enabled, typesKey, boundsVersion, map, onStatusChange]);
+  }, [enabled, typesKey, boundsVersion, useStoredData, map, onStatusChange]);
 
   if (!enabled || !typesKey) return null;
 

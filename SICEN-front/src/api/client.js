@@ -1964,6 +1964,25 @@ export function gfwFetchEvents(body, { signal } = {}) {
 }
 
 /**
+ * Eventos GFW almacenados en BD (fetch periódico desde SICEN-sim).
+ * @param {{ eventTypes: string[], bbox?: number[], limit?: number }} body
+ */
+export function gfwFetchStoredEvents(body, { signal } = {}) {
+  return apiFetch("/api/gfw/stored/events", {
+    method: "POST",
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+/**
+ * Estado de datos GFW almacenados (última actualización, total eventos).
+ */
+export function gfwStoredStatus() {
+  return apiFetch("/api/gfw/stored/status");
+}
+
+/**
  * Insights de riesgo GFW por MMSI.
  * @param {{ mmsi: string }} body
  */

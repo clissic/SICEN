@@ -3,6 +3,10 @@ import {
   getGfwVesselInsights,
   searchGfwEvents,
 } from "../services/gfwProxy.service.js";
+import {
+  searchGfwEvents as searchGfwStoredEvents,
+  getGfwStatus as getGfwStoredStatus,
+} from "../services/gfwEvents.service.js";
 import { logger } from "../utils/logger.js";
 
 function handleError(res, e, fallbackMsg) {
@@ -43,6 +47,29 @@ export const gfwController = {
       return res.json({ ok: true, ...result });
     } catch (e) {
       return handleError(res, e, "No se pudieron obtener eventos GFW.");
+    }
+  },
+
+  async storedEvents(req, res) {
+    try {
+      const { eventTypes, bbox, limit } = req.body ?? {};
+      const result = await searchGfwStoredEvents({
+        eventTypes,
+        bbox,
+        limit,
+      });
+      return res.json({ ok: true, ...result });
+    } catch (e) {
+      return handleError(res, e, "No se pudieron obtener eventos GFW almacenados.");
+    }
+  },
+
+  async storedStatus(req, res) {
+    try {
+      const status = await getGfwStoredStatus();
+      return res.json({ ok: true, ...status });
+    } catch (e) {
+      return handleError(res, e, "No se pudo obtener el estado de GFW almacenado.");
     }
   },
 
