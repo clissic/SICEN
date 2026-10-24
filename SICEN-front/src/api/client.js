@@ -1788,6 +1788,12 @@ export function deleteMapMeasurement(id, { signal } = {}) {
   });
 }
 
+/** Busca en el store AIS del backend (todas las fuentes) por nombre, MMSI, OMI o indicativo. */
+export function searchAisVessels(q, { limit = 20 } = {}) {
+  const params = new URLSearchParams({ q: String(q || ""), limit: String(limit) });
+  return apiFetch(`/api/ais/search?${params.toString()}`);
+}
+
 /** Snapshot de buques AIS en el bbox configurado. */
 export function aisVessels() {
   return apiFetch("/api/ais/vessels");

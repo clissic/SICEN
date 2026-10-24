@@ -1,6 +1,7 @@
 import {
   getAisStatus,
   listVessels,
+  searchAisVessels,
   subscribeSse,
 } from "../services/aisBridge.service.js";
 import { logger } from "../utils/logger.js";
@@ -20,6 +21,19 @@ export const aisController = {
       return res.json({ ok: true, ...getAisStatus() });
     } catch (e) {
       return handleError(res, e, "No se pudo obtener el estado AIS.");
+    }
+  },
+
+  search(req, res) {
+    try {
+      const q = String(req.query?.q ?? "").slice(0, 100);
+      if (!q.trim()) {
+        return res.status(400).json({ ok: false, msg: "Falta el parámetro q." });
+      }
+      const vessels = searchAisVessels(q, { limit: req.query?.limit });
+      return res.json({ ok: true, query: q, count: vessels.length, vessels });
+    } catch (e) {
+      return handleError(res, e, "No se pudo buscar en el AIS.");
     }
   },
 
