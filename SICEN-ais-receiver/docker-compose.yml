@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  ais-catcher:
+    image: ghcr.io/jvde-github/ais-catcher:latest
+    container_name: sicen-ais-catcher
+    restart: unless-stopped
+    devices:
+      # Dispositivo RTL-SDR (ajustar según tu sistema)
+      - /dev/bus/usb:/dev/bus/usb
+    environment:
+      # Host y puerto UDP donde se reenviarán los mensajes NMEA
+      # Por defecto apunta al backend SICEN en el host
+      - UDP_HOST=${UDP_HOST:-host.docker.internal}
+      - UDP_PORT=${UDP_PORT:-10110}
+      # Opciones adicionales de AIS-catcher (frecuencia, ganancia, etc.)
+      - AIS_CATCHER_OPTS=${AIS_CATCHER_OPTS:--gr tuner auto -F}
+    # Comando: escuchar con RTL-SDR y reenviar NMEA vía UDP
+    command: >
+      sh -c "exec /AIS-catcher
+      $$AIS_CATCHER_OPTS
+      -u $$UDP_HOST $$UDP_PORT
+      -v 10"
+    networks:
+      - ais-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  ais-network:
+    driver: bridge
