@@ -1,0 +1,42 @@
+# SICEN AIS Ingest — Dockerfile standalone
+#
+# Imagen dedicada para el servicio de ingest AIS que escucha NMEA y persiste en MongoDB.
+#
+# Build:
+#   docker build -f Dockerfile.ais -t sicen-ais-ingest .
+#
+# Run (UDP):
+#   docker run --rm -p 10110:10110/udp \
+#     -e AIS_MONGODB_URI=mongodb://host.docker.internal:27017/SICEN \
+#     sicen-ais-ingest
+#
+# Run (TCP):
+#   docker run --rm -p 10110:10110/tcp \
+#     -e AIS_MONGODB_URI=mongodb://host.docker.internal:27017/SICEN \
+#     -e AIS_PROTOCOL=tcp \
+#     sicen-ais-ingest
+
+FROM python:3.11-slim-bookworm
+
+WORKDIR /app
+
+# Dependencias mínimas
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements-ais.txt ./
+RUN pip install --no-cache-dir -r requirements-ais.txt
+
+COPY app/ais_ingest.py ./app/
+
+# Variables de entorno por defecto
+ENV AIS_PROTOCOL=udp
+ENV AIS_HOST=0.0.0.0
+ENV AIS_PORT=10110
+ENV AIS_MONGODB_URI=mongodb://localhost:27017/SICEN
+ENV LOG_LEVEL=INFO
+
+EXPOSE 10110/udp
+EXPOSE 10110/tcp
+
+CMD ["python", "-m", "app.ais_ingest"]

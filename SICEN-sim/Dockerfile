@@ -28,9 +28,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gdal-bin \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt requirements-opendrift.txt ./
+COPY requirements.txt requirements-opendrift.txt requirements-ais.txt ./
 RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir -r requirements-opendrift.txt || true
+    && pip install --no-cache-dir -r requirements-opendrift.txt || true \
+    && pip install --no-cache-dir -r requirements-ais.txt
 
 COPY app ./app
 COPY scripts ./scripts

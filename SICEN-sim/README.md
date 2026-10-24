@@ -1,12 +1,13 @@
-# SICEN-sim — worker de simulación HC y SAR
+# SICEN-sim — worker de simulación HC, SAR y AIS Ingest
 
-Servicio Python (FastAPI) que calcula:
+Servicio Python que provee:
 
 - **HC:** trayectorias y meteorización de derrames de hidrocarburo.
 - **SAR:** deriva Leeway de objetos (PIW, balsas, embarcaciones) y fase ADD
   hundido → reaparición.
+- **AIS Ingest:** decodificación NMEA AIVDM (pyais) desde receptores AIS locales.
 
-Usado por **El Centinela** a través de la API Node (`/api/hc`, `/api/sar`).
+Usado por **El Centinela** a través de la API Node (`/api/hc`, `/api/sar`, `/api/ais/ingest`).
 
 ## Arranque local (sin Docker)
 
@@ -101,6 +102,29 @@ Respuesta: `timesteps[]` (GeoJSON + `phase` / `addMean` si aplica), `contours[]`
 (banda Monte Carlo 80–140); sin partículas en superficie hasta flotar; luego
 leeway de fallecido flotando. Sin corriente 3D de fondo.
 
+## AIS Ingest (receptor NMEA local)
+
+Ver [README-AIS.md](./README-AIS.md) para documentación completa.
+
+### Arranque rápido
+
+```bash
+# Instalar dependencias
+pip install -r requirements-ais.txt
+
+# Configurar (copiar .env.ais.example a .env.ais)
+# AIS_MONGODB_URI=mongodb://localhost:27017/SICEN
+
+# Correr servicio (escucha UDP 10110 por default)
+python -m app.ais_ingest
+
+# Testing con replay de archivo NMEA
+python scripts/replay_nmea.py data/sample-nmea.txt --loop
+```
+
+El servicio decodifica mensajes NMEA AIVDM (tipos 1-3, 18/19, 5, 24) y los persiste
+en MongoDB. Las posiciones se exponen en SICEN-back vía `/api/ais/ingest/positions`.
+
 ## SICEN-back
 
 En `.env.development`:
@@ -112,3 +136,6 @@ HC_SIM_URL=http://127.0.0.1:8091
 ```
 
 `SAR_SIM_ENABLED` reutiliza la misma URL del worker (`HC_SIM_URL`).
+
+Las posiciones AIS del ingest NMEA se exponen automáticamente en `/api/ais/ingest/*`
+(sin necesidad de configuración adicional en SICEN-back, solo que MongoDB esté corriendo).
