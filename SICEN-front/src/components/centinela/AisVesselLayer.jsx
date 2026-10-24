@@ -42,10 +42,12 @@ function aisSourceLabel(vessel) {
   const src = vessel?.positionSource;
   if (src === "skylight") return "Skylight (última conocida)";
   if (src === "aisstream") return "AISStream (en vivo)";
+  if (src === "nmea-udp") return "Receptor local (NMEA)";
   if (vessel?.sources?.skylight && !vessel?.sources?.aisstream) {
     return "Skylight (última conocida)";
   }
   if (vessel?.sources?.aisstream) return "AISStream (en vivo)";
+  if (vessel?.sources?.nmeaUdp) return "Receptor local (NMEA)";
   return null;
 }
 
