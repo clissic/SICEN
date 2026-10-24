@@ -643,6 +643,5 @@ export function warmAisBridge() {
 export function upsertVesselFromNmea(partial) {
   const vessel = upsertVessel(partial, { from: "nmea-udp" });
   if (vessel) {
-    broadcast({ type: "update", vessel });
+    broadcast("update", vessel);
   }
-}
