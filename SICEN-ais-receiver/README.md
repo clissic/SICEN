@@ -199,8 +199,14 @@ AIS_NMEA_UDP_ENABLED=true
 # Puerto UDP donde escuchar (debe coincidir con UDP_PORT del receptor)
 AIS_NMEA_UDP_PORT=10110
 
-# IP de la interfaz donde escuchar (0.0.0.0 = todas las interfaces)
+# Interfaz donde escuchar. Por defecto 127.0.0.1 (solo local).
+# Si AIS-catcher corre en Docker, los paquetes llegan desde la red bridge
+# (no desde 127.0.0.1), por lo que hay que escuchar en 0.0.0.0 Y restringir el origen:
 AIS_NMEA_UDP_HOST=0.0.0.0
+# Allowlist de IPs de origen (separadas por coma). Vacío = cualquiera (no recomendado con 0.0.0.0).
+# Con la red bridge por defecto de Docker el contenedor suele salir como 172.17.0.x / 172.18.0.x;
+# verificar con: docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' sicen-ais-catcher
+AIS_NMEA_UDP_ALLOWED_IPS=172.18.0.2
 ```
 
 Reiniciar el backend:
@@ -213,7 +219,7 @@ npm start
 En los logs deberías ver:
 
 ```
-[SICEN-back] Receptor NMEA UDP escuchando en 0.0.0.0:10110
+[SICEN-back] Receptor NMEA UDP escuchando en 0.0.0.0:10110 (allowlist: 172.18.0.2)
 ```
 
 ## Comandos Útiles
@@ -250,7 +256,7 @@ docker-compose up -d
 La ganancia automática (`-gr tuner auto`) suele funcionar bien. Si hay demasiado ruido o pocas detecciones, probar ganancia manual:
 
 ```env
-AIS_CATCHER_OPTS=-gr tuner 38 -F -M DCC
+AIS_CATCHER_OPTS=-gr tuner 38.6
 ```
 
 Valores típicos: 20-50 (experimentar según la ubicación).
@@ -260,7 +266,7 @@ Valores típicos: 20-50 (experimentar según la ubicación).
 Los dongles RTL-SDR económicos tienen desviación de frecuencia. Si ves pocas detecciones:
 
 ```env
-AIS_CATCHER_OPTS=-gr tuner auto -F -M DCC -p -3
+AIS_CATCHER_OPTS=-gr tuner auto -p -3
 ```
 
 Valores típicos: -10 a +10 PPM. Usar la herramienta `kal` (kalibrate-rtl) para calibrar:
@@ -277,7 +283,7 @@ AIS-catcher incluye varios decodificadores. El más recomendado es el predetermi
 
 ```env
 # Usar decodificador específico
-AIS_CATCHER_OPTS=-gr tuner auto -F -M DCC -m 2
+AIS_CATCHER_OPTS=-gr tuner auto -s 1536K
 ```
 
 Opciones de `-m`:
@@ -367,3 +373,17 @@ La capa AIS en El Centinela mostrará los buques con el indicador de fuente:
 Para problemas con AIS-catcher, consultar el [repositorio oficial](https://github.com/jvde-github/AIS-catcher/issues).
 
 Para problemas con la integración en SICEN, revisar los logs del backend y verificar la configuración de las variables de entorno.
+
+
+## Seguridad y monitoreo del receptor NMEA
+
+- **Bind por defecto `127.0.0.1`** (`AIS_NMEA_UDP_HOST`). Solo usar `0.0.0.0` cuando AIS-catcher corre en Docker u otra máquina, siempre con `AIS_NMEA_UDP_ALLOWED_IPS` y/o firewall. Ejemplo con ufw: `sudo ufw allow from 172.16.0.0/12 to any port 10110 proto udp` y denegar el resto.
+- **Checksum NMEA**: toda sentencia `!AIVDM/!AIVDO` cuyo checksum (`*hh`) no coincide se descarta y se cuenta.
+- **Métricas** (requiere JWT, igual que el resto de `/api/ais`):
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/ais/nmea/status
+```
+
+Devuelve `enabled`, `listening`, `host`, `port`, `allowlist`, `receiving` (tráfico válido en los últimos 5 min) y `metrics` (`received`, `valid`, `invalidChecksum`, `malformed`, `rejectedSource`, `discarded`, `decoded`, `lastValidAt`).
+- En el front, la capa **"Receptor local (NMEA)"** (grupo AIS) muestra solo los buques recibidos por este canal, y el aviso "AIS no configurado" no aparece cuando el receptor está habilitado y recibiendo.
