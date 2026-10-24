@@ -95,6 +95,7 @@ import {
   INTEL_GROUPS,
   INTEL_GROUP_IDS,
   INTEL_ITEM_IDS,
+  aisIntelItemIdForVessel,
   createDefaultIntelVisibility,
   deriveAisSourceVisibility,
   deriveFiuVisibility,
@@ -119,6 +120,7 @@ import {
   updateMapMarker,
   updateMapMeasurement,
   updateMapZone,
+  searchAisVessels,
 } from "../api/client.js";
 import {
   confirmDelete,
@@ -1122,6 +1124,13 @@ export function CentinelaPage() {
           : null;
 
       if (hit.kind === "ais") {
+        /* Activar la capa de la fuente del buque si está apagada, para que se vea el marker. */
+        const itemId = aisIntelItemIdForVessel(hit.vessel);
+        if (itemId) {
+          setIntelVisibility((prev) =>
+            prev[itemId] ? prev : { ...prev, [itemId]: true }
+          );
+        }
         fly();
         selectAisVessel(hit.vessel);
         return;
@@ -3426,6 +3435,7 @@ export function CentinelaPage() {
         gfwEvents={gfwEvents}
         trackingItems={trackingItems}
         onSelectHit={handleVesselSearchSelect}
+        searchRemoteAis={searchAisVessels}
       />
 
       <div className="centinela-right-fab-stack" role="toolbar" aria-label="Listas laterales">

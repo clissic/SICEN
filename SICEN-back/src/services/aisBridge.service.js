@@ -1,6 +1,7 @@
 import WebSocket from "ws";
 import env from "../config/env.config.js";
 import { logger } from "../utils/logger.js";
+import { searchVessels } from "../utils/vesselSearch.js";
 import { getNmeaReceiverStatus } from "./aisNmeaReceiver.service.js";
 import {
   getGfwVesselIdentity,
@@ -596,6 +597,14 @@ export function listVessels() {
     }
   }
   return out;
+}
+
+/**
+ * Busca en el store AIS en memoria (todas las fuentes, mismos buques que listVessels()).
+ * @param {string} query nombre parcial, MMSI, OMI o indicativo
+ */
+export function searchAisVessels(query, { limit = 20 } = {}) {
+  return searchVessels(listVessels(), query, { limit });
 }
 
 /**

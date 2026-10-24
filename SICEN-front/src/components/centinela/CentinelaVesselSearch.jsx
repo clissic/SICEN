@@ -52,6 +52,12 @@ export function scoreIdentityMatch(identity, query) {
   if (registry && registry === qCompact) return 85;
   if (name && name.startsWith(q)) return 80;
   if (name && name.includes(q)) return 70;
+  const tokens = q.split(" ").filter(Boolean);
+  const words = name ? name.split(" ") : [];
+  if (name && qCompact.length >= 3 && name.replace(/\s/g, "").includes(qCompact)) return 65;
+  if (name && tokens.length > 1 && tokens.every((t) => words.some((w) => w.startsWith(t)))) {
+    return 62;
+  }
   if (qDigits.length >= 3 && mmsi && mmsi.includes(qDigits)) return 60;
   if (qDigits.length >= 3 && imo && imo.includes(qDigits)) return 55;
   if (callsign && qCompact.length >= 2 && callsign.includes(qCompact)) return 50;
@@ -150,6 +156,43 @@ function pushEventVessels(hits, query, { event, vessels, kind, sourceLabel }) {
   });
 }
 
+/** Hit de búsqueda para un buque AIS (store local o backend). */
+export function aisVesselToSearchHit(vessel, query) {
+  const hits = [];
+  pushHit(hits, normalizeVesselSearchQuery(query), {
+    id: `ais:${vessel?.mmsi}`,
+    kind: "ais",
+    title: String(vessel?.name || "").trim() || `MMSI ${vessel?.mmsi}`,
+    subtitle: "Posición AIS",
+    lat: vessel?.lat,
+    lon: vessel?.lon,
+    recency: Number(vessel?.updatedAt) || 0,
+    identity: {
+      name: vessel?.name,
+      mmsi: vessel?.mmsi,
+      imo: vessel?.imo,
+      callsign: vessel?.callsign,
+    },
+    vessel,
+  });
+  return hits[0] || null;
+}
+
+/**
+ * Une hits locales con buques AIS devueltos por el backend (sin duplicar MMSI).
+ * Los datos del backend reemplazan a los locales (más frescos / completos).
+ */
+export function mergeRemoteAisHits(localHits, remoteVessels, query) {
+  const byId = new Map((localHits || []).map((h) => [h.id, h]));
+  for (const v of remoteVessels || []) {
+    const hit = aisVesselToSearchHit(v, query);
+    if (hit) byId.set(hit.id, hit);
+  }
+  return Array.from(byId.values())
+    .sort((a, b) => b.score - a.score || b.recency - a.recency)
+    .slice(0, MAX_HITS);
+}
+
 /**
  * Coincidencias en todo lo que el mapa ya tiene cargado.
  * @returns {object[]}
@@ -167,22 +210,8 @@ export function collectVesselSearchHits({
   const hits = [];
 
   for (const vessel of aisVessels || []) {
-    pushHit(hits, q, {
-      id: `ais:${vessel?.mmsi}`,
-      kind: "ais",
-      title: String(vessel?.name || "").trim() || `MMSI ${vessel?.mmsi}`,
-      subtitle: "Posición AIS",
-      lat: vessel?.lat,
-      lon: vessel?.lon,
-      recency: Number(vessel?.updatedAt) || 0,
-      identity: {
-        name: vessel?.name,
-        mmsi: vessel?.mmsi,
-        imo: vessel?.imo,
-        callsign: vessel?.callsign,
-      },
-      vessel,
-    });
+    const hit = aisVesselToSearchHit(vessel, q);
+    if (hit) hits.push(hit);
   }
 
   for (const event of skylightEvents || []) {
@@ -254,6 +283,7 @@ export function CentinelaVesselSearch({
   gfwEvents = [],
   trackingItems = [],
   onSelectHit,
+  searchRemoteAis = null,
 }) {
   const inputId = useId();
   const listId = useId();
@@ -262,6 +292,7 @@ export function CentinelaVesselSearch({
   const [hint, setHint] = useState(null);
   const [results, setResults] = useState([]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     if (!hint) return undefined;
@@ -297,8 +328,9 @@ export function CentinelaVesselSearch({
     onSelectHit?.(hit);
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    if (searching) return;
     const q = String(query || "").trim();
     if (!q) {
       setResults([]);
@@ -309,11 +341,24 @@ export function CentinelaVesselSearch({
       choose(results[activeIndex] || results[0]);
       return;
     }
-    if (corpusIsEmpty()) {
+    /* AIS: buscar también en el store del backend (no depende de que la capa esté activa). */
+    let remoteVessels = [];
+    if (searchRemoteAis) {
+      setSearching(true);
+      try {
+        const res = await searchRemoteAis(q);
+        remoteVessels = Array.isArray(res?.vessels) ? res.vessels : [];
+      } catch {
+        remoteVessels = [];
+      } finally {
+        setSearching(false);
+      }
+    }
+    if (corpusIsEmpty() && !remoteVessels.length) {
       setHint("No hay datos cargados en el mapa para buscar.");
       return;
     }
-    const hits = collectVesselSearchHits({
+    const localHits = collectVesselSearchHits({
       query: q,
       aisVessels: vessels,
       skylightEvents,
@@ -321,6 +366,7 @@ export function CentinelaVesselSearch({
       gfwEvents,
       trackingItems,
     });
+    const hits = mergeRemoteAisHits(localHits, remoteVessels, q);
     if (!hits.length) {
       setResults([]);
       setHint("No se encontró ningún buque con ese dato.");
@@ -398,6 +444,7 @@ export function CentinelaVesselSearch({
         type="submit"
         className="centinela-vessel-search__btn"
         aria-label="Buscar"
+        disabled={searching}
       >
         <i className="bi bi-search" aria-hidden />
       </button>

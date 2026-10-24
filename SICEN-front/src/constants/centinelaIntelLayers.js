@@ -305,3 +305,22 @@ export const GFW_TERMS_URL =
   "https://globalfishingwatch.org/our-apis/documentation/docs/license-rate-limits#terms-of-use";
 
 export const GFW_APIS_URL = "https://globalfishingwatch.org/our-apis/";
+
+function sourceIdToKey(id) {
+  return String(id || "").replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+}
+
+/**
+ * Ítem de capa AIS (panel de inteligencia) que muestra a un buque según su fuente.
+ * Sirve para activar la capa correcta al seleccionar un buque desde el buscador.
+ * @returns {string|null} id del ítem (ej. "ais_live")
+ */
+export function aisIntelItemIdForVessel(vessel, items = INTEL_ALL_ITEMS) {
+  const aisItems = (items || []).filter((i) => i.aisSourceId);
+  if (!aisItems.length || !vessel) return null;
+  const bySource = aisItems.find((i) => i.aisSourceId === vessel.positionSource);
+  if (bySource) return bySource.id;
+  const sources = vessel.sources || {};
+  const byFlag = aisItems.find((i) => sources[sourceIdToKey(i.aisSourceId)]);
+  return byFlag ? byFlag.id : aisItems[0].id;
+}
