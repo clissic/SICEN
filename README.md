@@ -12,6 +12,18 @@ Aplicación para la **Prefectura del Puerto de Montevideo**: API **Node.js (Expr
 
 Documentación de paleta y tokens CSS: **`SICEN-front/PALETA_COLORES.md`**.
 
+### Librerías náuticas
+
+El proyecto integra **[geodesy](https://github.com/chrisveness/geodesy)** (Chris Veness) para cálculos náuticos precisos sobre el elipsoide WGS84:
+
+| Módulo | Funcionalidad |
+|--------|---------------|
+| **`SICEN-front/src/utils/nauticalUtils.js`** | Cálculos de distancia (millas náuticas), rumbo inicial/final, punto destino, punto medio. Usado en el panel de medición de El Centinela para mostrar rumbo náutico cuando se miden 2 puntos. |
+| **`SICEN-back/src/utils/nauticalUtils.js`** | Mismos cálculos en backend para endpoints y procesamiento. |
+| **Tests** | `SICEN-back/src/utils/nauticalUtils.test.js` (vitest) verifica precisión con puntos conocidos (Montevideo–Buenos Aires). |
+
+El helper reutiliza las convenciones DMS de `geoDms.js` (skill `geo-dms-format`) para mantener consistencia en el formato de coordenadas.
+
 ### Alcance del producto
 
 SICEN es una **plataforma operativa amplia** para la Prefectura: bases de datos (buques, gente de mar), gestión de unidades, usuarios, herramientas externas y, de forma **no central** en la experiencia diaria del usuario, **multas** (vehículos terrestres, buques y personas). El menú principal y la tarjeta de datos personales **no priorizan** el módulo de multas; las pantallas y API relacionadas con multas **siguen disponibles** y se irán **reforzando y alineando** en próximas entregas.

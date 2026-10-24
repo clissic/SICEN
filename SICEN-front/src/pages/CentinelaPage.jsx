@@ -337,6 +337,7 @@ export function CentinelaPage() {
   const [measureUnit, setMeasureUnit] = useState("nm");
   const [measureTotalMeters, setMeasureTotalMeters] = useState(0);
   const [measureRadiusMeters, setMeasureRadiusMeters] = useState(0);
+  const [measureBearing, setMeasureBearing] = useState(null);
   const [measureResetKey, setMeasureResetKey] = useState(0);
   const [measureUndoKey, setMeasureUndoKey] = useState(0);
   const [measureName, setMeasureName] = useState("");
@@ -539,6 +540,7 @@ export function CentinelaPage() {
     setMeasurePinned(false);
     setMeasureTotalMeters(0);
     setMeasureRadiusMeters(0);
+    setMeasureBearing(null);
     setMeasureMode("distance");
     setMeasureResetKey((k) => k + 1);
     setMeasureEditingId(null);
@@ -2009,6 +2011,7 @@ export function CentinelaPage() {
     setMeasureResetKey((k) => k + 1);
     setMeasureTotalMeters(0);
     setMeasureRadiusMeters(0);
+    setMeasureBearing(null);
     setMeasurePinned(false);
     setMeasureEditingId(null);
     setMeasureLoadSnapshot(null);
@@ -2581,6 +2584,7 @@ export function CentinelaPage() {
               snapshotApiRef={measureSnapshotApiRef}
               onTotalMetersChange={setMeasureTotalMeters}
               onRadiusMetersChange={setMeasureRadiusMeters}
+              onBearingChange={setMeasureBearing}
             />
           ) : null}
           {measureToolActive ? (
@@ -2796,6 +2800,7 @@ export function CentinelaPage() {
                 mode={measureMode}
                 onModeChange={setMeasureMode}
                 totalMeters={measureTotalMeters}
+                bearing={measureBearing}
                 pinned={measurePinned}
                 name={measureName}
                 onNameChange={setMeasureName}
@@ -2995,6 +3000,7 @@ export function CentinelaPage() {
               mode={measureMode}
               onModeChange={setMeasureMode}
               totalMeters={measureTotalMeters}
+              bearing={measureBearing}
               pinned={measurePinned}
               name={measureName}
               onNameChange={setMeasureName}

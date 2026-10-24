@@ -1,4 +1,5 @@
 import { formatMeasureDistanceParts } from "../../utils/geoMeasure.js";
+import { formatBearing } from "../../utils/nauticalUtils.js";
 import { CentinelaToolPanelHead } from "./CentinelaToolPanelHead.jsx";
 
 /**
@@ -10,6 +11,7 @@ export function MeasureDistancePanel({
   mode,
   onModeChange,
   totalMeters,
+  bearing = null,
   pinned = false,
   name = "",
   onNameChange,
@@ -25,6 +27,7 @@ export function MeasureDistancePanel({
   onClose,
 }) {
   const totalParts = formatMeasureDistanceParts(totalMeters, unit);
+  const showBearing = bearing !== null && Number.isFinite(bearing) && mode === "distance";
 
   return (
     <div
@@ -181,6 +184,18 @@ export function MeasureDistancePanel({
             </span>
           </strong>
         </div>
+
+        {showBearing ? (
+          <div className="centinela-measure-panel__field centinela-measure-panel__field--bearing">
+            <span className="centinela-measure-panel__label">Rumbo</span>
+            <strong
+              className="centinela-measure-panel__bearing"
+              aria-label={`Rumbo ${formatBearing(bearing)}`}
+            >
+              {formatBearing(bearing)}
+            </strong>
+          </div>
+        ) : null}
 
         <div className="centinela-measure-panel__actions">
           <button

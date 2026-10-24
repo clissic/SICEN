@@ -9,6 +9,7 @@ import {
   labelRotationCssDeg,
   midpointLatLng,
 } from "../../utils/geoMeasure.js";
+import { initialBearingDeg as initialBearingDegWgs84 } from "../../utils/nauticalUtils.js";
 import {
   normalizeMeasurementSnapshot,
   segmentNet,
@@ -116,6 +117,7 @@ export function MeasureDistanceLayer({
   snapshotApiRef = null,
   onTotalMetersChange,
   onRadiusMetersChange,
+  onBearingChange,
 }) {
   const map = useMap();
   const pointsRef = useRef([]);
@@ -140,6 +142,7 @@ export function MeasureDistanceLayer({
   const unitRef = useRef(unit);
   const onTotalRef = useRef(onTotalMetersChange);
   const onRadiusRef = useRef(onRadiusMetersChange);
+  const onBearingRef = useRef(onBearingChange);
   const loadSnapshotRef = useRef(loadSnapshot);
   const snapshotApiOuterRef = useRef(snapshotApiRef);
 
@@ -150,6 +153,7 @@ export function MeasureDistanceLayer({
   mapInteractiveRef.current = mapInteractive;
   onTotalRef.current = onTotalMetersChange;
   onRadiusRef.current = onRadiusMetersChange;
+  onBearingRef.current = onBearingChange;
   loadSnapshotRef.current = loadSnapshot;
   snapshotApiOuterRef.current = snapshotApiRef;
 
@@ -192,6 +196,15 @@ export function MeasureDistanceLayer({
         total += c.radiusM || 0;
       }
       onTotalRef.current?.(total);
+
+      // Calcular rumbo náutico con geodesy si hay exactamente 2 puntos
+      if (pts.length === 2 && onBearingRef.current) {
+        const [p1, p2] = pts;
+        const bearing = initialBearingDegWgs84(p1.lat, p1.lng, p2.lat, p2.lng);
+        onBearingRef.current(bearing);
+      } else if (onBearingRef.current) {
+        onBearingRef.current(null);
+      }
 
       const circles = circlesRef.current;
       const lastR =
@@ -492,6 +505,7 @@ export function MeasureDistanceLayer({
       clearPreview();
       onTotalRef.current?.(0);
       onRadiusRef.current?.(0);
+      onBearingRef.current?.(null);
     }
 
     function undoLast() {
