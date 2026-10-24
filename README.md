@@ -8,6 +8,8 @@ Aplicación para la **Prefectura del Puerto de Montevideo**: API **Node.js (Expr
 |------|-----|
 | **`SICEN-back/`** | Servidor Express. Sirve la API bajo **`/api/*`** y, si existe el build, la SPA desde **`SICEN-back/public/`**. |
 | **`SICEN-front/`** | Código fuente React. **`npm run build`** genera estáticos en **`../SICEN-back/public`**. |
+| **`SICEN-ais-receiver/`** | Receptor AIS autohospedado (Docker + AIS-catcher con dongle RTL-SDR). Envía NMEA vía UDP al backend. Ver `SICEN-ais-receiver/README.md` para instalación de hardware, configuración y despliegue. |
+| **`SICEN-sim/`** | Worker Python (FastAPI) para simulaciones oceanográficas (derrame HC con OpenOil/Lagrangian, deriva SAR con Leeway/ADD). |
 | **Raíz** | `package.json` con **Prettier** para formatear todo el repo (`npm run format`). Aquí se instala solo Prettier; no sustituye los `node_modules` de front ni back. |
 
 Documentación de paleta y tokens CSS: **`SICEN-front/PALETA_COLORES.md`**.
@@ -303,7 +305,7 @@ Módulo principal del menú (`HomePage` → tile *El Centinela*). Carta náutica
 
 **Pendiente / fase 2:**
 
-- Más capas (catastro), tracks históricos, correlación MMSI ↔ colección `vessels`, receptor AIS propio / AISHub como fuente alternativa del mismo bridge.
+- Más capas (catastro), tracks históricos, correlación MMSI ↔ colección `vessels`. **Receptor AIS local implementado** (ver `SICEN-ais-receiver/`): AIS-catcher (RTL-SDR) con envío UDP NMEA al backend; configuración opcional vía `AIS_NMEA_UDP_ENABLED`. AISHub como fuente adicional pendiente.
 - Refinamientos UX de HC/SAR (horizontes más largos para ADD, Stokes/olas activos, etc.).
 - Detalle técnico: skill `centinela-map-pattern`.
 

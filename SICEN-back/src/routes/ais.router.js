@@ -8,3 +8,4 @@ aisRouter.get("/status", ...guarded, aisController.status);
 aisRouter.get("/vessels", ...guarded, aisController.vessels);
 aisRouter.get("/search", ...guarded, aisController.search);
 aisRouter.get("/stream", ...guarded, aisController.stream);
+aisRouter.get("/nmea/status", ...guarded, aisController.nmeaStatus);

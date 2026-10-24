@@ -86,7 +86,10 @@ import {
   SKYLIGHT_DEFAULT_LOOKBACK_HOURS,
   SKYLIGHT_LAYER_ITEMS,
 } from "../constants/skylightLayers.js";
-import { filterVesselsByAisSources } from "../constants/aisLayers.js";
+import {
+  anyAisSourceVisible,
+  filterVesselsByAisSources,
+} from "../constants/aisLayers.js";
 import { FIU_IUU_LAYER_IDS } from "../constants/fiuIuuLayers.js";
 import {
   INTEL_GROUPS,
@@ -444,8 +447,7 @@ export function CentinelaPage() {
     () => deriveGfwEventTypes(intelVisibility),
     [intelVisibility]
   );
-  const aisLayerOn =
-    aisSourceVisibility.aisstream || aisSourceVisibility.skylight;
+  const aisLayerOn = anyAisSourceVisible(aisSourceVisibility);
 
   useEffect(() => {
     if (!aisLayerOn) {
@@ -650,7 +652,7 @@ export function CentinelaPage() {
     }
   }, [measureToolActive, closeMeasurePanel]);
 
-  const { vessels, status, error, connected } = useAisVessels({
+  const { vessels, vesselsByMmsi, status, error, connected } = useAisVessels({
     enabled: aisLayerOn,
   });
   const visibleAisVessels = useMemo(
@@ -745,8 +747,10 @@ export function CentinelaPage() {
 
   const statusLine = useMemo(() => {
     if (!aisLayerOn) return "Capa AIS desactivada";
-    if (status && status.configured === false) {
-      return "AIS no configurado (AISStream y/o Skylight en el backend)";
+    const nmea = status?.nmea || null;
+    const nmeaActive = Boolean(nmea?.enabled && nmea?.receiving);
+    if (status && status.configured === false && !nmeaActive) {
+      return "AIS no configurado (AISStream, Skylight o receptor NMEA en el backend)";
     }
     if (error) return error;
     if (status?.connecting && !status?.sources?.skylightOk) {
@@ -756,8 +760,9 @@ export function CentinelaPage() {
     const parts = [];
     if (aisSourceVisibility.aisstream) parts.push("AISStream");
     if (aisSourceVisibility.skylight) parts.push("Skylight");
+    if (aisSourceVisibility.nmeaUdp) parts.push("Receptor local");
     const srcLabel = parts.length > 0 ? parts.join(" + ") : "AIS";
-    if (connected || status?.connected) {
+    if (connected || status?.connected || nmeaActive) {
       if (n === 0) {
         return `${srcLabel} — esperando posiciones…`;
       }
@@ -1039,6 +1044,27 @@ export function CentinelaPage() {
     [isMobile]
   );
 
+  const buildAisDetailBody = useCallback(
+    (v) => (
+      <AisVesselDetailBody
+        vessel={v}
+        matched={matchedAisSkylightMmsis.has(String(v.mmsi))}
+        onOpenDossier={(vessel) =>
+          openVesselDossier({
+            mmsi: vessel.mmsi,
+            name: vessel.name,
+            imo: vessel.imo,
+            lat: vessel.lat,
+            lon: vessel.lon,
+            sog: vessel.sog,
+            heading: vessel.heading ?? vessel.cog,
+          })
+        }
+      />
+    ),
+    [matchedAisSkylightMmsis, openVesselDossier]
+  );
+
   const selectAisVessel = useCallback(
     (v, click = null) => {
       if (!v) return;
@@ -1055,27 +1081,32 @@ export function CentinelaPage() {
         id: `ais:${mmsi}`,
         title: v.name?.trim() || `MMSI ${mmsi}`,
         anchor,
-        body: (
-          <AisVesselDetailBody
-            vessel={v}
-            matched={matchedAisSkylightMmsis.has(mmsi)}
-            onOpenDossier={(vessel) =>
-              openVesselDossier({
-                mmsi: vessel.mmsi,
-                name: vessel.name,
-                imo: vessel.imo,
-                lat: vessel.lat,
-                lon: vessel.lon,
-                sog: vessel.sog,
-                heading: vessel.heading ?? vessel.cog,
-              })
-            }
-          />
-        ),
+        aisVessel: v,
+        body: buildAisDetailBody(v),
       });
     },
-    [matchedAisSkylightMmsis, openMapDetail, openVesselDossier]
+    [buildAisDetailBody, openMapDetail]
   );
+
+  /* Refresca las ventanas de detalle AIS abiertas con los updates del stream (SSE). */
+  useEffect(() => {
+    setMapDetails((prev) => {
+      let changed = false;
+      const next = prev.map((d) => {
+        if (!d?.id?.startsWith?.("ais:")) return d;
+        const cur = vesselsByMmsi.get(d.id.slice(4));
+        if (!cur || cur === d.aisVessel) return d;
+        changed = true;
+        return {
+          ...d,
+          aisVessel: cur,
+          title: cur.name?.trim() || `MMSI ${cur.mmsi}`,
+          body: buildAisDetailBody(cur),
+        };
+      });
+      return changed ? next : prev;
+    });
+  }, [vesselsByMmsi, buildAisDetailBody]);
 
   const handleVesselSearchSelect = useCallback(
     (hit) => {

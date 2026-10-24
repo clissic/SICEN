@@ -1,0 +1,28 @@
+services:
+  ais-catcher:
+    image: ghcr.io/jvde-github/ais-catcher:latest
+    container_name: sicen-ais-catcher
+    restart: unless-stopped
+    # Acceso al RTL-SDR (recomendación de la doc oficial de AIS-catcher en Docker):
+    # regla cgroup para dispositivos USB (major 189) + montaje de /dev/bus/usb.
+    # Así el dongle sigue funcionando aunque cambie de número de bus/dispositivo al reconectarlo.
+    device_cgroup_rules:
+      - 'c 189:* rmw'
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+    # Permite usar host.docker.internal también en Linux (Docker Engine >= 20.10).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # La imagen oficial ya usa AIS-catcher como entrypoint: acá solo se pasan argumentos.
+    # Variables tomadas de .env (interpoladas por docker compose):
+    #   AIS_CATCHER_OPTS  opciones del receptor (ganancia, ppm, etc.)
+    #   UDP_HOST/UDP_PORT destino NMEA (SICEN-back)
+    command: >-
+      ${AIS_CATCHER_OPTS:--gr tuner auto}
+      -u ${UDP_HOST:-host.docker.internal} ${UDP_PORT:-10110}
+      -v 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
