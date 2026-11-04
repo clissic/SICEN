@@ -208,6 +208,63 @@ html[data-bs-theme="dark"] .login-panel__meta-jpc img {
   filter: brightness(0) invert(1);
 }
 
+.login-panel__inner:has(.mfa-panel) {
+  max-width: 28rem;
+}
+
+.mfa-code-input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.18em;
+  font-size: 1.15rem;
+  text-align: center;
+}
+
+.mfa-qr {
+  background: #fff;
+  padding: 0.65rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  margin-inline: auto;
+}
+
+.mfa-qr img {
+  display: block;
+  width: 12.5rem;
+  height: 12.5rem;
+}
+
+.mfa-enroll-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.mfa-secret-block {
+  width: 100%;
+}
+
+.mfa-secret {
+  display: block;
+  word-break: break-all;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.35rem;
+  background: var(--bs-tertiary-bg);
+}
+
+.mfa-recovery-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.2rem 0.75rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+}
+
 .login-page--loading {
   place-items: center;
   grid-template-columns: 1fr;

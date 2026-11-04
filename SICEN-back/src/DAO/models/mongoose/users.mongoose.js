@@ -77,6 +77,21 @@ const schema = new Schema({
       activeRequestId: null,
     }),
   },
+  /**
+   * MFA TOTP (admins). El secreto va cifrado (AES-256-GCM) y los códigos
+   * de recuperación hasheados (HMAC-SHA256). Nunca exponer este subdoc al cliente.
+   * Campos anidados para no chocar con `tokenVersion` (PR #12) ni
+   * `loginAttempts`/`lockUntil` de cuenta (PR #10).
+   */
+  mfa: {
+    enabled: { type: Boolean, default: false },
+    secretEncrypted: { type: String, default: "" },
+    pendingSecretEncrypted: { type: String, default: "" },
+    recoveryCodeHashes: { type: [String], default: [] },
+    pendingRecoveryCodeHashes: { type: [String], default: [] },
+    failedAttempts: { type: Number, default: 0 },
+    lockUntil: { type: Date, default: null },
+  },
 });
 
 /** Un seafarer solo puede estar linked a una cuenta a la vez. */

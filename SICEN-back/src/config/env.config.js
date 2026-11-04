@@ -22,6 +22,15 @@ const jwtSecret =
   jwtSecretFromEnv ||
   "dev-insecure-jwt-secret-cambiar-en-produccion-min-32-chars!";
 
+const mfaKeyFromEnv = process.env.MFA_ENCRYPTION_KEY;
+if (workMode === "PRODUCTION" && !mfaKeyFromEnv) {
+  console.error(
+    "[SICEN-back] MFA_ENCRYPTION_KEY es obligatorio en producción (.env.production)."
+  );
+  process.exit(1);
+}
+const mfaEncryptionKey = mfaKeyFromEnv || jwtSecret;
+
 function stripTrailingSlash(url) {
   if (!url || typeof url !== "string") return "";
   return url.replace(/\/+$/, "");
@@ -48,6 +57,9 @@ export default {
   port: process.env.PORT,
   jwtSecret,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "24h",
+  /** Clave AES-256-GCM del secreto TOTP. En producción es obligatoria (distinta de JWT_SECRET). */
+  mfaEncryptionKey,
+  mfaChallengeExpiresIn: process.env.MFA_CHALLENGE_EXPIRES_IN || "5m",
   mongoPassword: process.env.MONGODB_PASSWORD,
   githubSecret: process.env.GITHUB_LOGIN_SECRET,
   persistence: process.env.PERSISTENCE,

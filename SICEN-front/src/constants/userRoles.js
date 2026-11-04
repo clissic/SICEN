@@ -48,6 +48,11 @@ export function isSkipperRole(role) {
   return role === "skipper";
 }
 
+/** Admin y superAdmin deben usar TOTP (Google Authenticator u otra app). */
+export function roleRequiresMfa(role) {
+  return role === "admin" || role === "superAdmin";
+}
+
 /** Normaliza un rol para selects que no permiten editar superAdmin. */
 export function normalizeRoleForSelect(role) {
   if (ADMIN_EDIT_ROLES.some((r) => r.value === role)) return role;
