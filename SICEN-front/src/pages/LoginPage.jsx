@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate, useLocation } from "react-router-dom";
+import { Link, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { IframeModal } from "../components/IframeModal.jsx";
@@ -19,6 +19,7 @@ export function LoginPage() {
   const [newAccountOpen, setNewAccountOpen] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const loc = useLocation();
+  const [searchParams] = useSearchParams();
   const fromLocation = loc.state?.from;
   const from =
     fromLocation && typeof fromLocation.pathname === "string"
@@ -31,7 +32,11 @@ export function LoginPage() {
   useEffect(() => {
     if (loc.state?.openNewAccount) setNewAccountOpen(true);
     if (loc.state?.openForgotPassword) setForgotPasswordOpen(true);
-  }, [loc.state?.openNewAccount, loc.state?.openForgotPassword]);
+    if (searchParams.get("expired") === "1") {
+      const msg = searchParams.get("msg") || "Su sesión expiró. Por favor, inicie sesión nuevamente.";
+      setErr(msg);
+    }
+  }, [loc.state?.openNewAccount, loc.state?.openForgotPassword, searchParams]);
 
   async function onSubmit(e) {
     e.preventDefault();

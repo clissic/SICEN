@@ -10,4 +10,4 @@ sessionsRouter.post("/signup", sessionsController.signup);
 
 sessionsRouter.post("/login", sessionsController.login);
 
-sessionsRouter.post("/logout", sessionsController.logout);
+sessionsRouter.post("/logout", optionalJwt, sessionsController.logout);
