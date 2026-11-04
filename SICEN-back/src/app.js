@@ -56,6 +56,7 @@ import { mapMarkersRouter } from "./routes/mapMarkers.router.js";
 import { mapZonesRouter } from "./routes/mapZones.router.js";
 import { mapMeasurementsRouter } from "./routes/mapMeasurements.router.js";
 import { seafarerLinksRouter } from "./routes/seafarerLinks.router.js";
+import { filesRouter } from "./routes/files.router.js";
 import { warmAisBridge } from "./services/aisBridge.service.js";
 import { startNmeaReceiver } from "./services/aisNmeaReceiver.service.js";
 import {
@@ -127,23 +128,10 @@ app.use(express.json({ limit: "3mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 ensureAvatarsDirSync();
-app.use("/uploads/avatars", express.static(AVATARS_DIR));
-
 ensureCarFineProvesDirSync();
-app.use("/uploads/carFineProves", express.static(CAR_FINE_PROVES_DIR));
-
 ensureShipFineProvesDirSync();
-app.use("/uploads/shipFineProves", express.static(SHIP_FINE_PROVES_DIR));
-
 ensurePersonalFineProvesDirSync();
-app.use(
-  "/uploads/personalFineProves",
-  express.static(PERSONAL_FINE_PROVES_DIR)
-);
-
 ensureInspectionPdfsDirSync();
-app.use("/uploads/inspectionsERP", express.static(INSPECTION_PDFS_DIR));
-
 ensureSeafarerLinkIdentityDirSync();
 ensureVesselAdminProofDirSync();
 
@@ -177,6 +165,7 @@ app.use("/api/mapMarkers", mapMarkersRouter);
 app.use("/api/mapZones", mapZonesRouter);
 app.use("/api/mapMeasurements", mapMeasurementsRouter);
 app.use("/api/seafarer-links", seafarerLinksRouter);
+app.use("/api/files", filesRouter);
 
 warmAisBridge();
 startNmeaReceiver();

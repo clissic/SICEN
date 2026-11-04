@@ -3,6 +3,7 @@ import {
   provesAsArray,
   statusMeta,
 } from "../utils/carFineFormatters.js";
+import { AuthenticatedImage } from "../hooks/useAuthenticatedFile.jsx";
 
 const SEX_LABELS = {
   M: "Masculino",
@@ -354,7 +355,11 @@ export function PersonalFineCard({
                           }
                         }}
                       >
-                        <img src={p} alt={`Prueba ${idx + 1}`} loading="lazy" />
+                        <AuthenticatedImage 
+                          src={p} 
+                          alt={`Prueba ${idx + 1}`} 
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
                         <span className="car-fine-card__prove-index">
                           {idx + 1}
                         </span>

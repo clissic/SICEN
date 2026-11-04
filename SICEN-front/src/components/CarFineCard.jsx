@@ -5,6 +5,7 @@ import {
   provesAsArray,
   statusMeta,
 } from "../utils/carFineFormatters.js";
+import { AuthenticatedImage } from "../hooks/useAuthenticatedFile.jsx";
 
 /**
  * Tarjeta de una multa vehicular. Reutilizable desde la página de consulta y
@@ -262,7 +263,11 @@ export function CarFineCard({ fine, onStatusEdit, onDataEdit, onOpenProve }) {
                           }
                         }}
                       >
-                        <img src={p} alt={`Prueba ${idx + 1}`} loading="lazy" />
+                        <AuthenticatedImage 
+                          src={p} 
+                          alt={`Prueba ${idx + 1}`} 
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
                         <span className="car-fine-card__prove-index">
                           {idx + 1}
                         </span>

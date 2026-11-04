@@ -13,6 +13,7 @@ import {
   getActiveInspectionYear,
   subscribeActiveInspectionYear,
 } from "../utils/inspectionExercise.js";
+import { AuthenticatedDownloadLink } from "../hooks/useAuthenticatedFile.jsx";
 
 const PAGE_SIZE = 5;
 
@@ -314,18 +315,16 @@ function InspectionsSearchSection({
                         ) : null}
                         <td className="text-center">
                           {r.inspectionPDF ? (
-                            <a
+                            <AuthenticatedDownloadLink
                               href={r.inspectionPDF}
                               download={inspectionPdfDownloadName(r)}
-                              target="_blank"
-                              rel="noopener noreferrer"
                               className="d-inline-flex align-items-center justify-content-center text-decoration-none"
                               style={{ color: "#fd7e14", fontSize: "1.4rem" }}
                               aria-label="Descargar PDF de la inspección"
                               data-sicen-popover="Descargar PDF"
                             >
                               <i className="bi bi-filetype-pdf" aria-hidden />
-                            </a>
+                            </AuthenticatedDownloadLink>
                           ) : (
                             <span
                               className="d-inline-flex align-items-center justify-content-center text-muted"
