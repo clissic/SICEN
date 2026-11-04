@@ -167,9 +167,9 @@ El contenedor `back` construye el frontend (`SICEN-front`) en un stage intermedi
 ### Build y ejecución
 
 ```bash
-# 1. Copiá .env.example a .env en la raíz del repo y completá los secretos
+# 1. Copiá .env.example a .env en la raíz del repo y reemplazá los changeme
 cp .env.example .env
-# Editá .env con tu JWT_SECRET, MONGODB_PASSWORD, claves de APIs externas, etc.
+# Editá .env: JWT_SECRET, MONGODB_PASSWORD, MONGO_INITDB_ROOT_PASSWORD, claves de APIs, etc.
 
 # 2. Construí las imágenes
 docker compose build
@@ -197,9 +197,12 @@ docker compose up -d --no-deps back sim
 
 El archivo **`.env`** en la raíz del repo es leído por `docker-compose.yml` para inyectar variables en los contenedores. Podés usar **`.env.example`** como plantilla.
 
+Los secretos en `docker-compose.yml` se interpolan como `${VAR:?mensaje}` **sin valores por defecto**: si faltan en `.env`, Compose aborta. En `.env.example` figuran como `changeme`; reemplazalos antes de levantar el stack.
+
 **Secretos obligatorios:**
 - `JWT_SECRET` — firma de tokens JWT (generar con `openssl rand -hex 32`)
 - `MONGODB_PASSWORD` — contraseña de MongoDB (Atlas o el contenedor local)
+- `MONGO_INITDB_ROOT_PASSWORD` — contraseña root del contenedor `mongo` (perfil demo; Compose la exige aunque no actives el perfil)
 - `GOOGLE_EMAIL` / `GOOGLE_PASS` — credenciales Nodemailer (opcional si no enviás mails)
 
 **Claves de APIs externas (El Centinela):**

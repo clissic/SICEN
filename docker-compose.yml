@@ -25,6 +25,11 @@ services:
     env_file:
       - .env
 
+    # Secretos sin defaults: Compose aborta si faltan en .env
+    environment:
+      - JWT_SECRET=${JWT_SECRET:?Definí JWT_SECRET en el archivo .env}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD:?Definí MONGODB_PASSWORD en el archivo .env}
+
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -101,7 +106,7 @@ services:
 
     environment:
       - MONGO_INITDB_ROOT_USERNAME=sicen
-      - MONGO_INITDB_ROOT_PASSWORD=sicen_demo_pass
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD:?Definí MONGO_INITDB_ROOT_PASSWORD en el archivo .env}
       - MONGO_INITDB_DATABASE=SIGMU_DB
 
     security_opt:
