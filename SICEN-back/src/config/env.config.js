@@ -9,6 +9,7 @@ const workMode = program.opts().mode;
 
 dotenv.config({
   path: workMode === 'DEVELOPMENT' ? './.env.development' : './.env.production',
+  quiet: true,
 });
 
 const jwtSecretFromEnv = process.env.JWT_SECRET;

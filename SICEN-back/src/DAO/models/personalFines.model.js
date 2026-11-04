@@ -109,7 +109,7 @@ class PersonalFinesModel {
       const updated = await PersonalFinesMongoose.findOneAndUpdate(
         query,
         update,
-        { new: true }
+        { returnDocument: "after" }
       );
       if (!updated) {
         throw new Error("No se encontró la multa personal para actualizar");

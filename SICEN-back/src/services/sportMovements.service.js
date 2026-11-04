@@ -1075,7 +1075,7 @@ export async function reportArrivalBySkipper(id, body, user) {
         "metadata.lastModifiedBy": userEmail(user),
       },
     },
-    { new: true }
+    { returnDocument: "after" }
   ).exec();
 
   if (!updated) {
