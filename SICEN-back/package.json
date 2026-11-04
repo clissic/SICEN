@@ -42,7 +42,7 @@
     "mongoose": "^7.5.3",
     "mongoose-paginate-v2": "^1.7.4",
     "multer": "^2.1.1",
-    "nodemailer": "^6.9.5",
+    "nodemailer": "^10.3.1",
     "polygon-clipping": "^0.15.7",
     "sweetalert2": "^11.7.31",
     "winston": "^3.10.0",
