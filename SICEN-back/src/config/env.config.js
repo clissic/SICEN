@@ -45,6 +45,7 @@ const emailAssetsBaseUrl =
   stripTrailingSlash(process.env.EMAIL_LOGO_BASE_URL || "") || publicAppUrl;
 
 export default {
+  mode: workMode,
   port: process.env.PORT,
   jwtSecret,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "24h",
