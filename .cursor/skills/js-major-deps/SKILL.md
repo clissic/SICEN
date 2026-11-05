@@ -12,6 +12,19 @@ description: >-
 Última alineación: PR de majors (Vite 8 / Express 5 / Mongoose 9). Antes de
 subir otro major, revisar este skill y `npm outdated` en cada paquete.
 
+## Pin de Node.js
+
+`.nvmrc` en la raíz (una sola línea: `24.22.1`) y `engines.node` en
+`package.json` de raíz, `SICEN-back` y `SICEN-front`:
+
+```json
+"engines": { "node": ">=24.22.1 <25 || >=26.12.1" }
+```
+
+Cubre el parche Brotli/Node2Shell (CVE-2026-111497). Node 20/23/25 están
+EOL. No bajar el piso ni meter 22/25. No tocar `overrides` al editar
+`engines`.
+
 ## Versiones objetivo
 
 ### SICEN-front
