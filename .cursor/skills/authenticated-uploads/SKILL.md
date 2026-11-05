@@ -53,7 +53,9 @@ La BD sigue guardando paths `/uploads/<type>/<filename>`; el helper
 6. **Docker**: rootfs read-only; los uploads viven en el volumen
    `/app/storage`. `ensure*DirSync()` crea las subcarpetas al arrancar.
 7. **Validar magic bytes** en el multer (JPEG / PDF / etc.) y borrar el
-   archivo si no coincide.
+   archivo si no coincide. `file-type@22`: PDF/JPEG/PNG/WebP/DOCX siguen
+   con MIME IANA; Word 97–2003 (`.doc`) es `application/x-cfb` (OLE), no
+   `application/msword`. `validateDocument` acepta ambos.
 
 ## Antipatrones
 
