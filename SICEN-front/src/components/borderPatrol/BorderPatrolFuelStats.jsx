@@ -7,6 +7,13 @@ import {
 } from "../../constants/borderPatrolFulfillment.js";
 import { MONTH_OPTIONS, yearChoices } from "./borderPatrolCalendarUtils.js";
 import { ModalPortal, SICEN_MODAL_Z_INDEX } from "../ModalPortal.jsx";
+import { stackedBarPercents } from "../../utils/stackedBarPercents.js";
+
+const INSIDE_LABEL_MIN_PERCENT = 10;
+
+function formatPercent(n) {
+  return `${n.toFixed(1)}%`;
+}
 
 function formatLiters(value) {
   const n = Number(value) || 0;
@@ -243,26 +250,63 @@ function FuelBars({ byFuel, maxLiters }) {
   );
 }
 
+/** Items de la barra de mezcla a partir de litros reales por tipo. */
+export function fuelMixItems(byFuel) {
+  const map = byFuel instanceof Map ? byFuel : new Map();
+  const knownIds = new Set(PATROL_FUEL_OPTIONS.map((opt) => opt.id));
+  const known = PATROL_FUEL_OPTIONS.map((opt) => ({
+    key: opt.id,
+    label: opt.label,
+    value: map.get(opt.id) || 0,
+  }));
+  const extras = [...map.entries()]
+    .filter(([id]) => !knownIds.has(id))
+    .map(([id, liters]) => ({
+      key: id,
+      label: fuelLabel(id),
+      value: liters,
+    }));
+  return [...known, ...extras];
+}
+
 function MonthFuelMix({ byFuel }) {
-  const total = [...(byFuel?.values?.() || [])].reduce((sum, n) => sum + n, 0);
-  if (total <= 0) return null;
+  const rows = stackedBarPercents(fuelMixItems(byFuel), {
+    minLabelPercent: INSIDE_LABEL_MIN_PERCENT,
+  });
+  if (!rows.length) return null;
+
+  const summary = rows
+    .map((row) => `${row.label} ${formatPercent(row.percent)}`)
+    .join(", ");
 
   return (
-    <div className="empre-fuel-mix" aria-label="Composición del mes">
-      {PATROL_FUEL_OPTIONS.map((opt) => {
-        const liters = byFuel.get(opt.id) || 0;
-        if (liters <= 0) return null;
-        const pct = (liters / total) * 100;
+    <div
+      className="empre-fuel-mix"
+      role="img"
+      aria-label={`Composición del mes: ${summary}`}
+    >
+      {rows.map((row) => {
+        const tip = `${row.label} · ${formatPercent(row.percent)} · ${formatLiters(row.value)}`;
         return (
           <span
-            key={opt.id}
-            className="empre-fuel-mix__seg"
+            key={row.key}
+            className={[
+              "empre-fuel-mix__seg",
+              row.key === "nafta-super" ? "is-light" : "",
+              row.showLabel ? "" : "is-compact",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             style={{
-              width: `${pct}%`,
-              background: PATROL_FUEL_BAR_COLORS[opt.id] || "#6c757d",
+              flex: `0 0 ${row.percent}%`,
+              background: PATROL_FUEL_BAR_COLORS[row.key] || "#6c757d",
             }}
-            data-sicen-popover={`${opt.label}: ${formatLiters(liters)}`}
-          />
+            data-sicen-popover={tip}
+            data-sicen-popover-placement="top"
+            {...(row.showLabel ? {} : { "data-sicen-popover-touch": "click" })}
+          >
+            {row.showLabel ? formatPercent(row.percent) : null}
+          </span>
         );
       })}
     </div>
