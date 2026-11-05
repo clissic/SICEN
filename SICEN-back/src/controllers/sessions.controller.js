@@ -79,7 +79,7 @@ class SessionsController {
         email: normalizedEmail,
         password: createHash(password),
       });
-      const token = signAccessToken(created._id);
+      const token = signAccessToken(created._id, created.tokenVersion);
       logger.info("User registration successful: " + email);
       return res.status(201).json({
         ok: true,
@@ -163,7 +163,7 @@ class SessionsController {
       logger.info(
         `${user.rank} ${user.first_name} ${user.last_name} logged in as ${user.role}`
       );
-      const token = signAccessToken(user._id);
+      const token = signAccessToken(user._id, user.tokenVersion);
       return res.status(200).json({
         ok: true,
         user: publicShape(user),
@@ -175,11 +175,27 @@ class SessionsController {
     }
   }
 
-  logout(req, res) {
-    return res.status(200).json({
-      ok: true,
-      msg: "Eliminá el token en el cliente (JWT sin estado en servidor).",
-    });
+  async logout(req, res) {
+    try {
+      const user = req.user;
+      if (user?._id) {
+        await UserMongoose.updateOne(
+          { _id: user._id },
+          { $inc: { tokenVersion: 1 } }
+        );
+        logger.info(`Logout: tokenVersion incrementada para ${user.email}`);
+      }
+      return res.status(200).json({
+        ok: true,
+        msg: "Sesión cerrada correctamente.",
+      });
+    } catch (err) {
+      logger.error("logout error: " + err);
+      return res.status(200).json({
+        ok: true,
+        msg: "Sesión cerrada.",
+      });
+    }
   }
 }
 

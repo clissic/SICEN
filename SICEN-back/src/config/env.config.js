@@ -39,6 +39,18 @@ const jwtSecret =
   jwtSecretFromEnv ||
   "dev-insecure-jwt-secret-cambiar-en-produccion-min-32-chars!";
 
+if (workMode === 'DEVELOPMENT' && !jwtSecretFromEnv) {
+  console.warn(
+    "\n⚠️  [SICEN-back] JWT_SECRET no configurado. Se usa un secret inseguro por defecto."
+  );
+  console.warn(
+    "   Para desarrollo, defina JWT_SECRET en .env.development con un valor único."
+  );
+  console.warn(
+    "   Genere uno con: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\" \n"
+  );
+}
+
 function stripTrailingSlash(url) {
   if (!url || typeof url !== "string") return "";
   return url.replace(/\/+$/, "");
@@ -65,7 +77,7 @@ export default {
   mode: workMode,
   port: process.env.PORT,
   jwtSecret,
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN || "24h",
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || "8h",
   mongoUri: process.env.MONGO_URI || "",
   mongoPassword: process.env.MONGODB_PASSWORD,
   githubSecret: process.env.GITHUB_LOGIN_SECRET,

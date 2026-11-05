@@ -66,6 +66,11 @@ const schema = new Schema({
   },
   userTutorial: { type: Boolean, default: false },
   last_modified_by: { type: String, default: "S/M" },
+  /**
+   * Versión del token JWT. Se incrementa en logout, cambio de contraseña,
+   * cambio de rol o desactivación del usuario para invalidar tokens previos.
+   */
+  tokenVersion: { type: Number, default: 0 },
   seafarerLink: {
     type: seafarerLinkSchema,
     default: () => ({

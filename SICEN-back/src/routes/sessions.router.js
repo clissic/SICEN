@@ -11,4 +11,4 @@ sessionsRouter.post("/signup", sessionsController.signup);
 
 sessionsRouter.post("/login", loginRateLimiter, sessionsController.login);
 
-sessionsRouter.post("/logout", sessionsController.logout);
+sessionsRouter.post("/logout", optionalJwt, sessionsController.logout);

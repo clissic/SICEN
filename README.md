@@ -114,7 +114,7 @@ Luego completá los valores según tu entorno (y recordá que **`JWT_SECRET` es 
 |----------|-----|
 | `PORT` | Puerto HTTP del servidor (por defecto `3000`). |
 | `JWT_SECRET` | Firma de tokens. **Obligatoria en producción**; si falta, el proceso termina. En desarrollo puede omitirse (se usa un valor por defecto inseguro solo para local). |
-| `JWT_EXPIRES_IN` | Caducidad del access token (p. ej. `24h`). |
+| `JWT_EXPIRES_IN` | Caducidad del access token (default `8h`). |
 | `MONGO_URI` | URI completa de MongoDB (obligatoria en producción). Atlas o el contenedor local; **no** hay cluster hardcodeado. |
 | `LOGGER_ENV` | `development` \| `production` (comportamiento de logs). |
 | `API_URL` | URL base pública (emails, enlaces). |

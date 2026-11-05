@@ -34,8 +34,15 @@ class RecoverTokensService {
 
   async recoverPass(email, newPassword) {
     try {
-      const password = createHash(newPassword)
-      await usersModel.updatePassword({email, password});
+      const password = createHash(newPassword);
+      await usersModel.updatePassword({ email, password });
+      const user = await usersModel.findByEmail(email);
+      if (user?._id) {
+        await usersModel.incrementTokenVersion(user._id);
+        logger.info(
+          `recoverPass: tokenVersion incrementada para ${email} (tokens previos revocados)`
+        );
+      }
     } catch (error) {
       logger.error("Error recovering password in login.service: " + error);
     }
