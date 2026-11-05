@@ -98,7 +98,9 @@ la tarjeta es `/mi-unidad/${division.slug}/${item.slug}/${child.slug}`.
     unidad → tipo. Navegación de año (flechas + modal). Total del año +
     grilla 2×2 por tipo (Super 95, Premium 97, 50S, 10S). Grilla de 12
     meses con total y la misma 2×2 compacta. Al elegir un mes: total, 2×2,
-    barra de mezcla, pestañas por unidad y barras por combustible.
+    barra de mezcla (porcentaje a 1 decimal **dentro** de cada
+    segmento; tramos chicos ocultan la cifra y dejan popover),
+    pestañas por unidad y barras por combustible.
     Colores: Super 95 amarillo, Premium 97 rojo, 50S gris, 10S azul
     (`nafta-super`, `nafta-premium`, `gasoil-comun`, `gasoil-especial`).
     Sin tinte de “calor” en tarjetas de mes.
