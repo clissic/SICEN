@@ -41,7 +41,7 @@ Nunca incluye `token` de acceso. El `mfaToken` dura `MFA_CHALLENGE_EXPIRES_IN`
 | Endpoint | Auth | Qué hace |
 |---|---|---|
 | `POST /api/sessions/mfa/enroll` | `mfaToken` o JWT de acceso | Genera secreto + QR otpauth + 10 códigos de un solo uso. Si MFA ya está activa, exige `currentCode`. |
-| `POST /api/sessions/mfa/verify` | `mfaToken` o JWT | Con desafío: confirma enrolamiento pendiente (si hay) y emite JWT. Con JWT de acceso: solo confirma el pending. Rate limit 10/15 min por IP + lockout 5 fallos / 15 min por usuario (`mfa.failedAttempts`). |
+| `POST /api/sessions/mfa/verify` | `mfaToken` o JWT | Con desafío: confirma enrolamiento pendiente (si hay) y emite JWT de acceso con `sub` + `tv` (`tokenVersion` del usuario, igual que el login normal). Con JWT de acceso: solo confirma el pending. Rate limit 10/15 min por IP + lockout 5 fallos / 15 min por usuario (`mfa.failedAttempts`). |
 | `POST /api/sessions/mfa/disable` | JWT (`loginOnly`) | Exige TOTP o código de recuperación. El admin la vuelve a configurar en el próximo ingreso. |
 
 Respuestas siempre `{ ok, msg, ... }`. El secreto TOTP **nunca** viaja después
@@ -55,7 +55,7 @@ Subdocumento `users.mfa` (no choca con `tokenVersion` del PR #12 ni con
 
 - `secretEncrypted` / `pendingSecretEncrypted`: AES-256-GCM (`iv.tag.ct` base64url)
 - `recoveryCodeHashes` / `pendingRecoveryCodeHashes`: HMAC-SHA256
-- Clave: `MFA_ENCRYPTION_KEY` (obligatoria en producción; no reciclar `JWT_SECRET`)
+- Clave: `MFA_ENCRYPTION_KEY` (obligatoria en producción y en Docker Compose; no reciclar `JWT_SECRET`)
 
 ## Front
 
@@ -68,10 +68,13 @@ Subdocumento `users.mfa` (no choca con `tokenVersion` del PR #12 ni con
 ## Antipatrones
 
 - ❌ Emitir JWT de acceso a un admin antes del TOTP.
+- ❌ Firmar el JWT de MFA **sin** `tokenVersion` (`tv`). `issueAccessToken` tiene que llamar `signAccessToken(user._id, user.tokenVersion)` igual que el login de un paso; si no, `checkLogin` responde 401.
 - ❌ Guardar el secreto TOTP en claro o devolverlo en `/me`.
 - ❌ Aceptar el `mfaToken` como Bearer en rutas `guarded`.
-- ❌ Reusar `loginAttempts` del PR #10 para el lockout TOTP (usar `mfa.*`).
+- ❌ Reusar `loginAttempts` de cuenta para el lockout TOTP (usar `mfa.*`).
 - ❌ Pedir MFA a skipper / user / seaman / agency.
+
+En `login`, el orden es: lockout de contraseña (`isLocked` / `loginAttempts`) → si la password es válida, desafío MFA (admins) o JWT con `tv`.
 
 ## Ejemplos vivos
 

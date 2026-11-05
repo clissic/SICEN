@@ -41,12 +41,23 @@ export async function optionalJwt(req, res, next) {
     if (isMfaChallengePayload(payload)) {
       return rejectMfaChallengeToken(res);
     }
-    const { sub } = payload;
+    const { sub, tv } = payload;
     const userDoc = await userService.findById(sub);
     if (!userDoc) {
       return res.status(401).json({
         ok: false,
         msg: "Usuario del token no encontrado.",
+      });
+    }
+    const userTokenVersion = Number(userDoc.tokenVersion) || 0;
+    const tokenTv = Number(tv) || 0;
+    if (tokenTv !== userTokenVersion) {
+      logger.info(
+        `optionalJwt: token revocado (tv=${tokenTv}, user tv=${userTokenVersion}) para ${userDoc.email}`
+      );
+      return res.status(401).json({
+        ok: false,
+        msg: "Su sesión fue cerrada. Por favor, inicie sesión nuevamente.",
       });
     }
     req.user = toPublicUser(userDoc);
@@ -71,10 +82,21 @@ export async function checkLogin(req, res, next) {
     if (isMfaChallengePayload(payload)) {
       return rejectMfaChallengeToken(res);
     }
-    const { sub } = payload;
+    const { sub, tv } = payload;
     const userDoc = await userService.findById(sub);
     if (!userDoc) {
       return res.status(401).json({ ok: false, msg: "Sesión inválida." });
+    }
+    const userTokenVersion = Number(userDoc.tokenVersion) || 0;
+    const tokenTv = Number(tv) || 0;
+    if (tokenTv !== userTokenVersion) {
+      logger.info(
+        `checkLogin: token revocado (tv=${tokenTv}, user tv=${userTokenVersion}) para ${userDoc.email}`
+      );
+      return res.status(401).json({
+        ok: false,
+        msg: "Su sesión fue cerrada. Por favor, inicie sesión nuevamente.",
+      });
     }
     req.user = toPublicUser(userDoc);
     return next();

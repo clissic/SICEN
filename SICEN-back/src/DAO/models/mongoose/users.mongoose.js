@@ -66,6 +66,11 @@ const schema = new Schema({
   },
   userTutorial: { type: Boolean, default: false },
   last_modified_by: { type: String, default: "S/M" },
+  /**
+   * Versión del token JWT. Se incrementa en logout, cambio de contraseña,
+   * cambio de rol o desactivación del usuario para invalidar tokens previos.
+   */
+  tokenVersion: { type: Number, default: 0 },
   seafarerLink: {
     type: seafarerLinkSchema,
     default: () => ({
@@ -80,8 +85,8 @@ const schema = new Schema({
   /**
    * MFA TOTP (admins). El secreto va cifrado (AES-256-GCM) y los códigos
    * de recuperación hasheados (HMAC-SHA256). Nunca exponer este subdoc al cliente.
-   * Campos anidados para no chocar con `tokenVersion` (PR #12) ni
-   * `loginAttempts`/`lockUntil` de cuenta (PR #10).
+   * Campos anidados para no chocar con `tokenVersion` ni
+   * `loginAttempts`/`lockUntil` de cuenta.
    */
   mfa: {
     enabled: { type: Boolean, default: false },
@@ -92,6 +97,12 @@ const schema = new Schema({
     failedAttempts: { type: Number, default: 0 },
     lockUntil: { type: Date, default: null },
   },
+  loginAttempts: { type: Number, default: 0 },
+  lockUntil: { type: Date, default: null },
+});
+
+schema.virtual("isLocked").get(function () {
+  return !!(this.lockUntil && this.lockUntil > Date.now());
 });
 
 /** Un seafarer solo puede estar linked a una cuenta a la vez. */

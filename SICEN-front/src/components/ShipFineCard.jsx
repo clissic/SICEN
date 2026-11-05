@@ -4,6 +4,8 @@ import {
   provesAsArray,
   statusMeta,
 } from "../utils/carFineFormatters.js";
+import { AuthenticatedImage } from "../hooks/useAuthenticatedFile.jsx";
+import { isProtectedFileUrl } from "../utils/authenticatedFileUrl.js";
 
 function formatOmi(value) {
   if (value == null || value === "") return "";
@@ -264,11 +266,11 @@ export function ShipFineCard({ fine, onStatusEdit, onDataEdit, onOpenProve }) {
             >
               {(() => {
                 const imageItems = proves.filter(
-                  (p) => typeof p === "string" && p.startsWith("/uploads/")
+                  (p) => typeof p === "string" && isProtectedFileUrl(p)
                 );
                 return proves.map((p, idx) => {
                   const isImg =
-                    typeof p === "string" && p.startsWith("/uploads/");
+                    typeof p === "string" && isProtectedFileUrl(p);
                   if (isImg) {
                     const imageIdx = imageItems.indexOf(p);
                     return (
@@ -288,7 +290,11 @@ export function ShipFineCard({ fine, onStatusEdit, onDataEdit, onOpenProve }) {
                           }
                         }}
                       >
-                        <img src={p} alt={`Prueba ${idx + 1}`} loading="lazy" />
+                        <AuthenticatedImage 
+                          src={p} 
+                          alt={`Prueba ${idx + 1}`} 
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
                         <span className="car-fine-card__prove-index">
                           {idx + 1}
                         </span>

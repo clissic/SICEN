@@ -28,6 +28,7 @@ import { signMfaChallengeToken } from "../utils/mfaJwt.util.js";
 import { generateTotp } from "../utils/totp.util.js";
 import { encryptTotpSecret } from "../utils/mfaCrypto.util.js";
 import { generateTotpSecret } from "../utils/totp.util.js";
+import { verifyAccessToken } from "../utils/jwt.util.js";
 
 function mockRes() {
   const res = {
@@ -59,6 +60,10 @@ function mockUser(overrides = {}) {
     fines: [],
     states: [],
     userTutorial: true,
+    tokenVersion: 3,
+    loginAttempts: 0,
+    lockUntil: null,
+    isLocked: false,
     mfa: {
       enabled: true,
       secretEncrypted: encryptTotpSecret(secret),
@@ -85,6 +90,7 @@ function mockUser(overrides = {}) {
         fines: [],
         states: [],
         userTutorial: true,
+        tokenVersion: user.tokenVersion,
         mfa: { ...user.mfa },
       };
     },
@@ -132,6 +138,7 @@ describe("login MFA (admins)", () => {
     expect(res.body.token).toEqual(expect.any(String));
     expect(res.body.mfaRequired).toBeUndefined();
     expect(res.body.user.role).toBe("user");
+    expect(verifyAccessToken(res.body.token).tv).toBe(3);
   });
 
   it("verify emite el JWT con un TOTP válido", async () => {
@@ -148,6 +155,28 @@ describe("login MFA (admins)", () => {
     expect(res.body.ok).toBe(true);
     expect(res.body.token).toEqual(expect.any(String));
     expect(res.body.user.mfaEnabled).toBe(true);
+    const payload = verifyAccessToken(res.body.token);
+    expect(payload.sub).toBe(String(user._id));
+    expect(payload.tv).toBe(3);
+    expect(payload.purpose).toBeUndefined();
+  });
+
+  it("tras password válida resetea lockout de cuenta y desafía MFA (sin JWT)", async () => {
+    const user = mockUser({
+      loginAttempts: 3,
+      lockUntil: new Date(Date.now() - 1000),
+    });
+    UserMongoose.findOne.mockResolvedValue(user);
+    const res = mockRes();
+    await sessionsController.login(
+      { body: { email: "admin@sicen.test", password: "secret" } },
+      res
+    );
+    expect(user.loginAttempts).toBe(0);
+    expect(user.lockUntil).toBeNull();
+    expect(res.statusCode).toBe(200);
+    expect(res.body.mfaRequired).toBe(true);
+    expect(res.body.token).toBeUndefined();
   });
 
   it("un admin sin MFA recibe enrolamiento obligatorio", async () => {

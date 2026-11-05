@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from "react";
+import { AuthenticatedImage } from "../hooks/useAuthenticatedFile.jsx";
 
 /**
  * Lightbox de pruebas para una multa. Compartido por las páginas de consulta y
@@ -85,7 +86,7 @@ export function CarFineProveViewer({ viewer, onClose, onStep }) {
           </button>
         ) : null}
 
-        <img
+        <AuthenticatedImage
           src={current}
           alt={`Prueba ${viewer.index + 1}`}
           className="car-fine-prove-modal__image"

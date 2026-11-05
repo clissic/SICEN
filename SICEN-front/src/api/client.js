@@ -73,6 +73,17 @@ export async function apiFetch(path, options = {}) {
     data = { raw: text };
   }
   if (!res.ok) {
+    if (res.status === 401) {
+      clearAuthToken();
+      const msg = data?.msg || "Su sesión expiró. Por favor, inicie sesión nuevamente.";
+      if (
+        typeof window !== "undefined" &&
+        !window.location.pathname.startsWith("/login") &&
+        !window.location.pathname.startsWith("/restablecer")
+      ) {
+        window.location.href = `/login?expired=1&msg=${encodeURIComponent(msg)}`;
+      }
+    }
     const err = new Error(data?.msg || data?.message || res.statusText);
     err.status = res.status;
     err.data = data;

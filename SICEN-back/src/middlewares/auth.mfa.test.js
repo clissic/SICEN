@@ -69,9 +69,10 @@ describe("guards rechazan el token de desafío MFA", () => {
       email: "a@b.c",
       role: "user",
       password: "x",
+      tokenVersion: 0,
       mfa: { enabled: false },
     });
-    const token = signAccessToken("abc");
+    const token = signAccessToken("abc", 0);
     const req = { headers: { authorization: `Bearer ${token}` } };
     const res = mockRes();
     let nextCalled = false;
@@ -81,5 +82,21 @@ describe("guards rechazan el token de desafío MFA", () => {
     expect(nextCalled).toBe(true);
     expect(req.user.mfaEnabled).toBe(false);
     expect(req.user.password).toBeUndefined();
+  });
+
+  it("checkLogin rechaza un JWT de MFA con tv desfasado", async () => {
+    userService.findById.mockResolvedValueOnce({
+      _id: "abc",
+      email: "a@b.c",
+      role: "admin",
+      tokenVersion: 4,
+      mfa: { enabled: true },
+    });
+    const token = signAccessToken("abc", 3);
+    const req = { headers: { authorization: `Bearer ${token}` } };
+    const res = mockRes();
+    await checkLogin(req, res, () => {});
+    expect(res.statusCode).toBe(401);
+    expect(res.body.msg).toMatch(/sesión fue cerrada/i);
   });
 });

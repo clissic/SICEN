@@ -6,10 +6,6 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["src/test/setup.js"],
-    include: [
-      "src/utils/mfa.test.js",
-      "src/api/client.mfa.test.js",
-      "src/components/mfa/**/*.test.{js,jsx}",
-    ],
+    include: ["src/**/*.test.{js,jsx}"],
   },
 });

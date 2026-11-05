@@ -62,9 +62,7 @@ export function publicUserShape(user) {
 }
 
 function issueAccessToken(user) {
-  // Compatible con PR #12: hoy el JWT solo lleva `sub`. Si ese PR mergea
-  // primero y `signAccessToken` acepta tokenVersion, hay que pasarlo acá.
-  return signAccessToken(user._id);
+  return signAccessToken(user._id, user.tokenVersion);
 }
 
 function ensureMfaSubdoc(user) {

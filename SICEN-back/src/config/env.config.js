@@ -9,6 +9,7 @@ const workMode = program.opts().mode;
 
 dotenv.config({
   path: workMode === 'DEVELOPMENT' ? './.env.development' : './.env.production',
+  quiet: true,
 });
 
 const jwtSecretFromEnv = process.env.JWT_SECRET;
@@ -18,9 +19,37 @@ if (workMode === 'PRODUCTION' && !jwtSecretFromEnv) {
   );
   process.exit(1);
 }
+const mongoUriFromEnv = String(process.env.MONGO_URI || "").trim();
+if (
+  workMode === 'PRODUCTION' &&
+  !/^mongodb(\+srv)?:\/\//i.test(mongoUriFromEnv)
+) {
+  console.error(
+    "[SICEN-back] MONGO_URI es obligatorio en producción (.env.production) y debe ser una URI mongodb:// o mongodb+srv://."
+  );
+  process.exit(1);
+}
+if (workMode === 'PRODUCTION' && !String(process.env.CORS_ORIGIN || "").trim()) {
+  console.error(
+    "[SICEN-back] CORS_ORIGIN es obligatorio en producción (.env.production)."
+  );
+  process.exit(1);
+}
 const jwtSecret =
   jwtSecretFromEnv ||
   "dev-insecure-jwt-secret-cambiar-en-produccion-min-32-chars!";
+
+if (workMode === 'DEVELOPMENT' && !jwtSecretFromEnv) {
+  console.warn(
+    "\n⚠️  [SICEN-back] JWT_SECRET no configurado. Se usa un secret inseguro por defecto."
+  );
+  console.warn(
+    "   Para desarrollo, defina JWT_SECRET en .env.development con un valor único."
+  );
+  console.warn(
+    "   Genere uno con: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\" \n"
+  );
+}
 
 const mfaKeyFromEnv = process.env.MFA_ENCRYPTION_KEY;
 if (workMode === "PRODUCTION" && !mfaKeyFromEnv) {
@@ -54,9 +83,11 @@ const emailAssetsBaseUrl =
   stripTrailingSlash(process.env.EMAIL_LOGO_BASE_URL || "") || publicAppUrl;
 
 export default {
+  mode: workMode,
   port: process.env.PORT,
   jwtSecret,
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN || "24h",
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || "8h",
+  mongoUri: process.env.MONGO_URI || "",
   /** Clave AES-256-GCM del secreto TOTP. En producción es obligatoria (distinta de JWT_SECRET). */
   mfaEncryptionKey,
   mfaChallengeExpiresIn: process.env.MFA_CHALLENGE_EXPIRES_IN || "5m",

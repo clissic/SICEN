@@ -36,6 +36,7 @@ function makeUser(overrides = {}) {
     fines: [],
     states: [],
     userTutorial: true,
+    tokenVersion: 0,
     mfa: {
       enabled: false,
       secretEncrypted: "",
@@ -62,6 +63,7 @@ function makeUser(overrides = {}) {
         fines: user.fines,
         states: user.states,
         userTutorial: user.userTutorial,
+        tokenVersion: user.tokenVersion,
         mfa: { ...user.mfa },
       };
     },
@@ -121,7 +123,9 @@ describe("enrolamiento y verificación MFA", () => {
     const issued = await verifyMfaChallenge(user, code);
     expect(issued.ok).toBe(true);
     expect(issued.token).toEqual(expect.any(String));
-    expect(verifyAccessToken(issued.token).sub).toBe(String(user._id));
+    const payload = verifyAccessToken(issued.token);
+    expect(payload.sub).toBe(String(user._id));
+    expect(payload.tv).toBe(0);
     expect(issued.user.mfaEnabled).toBe(true);
     expect(issued.user.password).toBeUndefined();
     expect(issued.user.mfa).toBeUndefined();
@@ -173,6 +177,16 @@ describe("enrolamiento y verificación MFA", () => {
     expect(result.mfaEnabled).toBe(false);
     expect(userHasMfaEnabled(user)).toBe(false);
     expect(user.mfa.secretEncrypted).toBe("");
+  });
+
+  it("el JWT de MFA incluye tokenVersion (tv) igual que el login normal", async () => {
+    user.tokenVersion = 7;
+    const enrolled = await startEnrollment(user);
+    const issued = await verifyMfaChallenge(user, generateTotp(enrolled.secret));
+    const payload = verifyAccessToken(issued.token);
+    expect(payload.sub).toBe(String(user._id));
+    expect(payload.tv).toBe(7);
+    expect(payload.purpose).toBeUndefined();
   });
 
   it("no deja enrolar a un usuario que no es admin", async () => {
