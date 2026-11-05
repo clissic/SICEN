@@ -73,6 +73,17 @@ export async function apiFetch(path, options = {}) {
     data = { raw: text };
   }
   if (!res.ok) {
+    if (res.status === 401) {
+      clearAuthToken();
+      const msg = data?.msg || "Su sesión expiró. Por favor, inicie sesión nuevamente.";
+      if (
+        typeof window !== "undefined" &&
+        !window.location.pathname.startsWith("/login") &&
+        !window.location.pathname.startsWith("/restablecer")
+      ) {
+        window.location.href = `/login?expired=1&msg=${encodeURIComponent(msg)}`;
+      }
+    }
     const err = new Error(data?.msg || data?.message || res.statusText);
     err.status = res.status;
     err.data = data;
@@ -735,8 +746,37 @@ export async function login(email, password) {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
+  if (data?.mfaRequired) return data;
   if (data?.token) setAuthToken(data.token);
   return data;
+}
+
+export function enrollMfa({ mfaToken, currentCode } = {}) {
+  const body = {};
+  if (mfaToken) body.mfaToken = mfaToken;
+  if (currentCode) body.currentCode = currentCode;
+  return apiFetch("/api/sessions/mfa/enroll", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function verifyMfa({ mfaToken, code } = {}) {
+  const body = { code };
+  if (mfaToken) body.mfaToken = mfaToken;
+  const data = await apiFetch("/api/sessions/mfa/verify", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  if (data?.token) setAuthToken(data.token);
+  return data;
+}
+
+export function disableMfa(code) {
+  return apiFetch("/api/sessions/mfa/disable", {
+    method: "POST",
+    body: JSON.stringify({ code }),
+  });
 }
 
 export async function signup(body) {

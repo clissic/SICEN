@@ -4,6 +4,7 @@ import { updateVesselInspection, usersGetAll } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { ErrorAlert } from "./ErrorAlert.jsx";
 import { InspectorCombobox } from "./InspectorCombobox.jsx";
+import { AuthenticatedDownloadLink } from "../hooks/useAuthenticatedFile.jsx";
 
 /**
  * Etiqueta humana ("Rango Apellido, Nombre") para un usuario dado. Si
@@ -538,14 +539,14 @@ export function InspectionCompletionModal({
                         aria-hidden
                         style={{ color: "#fd7e14", fontSize: "1.4rem" }}
                       />
-                      <a
+                      <AuthenticatedDownloadLink
                         href={existingPdfUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-decoration-none text-break"
                       >
                         Ver PDF actual
-                      </a>
+                      </AuthenticatedDownloadLink>
                       <button
                         type="button"
                         className="btn btn-sm btn-outline-danger ms-auto"

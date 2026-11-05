@@ -37,6 +37,7 @@ import { CarFineFormPage } from "./pages/CarFineFormPage.jsx";
 import { AllCarFinesPage } from "./pages/AllCarFinesPage.jsx";
 import { UserFinesPage } from "./pages/UserFinesPage.jsx";
 import { UpdatePasswordPage } from "./pages/UpdatePasswordPage.jsx";
+import { MfaSetupPage } from "./pages/MfaSetupPage.jsx";
 import { UpdateDataPage } from "./pages/UpdateDataPage.jsx";
 import { NewAccountPage } from "./pages/NewAccountPage.jsx";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage.jsx";
@@ -392,6 +393,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <UpdatePasswordPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/seguridad/mfa"
+        element={
+          <ProtectedRoute>
+            <MfaSetupPage />
           </ProtectedRoute>
         }
       />

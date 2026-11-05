@@ -252,7 +252,7 @@ export async function updateMapMeasurement(user, id, body) {
         "metadata.lastModifiedBy": userEmail(user),
       },
     },
-    { new: true }
+    { returnDocument: "after" }
   ).lean();
   if (!doc) {
     throw httpError("Medición no encontrada.", 404);

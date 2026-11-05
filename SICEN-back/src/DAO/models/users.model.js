@@ -173,6 +173,14 @@ class UsersModel {
     );
     return userUpdated;
   }
+
+  async incrementTokenVersion(_id) {
+    const result = await UserMongoose.updateOne(
+      { _id },
+      { $inc: { tokenVersion: 1 } }
+    );
+    return result;
+  }
 }
 
 export const usersModel = new UsersModel();

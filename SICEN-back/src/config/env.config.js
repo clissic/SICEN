@@ -9,6 +9,7 @@ const workMode = program.opts().mode;
 
 dotenv.config({
   path: workMode === 'DEVELOPMENT' ? './.env.development' : './.env.production',
+  quiet: true,
 });
 
 const jwtSecretFromEnv = process.env.JWT_SECRET;
@@ -18,9 +19,46 @@ if (workMode === 'PRODUCTION' && !jwtSecretFromEnv) {
   );
   process.exit(1);
 }
+const mongoUriFromEnv = String(process.env.MONGO_URI || "").trim();
+if (
+  workMode === 'PRODUCTION' &&
+  !/^mongodb(\+srv)?:\/\//i.test(mongoUriFromEnv)
+) {
+  console.error(
+    "[SICEN-back] MONGO_URI es obligatorio en producción (.env.production) y debe ser una URI mongodb:// o mongodb+srv://."
+  );
+  process.exit(1);
+}
+if (workMode === 'PRODUCTION' && !String(process.env.CORS_ORIGIN || "").trim()) {
+  console.error(
+    "[SICEN-back] CORS_ORIGIN es obligatorio en producción (.env.production)."
+  );
+  process.exit(1);
+}
 const jwtSecret =
   jwtSecretFromEnv ||
   "dev-insecure-jwt-secret-cambiar-en-produccion-min-32-chars!";
+
+if (workMode === 'DEVELOPMENT' && !jwtSecretFromEnv) {
+  console.warn(
+    "\n⚠️  [SICEN-back] JWT_SECRET no configurado. Se usa un secret inseguro por defecto."
+  );
+  console.warn(
+    "   Para desarrollo, defina JWT_SECRET en .env.development con un valor único."
+  );
+  console.warn(
+    "   Genere uno con: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\" \n"
+  );
+}
+
+const mfaKeyFromEnv = process.env.MFA_ENCRYPTION_KEY;
+if (workMode === "PRODUCTION" && !mfaKeyFromEnv) {
+  console.error(
+    "[SICEN-back] MFA_ENCRYPTION_KEY es obligatorio en producción (.env.production)."
+  );
+  process.exit(1);
+}
+const mfaEncryptionKey = mfaKeyFromEnv || jwtSecret;
 
 function stripTrailingSlash(url) {
   if (!url || typeof url !== "string") return "";
@@ -45,10 +83,22 @@ const emailAssetsBaseUrl =
   stripTrailingSlash(process.env.EMAIL_LOGO_BASE_URL || "") || publicAppUrl;
 
 export default {
+  mode: workMode,
   port: process.env.PORT,
   jwtSecret,
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN || "24h",
-  mongoPassword: process.env.MONGODB_PASSWORD,
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || "8h",
+  mongoUri: process.env.MONGO_URI || "",
+  /** Usuario Mongo (opcional). Si MONGO_URI no trae userinfo, db-connection lo inyecta. */
+  mongoUser: process.env.MONGO_USER || "",
+  /**
+   * Contraseña Mongo (opcional). Preferir MONGO_PASSWORD;
+   * MONGODB_PASSWORD queda como alias legacy.
+   */
+  mongoPassword:
+    process.env.MONGO_PASSWORD || process.env.MONGODB_PASSWORD || "",
+  /** Clave AES-256-GCM del secreto TOTP. En producción es obligatoria (distinta de JWT_SECRET). */
+  mfaEncryptionKey,
+  mfaChallengeExpiresIn: process.env.MFA_CHALLENGE_EXPIRES_IN || "5m",
   githubSecret: process.env.GITHUB_LOGIN_SECRET,
   persistence: process.env.PERSISTENCE,
   googleEmail: process.env.GOOGLE_EMAIL,
@@ -57,6 +107,11 @@ export default {
   twilioToken: process.env.TWILIO_AUTH_TOKEN,
   twilioPhoneNumber: process.env.TWILIO_PHONE_NUMBER,
   loggerEnv: process.env.LOGGER_ENV,
+  /**
+   * Forzar archivo (`true`) o consola (`false`).
+   * Si falta: archivo solo en producción local; consola en Docker.
+   */
+  logToFile: process.env.LOG_TO_FILE,
   apiUrl: process.env.API_URL,
   publicAppUrl,
   emailAssetsBaseUrl,
