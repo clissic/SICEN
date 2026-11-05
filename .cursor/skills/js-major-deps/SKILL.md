@@ -50,6 +50,10 @@ y elimina `react-router-dom`. v7.18+ ya parchea el open-redirect de `@remix-run/
    `schema.pre("save")` sin `next()`. Ver `backend-crud-module`.
 3. **Vite 8**: Rolldown/Oxc. No reintroducir `build.rollupOptions` (usar
    `build.rolldownOptions`). El plugin React es `@vitejs/plugin-react@6`.
+   **CSS:** dejar `build.cssMinify: "esbuild"` (y `esbuild` como
+   `devDependency`). El default `lightningcss` descarta el `backdrop-filter`
+   sin prefijo y deja solo `-webkit-backdrop-filter`; Chromium no lo aplica
+   y se pierde el glass de El Centinela (vite#22649 / lightningcss#695).
 4. **Vitest 5**: peer de Vite ≥ 6.4; `clearMocks` default `true`; `vi.mock`
    solo a nivel de módulo. Front: `SICEN-front/vitest.config.js` + script
    `npm test`. Back: `SICEN-back/vitest.config.js`.
@@ -65,6 +69,8 @@ y elimina `react-router-dom`. v7.18+ ya parchea el open-redirect de `@remix-run/
 - ❌ `npm audit fix --force` sobre `vite-plugin-pwa` (te deja en 0.2 / 1.1).
 - ❌ `{ new: true }` en updates Mongoose.
 - ❌ Catch-all Express 4 (`*`) o wildcards sin nombre.
+- ❌ Sacar `build.cssMinify: "esbuild"` en Vite 8 (rompe el blur de los
+  paneles de El Centinela).
 
 ## Ejemplos vivos
 
