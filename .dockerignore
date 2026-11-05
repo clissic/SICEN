@@ -42,8 +42,9 @@ SICEN-back/storage/*
 docs/
 .prettierrc.cjs
 .prettierignore
-package.json
-package-lock.json
+# Solo Prettier de la raíz; NO excluir SICEN-front/SICEN-back/package.json
+/package.json
+/package-lock.json
 
 # No copiar otros servicios al build del backend
 SICEN-sim/

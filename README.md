@@ -1,6 +1,6 @@
 # Sistema Centinela (SICEN)
 
-Aplicación para la **Prefectura del Puerto de Montevideo**: API **Node.js (Express, ESM)** con **MongoDB (Mongoose)** y autenticación **JWT**, más SPA **React 18 + Vite 5** y **React Router 6**. Estilos: **Bootstrap 5.3** (CDN) e iconos Bootstrap Icons; tema claro/oscuro con `data-bs-theme` y estilos en `SICEN-front/src/styles/sistema.css`, `SICEN-front/src/styles/menu-tiles.css` (tarjetas de menú e inicio) y `SICEN-front/src/styles/user-state-badges.css` (barras de especializaciones en el inicio).
+Aplicación para la **Prefectura del Puerto de Montevideo**: API **Node.js 24 (Express 5, ESM)** con **MongoDB (Mongoose 9)** y autenticación **JWT**, más SPA **React 19 + Vite 8** y **React Router 7**. Estilos: **Bootstrap 5.3** (CDN) e iconos Bootstrap Icons; tema claro/oscuro con `data-bs-theme` y estilos en `SICEN-front/src/styles/sistema.css`, `SICEN-front/src/styles/menu-tiles.css` (tarjetas de menú e inicio) y `SICEN-front/src/styles/user-state-badges.css` (barras de especializaciones en el inicio).
 
 ## Estructura del monorepo
 
@@ -152,7 +152,7 @@ SICEN incluye soporte Docker para despliegue con backend, frontend (compilado y 
 | **`sim`** | `sicen-sim:latest` | Simulador de derrames HC (FastAPI + OpenDrift) | 8091 (interno) |
 | **`mongo`** | `mongo:8.0` | Base de datos MongoDB (perfil demo opcional) | 27017 (bound a `127.0.0.1`, solo perfil demo) |
 
-El contenedor `back` construye el frontend (`SICEN-front`) en un stage intermedio y lo copia al directorio `public/` del backend, donde Express lo sirve como SPA. En producción, apuntás a Mongo Atlas (variable `MONGODB_PASSWORD`) y no hace falta el contenedor `mongo`.
+El contenedor `back` usa **`node:24.22.1-alpine`**. El stage de front corre **Vite 8** (`npm ci` con devDependencies: vite, plugin-react, esbuild, PWA) y escribe a `../SICEN-back/public` (el `outDir` de `vite.config.js`, no `dist/`). Ese output se copia a `public/` del runtime Express. En producción, apuntás a Mongo Atlas (variable `MONGODB_PASSWORD`) y no hace falta el contenedor `mongo`.
 
 ### Hardening aplicado
 
@@ -220,7 +220,7 @@ El resto de variables (puertos, TTLs de cache, bboxes, etc.) tienen valores sens
 ### Healthchecks
 
 Ambas imágenes incluyen healthchecks nativos:
-- **`back`**: verifica que Express responda en `/api/sessions/current` (endpoint público, devuelve 401/200).
+- **`back`**: verifica que Express responda en `/api/sessions/me` (endpoint público, 200 con `user: null` si no hay JWT).
 - **`sim`**: verifica que FastAPI responda en `/docs` (ruta pública de la API).
 
 Revisá el estado de salud con `docker compose ps` o `docker inspect <container>`.
