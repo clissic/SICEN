@@ -8,7 +8,13 @@ import {
 
 function handleError(res, e, fallbackMsg) {
   const code = e.status || e.statusCode || 500;
-  if (code === 400 || code === 403 || code === 404 || code === 409) {
+  if (
+    code === 400 ||
+    code === 401 ||
+    code === 403 ||
+    code === 404 ||
+    code === 409
+  ) {
     return res.status(code).json({ ok: false, msg: e.message });
   }
   logger.error(fallbackMsg + ": " + (e?.message || e));

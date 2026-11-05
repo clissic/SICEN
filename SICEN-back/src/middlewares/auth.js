@@ -1,12 +1,24 @@
 import { userService } from "../services/users.service.js";
 import { logger } from "../utils/logger.js";
 import { verifyAccessToken } from "../utils/jwt.util.js";
+import { isMfaChallengePayload } from "../utils/mfaJwt.util.js";
 
 export function toPublicUser(doc) {
   if (!doc) return null;
   const u = doc.toObject ? doc.toObject() : { ...doc };
   delete u.password;
+  const mfaEnabled = u.mfa?.enabled === true;
+  delete u.mfa;
+  u.mfaEnabled = mfaEnabled;
   return u;
+}
+
+function rejectMfaChallengeToken(res) {
+  return res.status(401).json({
+    ok: false,
+    msg: "Debe completar la verificación en dos pasos.",
+    code: "MFA_CHALLENGE",
+  });
 }
 
 function bearerToken(req) {
@@ -25,12 +37,27 @@ export async function optionalJwt(req, res, next) {
       req.user = null;
       return next();
     }
-    const { sub } = verifyAccessToken(token);
+    const payload = verifyAccessToken(token);
+    if (isMfaChallengePayload(payload)) {
+      return rejectMfaChallengeToken(res);
+    }
+    const { sub, tv } = payload;
     const userDoc = await userService.findById(sub);
     if (!userDoc) {
       return res.status(401).json({
         ok: false,
         msg: "Usuario del token no encontrado.",
+      });
+    }
+    const userTokenVersion = Number(userDoc.tokenVersion) || 0;
+    const tokenTv = Number(tv) || 0;
+    if (tokenTv !== userTokenVersion) {
+      logger.info(
+        `optionalJwt: token revocado (tv=${tokenTv}, user tv=${userTokenVersion}) para ${userDoc.email}`
+      );
+      return res.status(401).json({
+        ok: false,
+        msg: "Su sesión fue cerrada. Por favor, inicie sesión nuevamente.",
       });
     }
     req.user = toPublicUser(userDoc);
@@ -51,10 +78,25 @@ export async function checkLogin(req, res, next) {
     if (!token) {
       return res.status(401).json({ ok: false, msg: "Debe iniciar sesión." });
     }
-    const { sub } = verifyAccessToken(token);
+    const payload = verifyAccessToken(token);
+    if (isMfaChallengePayload(payload)) {
+      return rejectMfaChallengeToken(res);
+    }
+    const { sub, tv } = payload;
     const userDoc = await userService.findById(sub);
     if (!userDoc) {
       return res.status(401).json({ ok: false, msg: "Sesión inválida." });
+    }
+    const userTokenVersion = Number(userDoc.tokenVersion) || 0;
+    const tokenTv = Number(tv) || 0;
+    if (tokenTv !== userTokenVersion) {
+      logger.info(
+        `checkLogin: token revocado (tv=${tokenTv}, user tv=${userTokenVersion}) para ${userDoc.email}`
+      );
+      return res.status(401).json({
+        ok: false,
+        msg: "Su sesión fue cerrada. Por favor, inicie sesión nuevamente.",
+      });
     }
     req.user = toPublicUser(userDoc);
     return next();

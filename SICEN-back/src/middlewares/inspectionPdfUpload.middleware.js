@@ -1,9 +1,11 @@
 import { randomUUID } from "crypto";
+import fs from "fs/promises";
 import multer from "multer";
 import {
   INSPECTION_PDFS_DIR,
   ensureInspectionPdfsDirSync,
 } from "../utils/inspectionPDFFiles.js";
+import { validatePdf } from "../utils/fileValidation.js";
 
 const MAX_BYTES = 1 * 1024 * 1024; // 1 MB
 const FIELD_NAME = "inspectionPDF";
@@ -46,12 +48,28 @@ const inspectionPdfUpload = multer({
  * simplemente pasa al siguiente middleware con `req.file` indefinido.
  */
 export function uploadInspectionPdf(req, res, next) {
-  inspectionPdfUpload.single(FIELD_NAME)(req, res, (err) => {
-    if (!err) {
-      next();
-      return;
+  inspectionPdfUpload.single(FIELD_NAME)(req, res, async (err) => {
+    if (err) {
+      return mapMulterErrorToJson(err, res);
     }
-    return mapMulterErrorToJson(err, res);
+
+    // Si no se subió archivo, continuar (es opcional)
+    if (!req.file) {
+      return next();
+    }
+
+    // Validar tipo de archivo por magic bytes
+    const isValid = await validatePdf(req.file.path);
+    if (!isValid) {
+      // Eliminar el archivo inválido
+      await fs.unlink(req.file.path).catch(() => {});
+      return res.status(400).json({
+        ok: false,
+        msg: "El archivo no es un PDF válido.",
+      });
+    }
+
+    next();
   });
 }
 

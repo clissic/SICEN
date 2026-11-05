@@ -126,7 +126,7 @@ class ShipFinesModel {
       const updatedShipFine = await ShipFinesMongoose.findOneAndUpdate(
         query,
         update,
-        { new: true }
+        { returnDocument: "after" }
       );
       if (!updatedShipFine) {
         throw new Error("No se encontró la multa de buque para actualizar");

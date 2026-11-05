@@ -1,9 +1,11 @@
 import { randomUUID } from "crypto";
+import fs from "fs/promises";
 import multer from "multer";
 import {
   AVATARS_DIR,
   ensureAvatarsDirSync,
 } from "../utils/avatarFiles.js";
+import { validateJpeg } from "../utils/fileValidation.js";
 
 const MAX_BYTES = 1024 * 1024;
 
@@ -44,15 +46,31 @@ export const avatarUpload = multer({
 
 /** `single("avatar")` con respuesta JSON ante error de multer. */
 export function uploadAvatarOptional(req, res, next) {
-  avatarUpload.single("avatar")(req, res, (err) => {
-    if (!err) {
-      next();
-      return;
+  avatarUpload.single("avatar")(req, res, async (err) => {
+    if (err) {
+      const msg =
+        err.code === "LIMIT_FILE_SIZE"
+          ? "La imagen supera 1 MB."
+          : err.message || "Archivo no válido.";
+      return res.status(400).json({ ok: false, msg });
     }
-    const msg =
-      err.code === "LIMIT_FILE_SIZE"
-        ? "La imagen supera 1 MB."
-        : err.message || "Archivo no válido.";
-    return res.status(400).json({ ok: false, msg });
+
+    // Si no se subió archivo, continuar (es opcional)
+    if (!req.file) {
+      return next();
+    }
+
+    // Validar tipo de archivo por magic bytes
+    const isValid = await validateJpeg(req.file.path);
+    if (!isValid) {
+      // Eliminar el archivo inválido
+      await fs.unlink(req.file.path).catch(() => {});
+      return res.status(400).json({
+        ok: false,
+        msg: "El archivo no es una imagen JPEG válida.",
+      });
+    }
+
+    next();
   });
 }

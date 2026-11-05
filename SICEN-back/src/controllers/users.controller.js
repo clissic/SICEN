@@ -24,6 +24,9 @@ function userWithoutPassword(user) {
   if (!user) return null;
   const o = user.toObject ? user.toObject() : { ...user };
   delete o.password;
+  const mfaEnabled = o.mfa?.enabled === true;
+  delete o.mfa;
+  o.mfaEnabled = mfaEnabled;
   return o;
 }
 
@@ -361,8 +364,19 @@ class UsersController {
           newPassword: createHash(newPassword),
         });
         if (userUpdated.acknowledged == true) {
-          logger.info(email + " actualizó su contraseña con éxito");
-          const token = signAccessToken(user._id);
+          const updatedDoc = await UserMongoose.findOneAndUpdate(
+            { _id: user._id },
+            { $inc: { tokenVersion: 1 } },
+            { new: true }
+          );
+          logger.info(
+            email +
+              " actualizó su contraseña con éxito (tokenVersion incrementada)"
+          );
+          const token = signAccessToken(
+            updatedDoc._id,
+            updatedDoc.tokenVersion
+          );
           return res.status(200).json({
             ok: true,
             msg: "Contraseña actualizada con éxito.",
@@ -927,9 +941,43 @@ class UsersController {
       updatedUser.avatar = newAvatarPath;
     }
 
+    let shouldRevokeTokens = false;
+    if (
+      updatedUser.role !== undefined &&
+      updatedUser.role !== existing.role
+    ) {
+      shouldRevokeTokens = true;
+      logger.info(
+        `Cambio de rol ${existing.role} → ${updatedUser.role} para ${existing.email} (revocar tokens)`
+      );
+    }
+    if (updatedUser.states && Array.isArray(updatedUser.states)) {
+      const existingStates = existing.states || [];
+      for (let i = 0; i < updatedUser.states.length; i++) {
+        const newState = updatedUser.states[i];
+        const oldState = existingStates.find((s) => s.name === newState.name);
+        if (
+          oldState?.isActive === true &&
+          newState.isActive === false
+        ) {
+          shouldRevokeTokens = true;
+          logger.info(
+            `Desactivación de habilitación "${newState.name}" para ${existing.email} (revocar tokens)`
+          );
+          break;
+        }
+      }
+    }
+
     try {
       const result = await userService.updateOne(updatedUser);
       if (result.matchedCount > 0) {
+        if (shouldRevokeTokens) {
+          await UserMongoose.updateOne(
+            { _id: id },
+            { $inc: { tokenVersion: 1 } }
+          );
+        }
         if (
           newAvatarPath &&
           existing.avatar &&

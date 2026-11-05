@@ -170,7 +170,7 @@ export async function updateMapZone(user, id, body) {
         "metadata.lastModifiedBy": userEmail(user),
       },
     },
-    { new: true }
+    { returnDocument: "after" }
   ).lean();
   if (!doc) {
     throw httpError("Zona no encontrada.", 404);

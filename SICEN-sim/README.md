@@ -42,8 +42,12 @@ docker build -t sicen-sim .
 docker run --rm -p 8091:8091 -e SICEN_SIM_ENGINE=auto sicen-sim
 ```
 
-En la imagen se intenta instalar OpenDrift (`requirements-opendrift.txt`).
-Si no está disponible, el worker usa motores **Lagrangian** (HC NOAA-like / SAR leeway-like).
+En la imagen se instala OpenDrift + **`adios-db`** (`requirements-opendrift.txt`).
+**No** se usa `oil_library` ni `oil_library-oil`: esa librería de NOAA está
+archivada y el paquete `oil_library-oil` **no existe en PyPI** (404), así que
+rompía el `pip install`. OpenDrift ≥1.13 resuelve los aceites GENERIC con
+`adios_db` (nombres en `app/oils.py`). Si OpenDrift no llega a instalarse, el
+worker usa motores **Lagrangian** (HC NOAA-like / SAR leeway-like).
 
 ## Variables
 
@@ -53,6 +57,8 @@ Si no está disponible, el worker usa motores **Lagrangian** (HC NOAA-like / SAR
 | `SICEN_SIM_CACHE_DIR` | `data/cache` | Cache forzado Open-Meteo |
 | `SICEN_SIM_CACHE_TTL_S` | `21600` | TTL cache (6 h) |
 | `PORT` | `8091` | Puerto uvicorn |
+| `MPLCONFIGDIR` | `/tmp/matplotlib` | Cache de Matplotlib (rootfs read-only) |
+| `XDG_CONFIG_HOME` | `/tmp` | Config de usuario (OpenDrift/Matplotlib) |
 
 Con `auto`: OpenOil / OpenDrift Leeway si están instalados; si no, Lagrangian.
 Los casos SAR `piw_deceased_submerged` (ADD) usan siempre Lagrangian.

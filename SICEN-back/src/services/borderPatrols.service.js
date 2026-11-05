@@ -168,7 +168,7 @@ function parseFulfillment(raw, patrol) {
 export async function listBorderPatrolsByMonth({ year, month }, user) {
   await ensureBorderPatrolIndexes();
   const unit = userUnit(user);
-  if (!unit) throw httpError("Debe iniciar sesión.", 401);
+  if (!unit) throw httpError("No tiene una unidad asignada.", 403);
 
   const hasMonth = month !== undefined && month !== null && String(month).trim() !== "";
   const prefix = hasMonth

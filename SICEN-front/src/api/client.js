@@ -73,6 +73,17 @@ export async function apiFetch(path, options = {}) {
     data = { raw: text };
   }
   if (!res.ok) {
+    if (res.status === 401) {
+      clearAuthToken();
+      const msg = data?.msg || "Su sesión expiró. Por favor, inicie sesión nuevamente.";
+      if (
+        typeof window !== "undefined" &&
+        !window.location.pathname.startsWith("/login") &&
+        !window.location.pathname.startsWith("/restablecer")
+      ) {
+        window.location.href = `/login?expired=1&msg=${encodeURIComponent(msg)}`;
+      }
+    }
     const err = new Error(data?.msg || data?.message || res.statusText);
     err.status = res.status;
     err.data = data;
@@ -735,8 +746,37 @@ export async function login(email, password) {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
+  if (data?.mfaRequired) return data;
   if (data?.token) setAuthToken(data.token);
   return data;
+}
+
+export function enrollMfa({ mfaToken, currentCode } = {}) {
+  const body = {};
+  if (mfaToken) body.mfaToken = mfaToken;
+  if (currentCode) body.currentCode = currentCode;
+  return apiFetch("/api/sessions/mfa/enroll", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function verifyMfa({ mfaToken, code } = {}) {
+  const body = { code };
+  if (mfaToken) body.mfaToken = mfaToken;
+  const data = await apiFetch("/api/sessions/mfa/verify", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  if (data?.token) setAuthToken(data.token);
+  return data;
+}
+
+export function disableMfa(code) {
+  return apiFetch("/api/sessions/mfa/disable", {
+    method: "POST",
+    body: JSON.stringify({ code }),
+  });
 }
 
 export async function signup(body) {
@@ -2179,8 +2219,9 @@ export function createBorderPatrol(payload) {
 }
 
 export function updateBorderPatrolStatus(id, payload) {
+  const enc = encodeURIComponent(String(id ?? "").trim());
   const body = typeof payload === "string" ? { status: payload } : payload;
-  return apiFetch(`/api/borderPatrols/${id}`, {
+  return apiFetch(`/api/borderPatrols/${enc}`, {
     method: "PATCH",
     body: JSON.stringify(body),
   });
@@ -2192,7 +2233,8 @@ export function updateBorderPatrol(id, payload) {
 }
 
 export function deleteBorderPatrol(id) {
-  return apiFetch(`/api/borderPatrols/${id}`, { method: "DELETE" });
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/borderPatrols/${enc}`, { method: "DELETE" });
 }
 
 /** Números de patrulla definidos por una unidad. */
@@ -2209,12 +2251,14 @@ export function createBorderPatrolType(payload) {
 }
 
 export function updateBorderPatrolType(id, payload) {
-  return apiFetch(`/api/borderPatrolTypes/${id}`, {
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/borderPatrolTypes/${enc}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
 }
 
 export function deleteBorderPatrolType(id) {
-  return apiFetch(`/api/borderPatrolTypes/${id}`, { method: "DELETE" });
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/borderPatrolTypes/${enc}`, { method: "DELETE" });
 }

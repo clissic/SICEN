@@ -35,6 +35,7 @@ description: >-
 - Solo `superAdmin` puede asignar `superAdmin` (create / update).
 - Admin/superAdmin siguen siendo los únicos privilegiados para rutas
   `adminGuarded` / `ProtectedRoute admin` (no confundir con skipper/seaman/agency).
+  El login de esos roles exige TOTP (skill `admin-mfa-totp`).
 - Al agregar un rol nuevo: actualizar **ambos** constants (front y back) y el
   enum del schema (vía `USER_ROLE_VALUES`).
 - **Nuevo usuario:** el rol se elige con **orejetas** (tabs) arriba del

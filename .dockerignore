@@ -1,0 +1,51 @@
+# SICEN monorepo — .dockerignore (para build multi-stage desde raíz)
+# Evita copiar .env con secretos, node_modules (se reinstalan en cada stage),
+# archivos de desarrollo, testing y documentación.
+
+.env
+.env.*
+!.env.example
+
+**/node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+**/*.log
+**/logs
+**/*.pid
+**/*.seed
+**/*.pid.lock
+
+.DS_Store
+Thumbs.db
+
+.git
+.gitignore
+.cursor
+.vscode
+.idea
+
+SICEN-back/storage/*
+!SICEN-back/storage/.gitkeep
+
+**/*.test.js
+**/*.spec.js
+**/coverage
+**/.nyc_output
+
+**/Dockerfile
+**/.dockerignore
+**/docker-compose*.yml
+**/README.md
+docs/
+.prettierrc.cjs
+.prettierignore
+# Solo Prettier de la raíz; NO excluir SICEN-front/SICEN-back/package.json
+/package.json
+/package-lock.json
+
+# No copiar otros servicios al build del backend
+SICEN-sim/
+SICEN-ais-receiver/

@@ -1,24 +1,33 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { enrollMfa, verifyMfa } from "../api/client.js";
 import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { IframeModal } from "../components/IframeModal.jsx";
 import { NewAccountRequestModal } from "../components/NewAccountRequestModal.jsx";
 import { ForgotPasswordModal } from "../components/ForgotPasswordModal.jsx";
+import { MfaCodeForm } from "../components/mfa/MfaCodeForm.jsx";
+import { MfaEnrollPanel } from "../components/mfa/MfaEnrollPanel.jsx";
 import { ThemeToggle, useBootstrapTheme } from "../components/ThemeToggle.jsx";
+import { loginStepFromResponse } from "../utils/mfa.js";
 
 const JPC_SITE_URL = "https://jpc-dev.uy";
 
 export function LoginPage() {
-  const { user, loading, login } = useAuth();
+  const { user, loading, login, completeMfaLogin } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [err, setErr] = useState("");
+  const [mfaStep, setMfaStep] = useState("credentials");
+  const [mfaToken, setMfaToken] = useState("");
+  const [enroll, setEnroll] = useState(null);
+  const [mfaBusy, setMfaBusy] = useState(false);
   const [jpcModalOpen, setJpcModalOpen] = useState(false);
   const [newAccountOpen, setNewAccountOpen] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const loc = useLocation();
+  const [searchParams] = useSearchParams();
   const fromLocation = loc.state?.from;
   const from =
     fromLocation && typeof fromLocation.pathname === "string"
@@ -31,15 +40,58 @@ export function LoginPage() {
   useEffect(() => {
     if (loc.state?.openNewAccount) setNewAccountOpen(true);
     if (loc.state?.openForgotPassword) setForgotPasswordOpen(true);
-  }, [loc.state?.openNewAccount, loc.state?.openForgotPassword]);
+    if (searchParams.get("expired") === "1") {
+      const msg = searchParams.get("msg") || "Su sesión expiró. Por favor, inicie sesión nuevamente.";
+      setErr(msg);
+    }
+  }, [loc.state?.openNewAccount, loc.state?.openForgotPassword, searchParams]);
+
+  function resetMfa() {
+    setMfaStep("credentials");
+    setMfaToken("");
+    setEnroll(null);
+    setMfaBusy(false);
+  }
 
   async function onSubmit(e) {
     e.preventDefault();
     setErr("");
     try {
-      await login(email, password);
+      const data = await login(email, password);
+      const step = loginStepFromResponse(data);
+      if (step === "enroll") {
+        setMfaToken(data.mfaToken);
+        setMfaBusy(true);
+        setMfaStep("enroll");
+        try {
+          const payload = await enrollMfa({ mfaToken: data.mfaToken });
+          setEnroll(payload);
+        } catch (ex) {
+          setErr(ex.message || "No se pudo generar el código QR.");
+        } finally {
+          setMfaBusy(false);
+        }
+        return;
+      }
+      if (step === "verify") {
+        setMfaToken(data.mfaToken);
+        setMfaStep("verify");
+      }
     } catch (ex) {
       setErr(ex.message || "Error al ingresar");
+    }
+  }
+
+  async function onMfaVerify(code) {
+    setErr("");
+    setMfaBusy(true);
+    try {
+      const data = await verifyMfa({ mfaToken, code });
+      await completeMfaLogin(data);
+    } catch (ex) {
+      setErr(ex.message || "El código es incorrecto o venció.");
+    } finally {
+      setMfaBusy(false);
     }
   }
 
@@ -84,6 +136,45 @@ export function LoginPage() {
         </div>
 
         <div className="login-panel__inner">
+          {mfaStep === "enroll" ? (
+            enroll ? (
+              <MfaEnrollPanel
+                qrDataUrl={enroll.qrDataUrl}
+                secret={enroll.secret}
+                recoveryCodes={enroll.recoveryCodes}
+                onConfirm={onMfaVerify}
+                onBack={resetMfa}
+                loading={mfaBusy}
+                error={err}
+              />
+            ) : (
+              <>
+                <h2 className="login-panel__title">Configurar verificación</h2>
+                <p className="login-panel__subtitle">
+                  Generando el código QR…
+                </p>
+                <ErrorAlert
+                  message={err}
+                  className="alert alert-danger py-2 mb-3"
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary w-100"
+                  onClick={resetMfa}
+                >
+                  Volver
+                </button>
+              </>
+            )
+          ) : mfaStep === "verify" ? (
+            <MfaCodeForm
+              onSubmit={onMfaVerify}
+              onBack={resetMfa}
+              loading={mfaBusy}
+              error={err}
+            />
+          ) : (
+            <>
           <h2 className="login-panel__title">Ingresar</h2>
           <p className="login-panel__subtitle">
             Ingrese sus credenciales para continuar.
@@ -156,6 +247,8 @@ export function LoginPage() {
               Recuperar contraseña
             </button>
           </div>
+            </>
+          )}
 
           <footer className="login-panel__meta">
             <div className="login-panel__meta-row">

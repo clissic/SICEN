@@ -55,6 +55,11 @@ app.use("/api/vesselInspections", vesselInspectionsRouter);
 9. **Nombre de la colección**: pasar el nombre en `camelCase` y plural a
    `model("<plural>", schema)`. Coincide con el segmento de la URL
    (`/api/vesselInspections`).
+10. **Mongoose 9**: `findOneAndUpdate` / `findOneAndReplace` usan
+    `{ returnDocument: "after" }` (no `{ new: true }`, deprecado). Los
+    `schema.pre("save")` van **sin** `next()`: función sync o `async`.
+    El catch-all de la SPA en `app.js` es `app.get("/{*splat}", …)`
+    (Express 5; `app.get("*")` ya no es válido).
 
 ## Antipatrones a evitar
 
@@ -320,6 +325,8 @@ export function deleteX(id) {
 | Unidades | `units.mongoose.js` | `units.service.js` | `units.controller.js` | `units.router.js` |
 | Inspecciones de buques | `vesselInspections.mongoose.js` | `vesselInspections.service.js` | `vesselInspections.controller.js` | `vesselInspections.router.js` |
 | Movimientos deportivos | `sportMovements.mongoose.js` | `sportMovements.service.js` | `sportMovements.controller.js` | `sportMovements.router.js` |
+| Patrullas de frontera | `borderPatrols.mongoose.js` | `borderPatrols.service.js` | `borderPatrols.controller.js` | `borderPatrols.router.js` |
+| Tipos de patrulla | `borderPatrolTypes.mongoose.js` | `borderPatrolTypes.service.js` | `borderPatrolTypes.controller.js` | `borderPatrolTypes.router.js` |
 
 Las **multas** (`carFines`, `shipFines`, `personalFines`) siguen un patrón
 **legacy** con DAO/Model wrapper y respuestas `{ status, payload }`. **No

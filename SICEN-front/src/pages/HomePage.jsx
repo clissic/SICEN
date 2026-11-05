@@ -14,6 +14,7 @@ import {
   skipperTrackingStatus,
 } from "../api/client.js";
 import { SkipperReportArrivalModal } from "../components/SkipperReportArrivalModal.jsx";
+import { AuthenticatedImage } from "../hooks/useAuthenticatedFile.jsx";
 import {
   stopSportMovementPositionEmitter,
   useSportMovementPositionEmitter,
@@ -135,15 +136,21 @@ export function HomePage() {
             <div className="card shadow-sm">
               <div className="card-body">
                 <div className="d-flex flex-column flex-xl-row align-items-center align-items-xl-center gap-3">
-                  <img
+                  <AuthenticatedImage
                     src={user?.avatar}
                     alt="perfil"
                     width="72"
                     height="72"
                     className="rounded-circle object-fit-cover border flex-shrink-0"
-                    onError={(e) => {
-                      e.target.src = "/img/avatar.png";
-                    }}
+                    errorPlaceholder={
+                      <img
+                        src="/img/avatar.png"
+                        alt="perfil"
+                        width="72"
+                        height="72"
+                        className="rounded-circle object-fit-cover border flex-shrink-0"
+                      />
+                    }
                   />
                   <div className="flex-grow-1 w-100 text-center text-xl-start">
                     <div className="fw-semibold">
@@ -161,7 +168,7 @@ export function HomePage() {
 
                 <hr />
 
-                <div className="row g-2 mt-3 row-cols-3 row-cols-lg-1 row-cols-xl-3">
+                <div className={`row g-2 mt-3 row-cols-3 row-cols-lg-1 ${isAdmin ? "row-cols-xl-4" : "row-cols-xl-3"}`}>
                   <div className="col d-flex align-items-stretch">
                     <Link
                       className={`${sidebarMenuBtnClass} flex-grow-1 d-flex flex-column align-items-stretch h-100 py-2 px-1 lh-sm`}
@@ -180,6 +187,26 @@ export function HomePage() {
                       />
                     </Link>
                   </div>
+                  {isAdmin ? (
+                    <div className="col d-flex align-items-stretch">
+                      <Link
+                        className={`${sidebarMenuBtnClass} flex-grow-1 d-flex flex-column align-items-stretch h-100 py-2 px-1 lh-sm`}
+                        to="/seguridad/mfa"
+                      >
+                        <div className="d-flex flex-column align-items-center justify-content-center flex-grow-1 gap-1 text-center">
+                          <i className="bi bi-shield-lock fs-5" aria-hidden="true" />
+                          <span className="small text-wrap">
+                            Verificación en dos pasos
+                          </span>
+                        </div>
+                        <span
+                          className="d-inline-block border-bottom border-2 border-secondary align-self-center opacity-50 mt-1"
+                          style={{ width: "2rem" }}
+                          aria-hidden="true"
+                        />
+                      </Link>
+                    </div>
+                  ) : null}
                   <div className="col d-flex align-items-stretch">
                     <Link
                       className={`${sidebarMenuBtnClass} flex-grow-1 d-flex flex-column align-items-stretch h-100 py-2 px-1 lh-sm`}

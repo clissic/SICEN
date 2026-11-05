@@ -7,23 +7,15 @@ import { fileURLToPath } from "url";
 import env from "./config/env.config.js";
 import { logger } from "./utils/logger.js";
 import { connectMongo } from "./utils/db-connection.js";
-import { AVATARS_DIR, ensureAvatarsDirSync } from "./utils/avatarFiles.js";
-import {
-  CAR_FINE_PROVES_DIR,
-  ensureCarFineProvesDirSync,
-} from "./utils/carFineProveFiles.js";
-import {
-  SHIP_FINE_PROVES_DIR,
-  ensureShipFineProvesDirSync,
-} from "./utils/shipFineProveFiles.js";
-import {
-  PERSONAL_FINE_PROVES_DIR,
-  ensurePersonalFineProvesDirSync,
-} from "./utils/personalFineProveFiles.js";
-import {
-  INSPECTION_PDFS_DIR,
-  ensureInspectionPdfsDirSync,
-} from "./utils/inspectionPDFFiles.js";
+import { securityHeaders } from "./middlewares/securityHeaders.js";
+import { rejectBrotliMiddleware } from "./middlewares/rejectBrotli.js";
+import { mongoSanitizeMiddleware } from "./middlewares/mongoSanitize.js";
+import { globalErrorHandler } from "./middlewares/errorHandler.js";
+import { ensureAvatarsDirSync } from "./utils/avatarFiles.js";
+import { ensureCarFineProvesDirSync } from "./utils/carFineProveFiles.js";
+import { ensureShipFineProvesDirSync } from "./utils/shipFineProveFiles.js";
+import { ensurePersonalFineProvesDirSync } from "./utils/personalFineProveFiles.js";
+import { ensureInspectionPdfsDirSync } from "./utils/inspectionPDFFiles.js";
 import { ensureSeafarerLinkIdentityDirSync } from "./utils/seafarerLinkIdentityFiles.js";
 import { ensureVesselAdminProofDirSync } from "./utils/vesselAdminProofFiles.js";
 import { usersRouter } from "./routes/users.router.js";
@@ -58,6 +50,7 @@ import { mapMeasurementsRouter } from "./routes/mapMeasurements.router.js";
 import { seafarerLinksRouter } from "./routes/seafarerLinks.router.js";
 import { borderPatrolsRouter } from "./routes/borderPatrols.router.js";
 import { borderPatrolTypesRouter } from "./routes/borderPatrolTypes.router.js";
+import { filesRouter } from "./routes/files.router.js";
 import { warmAisBridge } from "./services/aisBridge.service.js";
 import { startNmeaReceiver } from "./services/aisNmeaReceiver.service.js";
 import {
@@ -75,8 +68,6 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = env.port;
-const MONGO_PASSWORD = env.mongoPassword;
-const dbName = "SIGMU_DB";
 
 const CLIENT_DIST = path.join(__dirname, "../public");
 const CLIENT_INDEX = path.join(CLIENT_DIST, "index.html");
@@ -88,11 +79,11 @@ const httpServer = app.listen(PORT, () => {
   if (hasSpaBuild) {
     logger.info(`SPA (React) servida desde ${CLIENT_DIST}`);
   } else if (fs.existsSync(CLIENT_DIST)) {
-    logger.warn(
+    logger.warning(
       "Carpeta /public sin index.html (build incompleto o fallido). Ejecutá: cd SICEN-front && npm run build"
     );
   } else {
-    logger.warn(
+    logger.warning(
       "No hay build del front en /public. Ejecutá: cd SICEN-front && npm run build"
     );
   }
@@ -100,12 +91,29 @@ const httpServer = app.listen(PORT, () => {
 
 connectMongo();
 
-const corsOrigins =
-  process.env.CORS_ORIGIN?.split(",").map((s) => s.trim()) || [
+const isProduction = process.env.NODE_ENV === "production" || env.mode === "PRODUCTION";
+
+let corsOrigins;
+if (process.env.CORS_ORIGIN) {
+  corsOrigins = process.env.CORS_ORIGIN.split(",").map((s) => s.trim());
+} else {
+  if (isProduction) {
+    logger.error(
+      "CORS_ORIGIN es obligatorio en producción. Definilo en .env.production como lista separada por comas."
+    );
+    process.exit(1);
+  }
+  corsOrigins = [
     `http://localhost:${PORT}`,
     "http://127.0.0.1:" + PORT,
     "http://localhost:5173",
   ];
+  logger.warning(
+    `CORS_ORIGIN no definido — usando orígenes de desarrollo: ${corsOrigins.join(", ")}`
+  );
+}
+
+app.use(securityHeaders);
 
 app.use(
   cors({
@@ -113,6 +121,8 @@ app.use(
     credentials: true,
   })
 );
+
+app.use(rejectBrotliMiddleware);
 
 app.use(
   compression({
@@ -126,26 +136,14 @@ app.use(
   })
 );
 app.use(express.json({ limit: "3mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: "3mb" }));
+app.use(mongoSanitizeMiddleware);
 
 ensureAvatarsDirSync();
-app.use("/uploads/avatars", express.static(AVATARS_DIR));
-
 ensureCarFineProvesDirSync();
-app.use("/uploads/carFineProves", express.static(CAR_FINE_PROVES_DIR));
-
 ensureShipFineProvesDirSync();
-app.use("/uploads/shipFineProves", express.static(SHIP_FINE_PROVES_DIR));
-
 ensurePersonalFineProvesDirSync();
-app.use(
-  "/uploads/personalFineProves",
-  express.static(PERSONAL_FINE_PROVES_DIR)
-);
-
 ensureInspectionPdfsDirSync();
-app.use("/uploads/inspectionsERP", express.static(INSPECTION_PDFS_DIR));
-
 ensureSeafarerLinkIdentityDirSync();
 ensureVesselAdminProofDirSync();
 
@@ -181,6 +179,7 @@ app.use("/api/mapMeasurements", mapMeasurementsRouter);
 app.use("/api/seafarer-links", seafarerLinksRouter);
 app.use("/api/borderPatrols", borderPatrolsRouter);
 app.use("/api/borderPatrolTypes", borderPatrolTypesRouter);
+app.use("/api/files", filesRouter);
 
 warmAisBridge();
 startNmeaReceiver();
@@ -217,7 +216,7 @@ if (isSarSimEnabled()) {
 
 if (hasSpaBuild) {
   app.use(express.static(CLIENT_DIST));
-  app.get("*", (req, res, next) => {
+  app.get("/{*splat}", (req, res, next) => {
     if (req.path.startsWith("/api")) {
       return next();
     }
@@ -258,3 +257,5 @@ app.use((req, res) => {
       "Sin SPA en /public. Generá el front: cd SICEN-front && npm run build (o npm run build:client desde SICEN-back).",
   });
 });
+
+app.use(globalErrorHandler);

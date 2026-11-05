@@ -18,7 +18,7 @@ class OilSpec(TypedDict):
     emulsify_rate: float
     # API gravity aproximada (referencia)
     api: float
-    # Nombre ADIOS / OilLibrary si el motor OpenDrift está activo
+    # Nombre GENERIC de OpenDrift/ADIOS (adios_db). No usar OilLibrary.
     adios_name: str
 
 
@@ -31,7 +31,7 @@ OIL_CATALOG: dict[str, OilSpec] = {
         "evaporable_fraction": 0.75,
         "emulsify_rate": 0.15,
         "api": 35.0,
-        "adios_name": "DIESEL FUEL OIL (SOUTH LOUISIANA CRUDE)",
+        "adios_name": "GENERIC DIESEL",
     },
     "ifo180": {
         "id": "ifo180",
@@ -41,7 +41,7 @@ OIL_CATALOG: dict[str, OilSpec] = {
         "evaporable_fraction": 0.25,
         "emulsify_rate": 0.55,
         "api": 15.0,
-        "adios_name": "INTERMEDIATE FUEL OIL 180",
+        "adios_name": "GENERIC INTERMEDIATE FUEL OIL 180",
     },
     "crude_light": {
         "id": "crude_light",
