@@ -1,4 +1,5 @@
 import { UnitMongoose } from "../DAO/models/mongoose/units.mongoose.js";
+import { parseHighCommand } from "../constants/highCommands.js";
 import { UserMongoose } from "../DAO/models/mongoose/users.mongoose.js";
 import { renameUnitsFilesFolder } from "../services/unitFiles.service.js";
 import {
@@ -21,6 +22,10 @@ function normalizeSiglaParam(raw) {
 
 const SIGLA_MSG =
   "La sigla debe tener entre 4 y 6 caracteres (solo letras y números).";
+
+function readHighCommand(body) {
+  return parseHighCommand(body?.granMando ?? body?.highCommand);
+}
 
 const TZ_UY = "America/Montevideo";
 
@@ -135,7 +140,7 @@ export const unitsController = {
     try {
       const units = await UnitMongoose.find()
         .select(
-          "acronym name address phone foundationDate shieldRelativeUrl emailRadio emailPoliciaMaritima emailMarinaMercante emailApoyoLogistico emailSecretaria portsUnderJurisdiction"
+          "acronym name highCommand address phone foundationDate shieldRelativeUrl emailRadio emailPoliciaMaritima emailMarinaMercante emailApoyoLogistico emailSecretaria portsUnderJurisdiction"
         )
         .sort({ acronym: 1 })
         .lean();
@@ -243,6 +248,14 @@ export const unitsController = {
         });
       }
 
+      const highCommand = readHighCommand(req.body);
+      if (!highCommand) {
+        return res.status(400).json({
+          ok: false,
+          msg: "Elegí el Gran Mando.",
+        });
+      }
+
       const address = String(req.body.direccion ?? "").trim().slice(0, 500);
       const phone = String(req.body.telefono ?? "").trim().slice(0, 50);
       const heraldica = String(req.body.heraldica ?? "").trim().slice(0, 20000);
@@ -272,6 +285,7 @@ export const unitsController = {
       const created = await createUnitDocument({
         acronym: siglaRaw,
         name: name.slice(0, 200),
+        highCommand,
         address,
         phone,
         ...emails,
@@ -311,7 +325,7 @@ export const unitsController = {
       }
       const unit = await UnitMongoose.findOne({ acronym: sigla })
         .select(
-          "acronym name address phone foundationDate shieldRelativeUrl heraldica emailRadio emailPoliciaMaritima emailMarinaMercante emailApoyoLogistico emailSecretaria portsUnderJurisdiction"
+          "acronym name highCommand address phone foundationDate shieldRelativeUrl heraldica emailRadio emailPoliciaMaritima emailMarinaMercante emailApoyoLogistico emailSecretaria portsUnderJurisdiction"
         )
         .lean();
       if (!unit) {
@@ -346,6 +360,14 @@ export const unitsController = {
         return res.status(400).json({
           ok: false,
           msg: "El nombre es obligatorio.",
+        });
+      }
+
+      const highCommand = readHighCommand(req.body);
+      if (!highCommand) {
+        return res.status(400).json({
+          ok: false,
+          msg: "Elegí el Gran Mando.",
         });
       }
 
@@ -411,6 +433,7 @@ export const unitsController = {
 
       existing.acronym = newSigla;
       existing.name = name.slice(0, 200);
+      existing.highCommand = highCommand;
       existing.address = address;
       existing.phone = phone;
       existing.heraldica = heraldica;

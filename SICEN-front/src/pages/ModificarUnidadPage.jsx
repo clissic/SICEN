@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { getUnit, listUnitsRegistered, updateUnit } from "../api/client.js";
+import { HIGH_COMMANDS } from "../constants/highCommands.js";
 import { Layout } from "../components/Layout.jsx";
 import {
   UnitJurisdictionPortsFields,
@@ -219,6 +220,24 @@ export function ModificarUnidadPage() {
                       defaultValue={detail.acronym}
                       autoComplete="off"
                     />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label" htmlFor="mu-mando">
+                      Gran Mando <span className="text-danger">*</span>
+                    </label>
+                    <select
+                      id="mu-mando"
+                      name="granMando"
+                      className="form-select"
+                      required
+                      defaultValue={detail.highCommand || "PRENA"}
+                    >
+                      {HIGH_COMMANDS.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.id} — {item.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="col-12">

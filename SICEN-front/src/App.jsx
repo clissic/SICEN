@@ -15,6 +15,7 @@ import { MiUnidadPage } from "./pages/MiUnidadPage.jsx";
 import { MiUnidadDivisionPage } from "./pages/MiUnidadDivisionPage.jsx";
 import { MiUnidadDivisionMenuItemPage } from "./pages/MiUnidadDivisionMenuItemPage.jsx";
 import { MiUnidadEmpreDivisionItemPage } from "./pages/MiUnidadEmpreDivisionItemPage.jsx";
+import { MiUnidadEmpreBorderMenuPage } from "./pages/MiUnidadEmprePatrolsPage.jsx";
 import { MiUnidadAreaPage } from "./pages/MiUnidadAreaPage.jsx";
 import { SportMovementsMenuPage } from "./pages/SportMovementsMenuPage.jsx";
 import { SportMovementsDispatchesPage } from "./pages/SportMovementsDispatchesPage.jsx";
@@ -191,6 +192,15 @@ export default function App() {
         }
       />
       <Route
+        path="/mi-unidad/patrullas-de-frontera"
+        element={
+          <Navigate
+            to="/mi-unidad/division-i/frontera/patrullas-de-frontera"
+            replace
+          />
+        }
+      />
+      <Route
         path="/mi-unidad/areas/movimientos-deportivos/despachos"
         element={
           <ProtectedRoute>
@@ -238,6 +248,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <MiUnidadAreaPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mi-unidad/p3-planes-y-operaciones/control-de-fronteras/:menuSlug"
+        element={
+          <ProtectedRoute>
+            <MiUnidadEmpreBorderMenuPage />
           </ProtectedRoute>
         }
       />

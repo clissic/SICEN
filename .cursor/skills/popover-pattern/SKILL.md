@@ -27,7 +27,8 @@ SICEN de popovers Bootstrap.
 
 | Atributo | Uso |
 |---|---|
-| `data-sicen-popover` | Texto del popover (obligatorio) |
+| `data-sicen-popover` | Texto del popover (obligatorio). Con `data-sicen-popover-html="true"`, markup propio ya escapado |
+| `data-sicen-popover-html` | `true` para renderizar HTML (`html: true`, sigue con `sanitize: true`). Sin esto el texto es plano |
 | `data-sicen-popover-placement` | `top` (default), `bottom`, `left`, `right` |
 | `data-sicen-popover-touch="click"` | En mobile/touch, permite abrir con tap (p. ej. íconos info). Sin esto, en mobile **no** hay popover (evita pelear con botones de menú). |
 | `aria-label` | Accesibilidad (recomendado en botones solo-ícono) |
@@ -48,7 +49,7 @@ SICEN de popovers Bootstrap.
 trigger: touchUi ? "click" : "hover"
 ```
 
-- **Desktop:** solo `hover`, con **demora de 1 s** al aparecer (`delay: { show: 1000, hide: 0 }`). No usar `focus` ni `hover focus`.
+- **Desktop:** solo `hover`, con **demora de 0,75 s** al aparecer (`delay: { show: 750, hide: 0 }`). No usar `focus` ni `hover focus`.
 - **Mobile:** los botones de menú **no** abren popover. Solo elementos con
   `data-sicen-popover-touch="click"` (íconos de información) abren al tap (sin demora) y
   se cierran al tocar fuera.
@@ -129,3 +130,4 @@ trigger: touchUi ? "click" : "hover"
 - `NotificationsBell` (desktop) y logout en `Layout`
 - `ProcedimientosFilesList`, `IframeModal` (enlace «abrir en pestaña nueva»)
 - Sigla de unidad en `SumarUnidadPage` / `ModificarUnidadPage`
+- Encabezado `1F` / `1T` de la grilla de patrullas (`data-sicen-popover-html="true"`: clave chica y valor en negrita debajo)

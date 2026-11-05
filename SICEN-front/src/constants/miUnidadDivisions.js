@@ -32,6 +32,24 @@ export const MI_UNIDAD_DIVISIONS = Object.freeze([
           },
         ],
       },
+      {
+        slug: "frontera",
+        title: "Frontera",
+        items: [
+          {
+            slug: "patrullas-de-frontera",
+            title: "Patrullas de frontera",
+            subtitle: "Número y detalle de cada patrulla de la unidad.",
+            iconClass: "bi-signpost-2",
+          },
+          {
+            slug: "planificacion-mensual",
+            title: "Planificación mensual",
+            subtitle: "Planificación proyectada por el Estado Mayor.",
+            iconClass: "bi-calendar3",
+          },
+        ],
+      },
     ],
   },
   {

@@ -336,6 +336,13 @@ Las páginas `MiUnidadDivisionPage.jsx` (DIV-I / DIV-II) y `MiUnidadAreaPage.jsx
 - **Seguimiento GPS** en tránsito: posiciones persistentes, alertas sin señal 5 min y ETA vencida, capa en El Centinela, emisor náuta (web) y documentación en `docs/seguimiento-gps-movimientos-deportivos.md`.
 - API `/api/sportMovements` + `/api/notifications` + skills `sport-movements-pattern` / `sport-movement-tracking` / `notifications-pattern`.
 
+**Ya entregado — Gestión de patrullas (EMPRE y unidades de línea):**
+
+- EMPRE, en P3 → Control de fronteras → Gestión de patrullas: calendario mensual, alta de asignaciones y, por ahora, cambio de estado desde la tabla del día (info / modificar / eliminar). Al marcar Cumplida pide el formulario operativo (`fulfillment`).
+- La unidad de línea carga número y detalle en División I → Frontera → Patrullas de frontera, y ve la planificación proyectada en **Planificación mensual** (calendario de su unidad, cierre de estado con el mismo modal).
+- **El cambio de estado que todavía hace EMPRE es temporal.** El cierre operativo corresponde a la unidad responsable. Cuando se retire el permiso a EMPRE, esa unidad solo planifica.
+- Skill: `mi-unidad-empre-menus`.
+
 **Falta:**
 
 - Contenido propio del resto de divisiones/áreas (Centro de Control, Secretaría, Puerto Capurro, Depto. Control Pesquero).

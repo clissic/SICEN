@@ -166,6 +166,8 @@ Usar como referencia cuando no quede claro qué datos mostrar:
   `SICEN-front/src/components/seafarer/SeafarerConsultSections.jsx`
 - Archivo de Procedimientos:
   `SICEN-front/src/components/ProcedimientosFilesList.jsx`
+- Asignación de patrulla (tabla del día en Planificación):
+  `SICEN-front/src/pages/MiUnidadEmprePatrolsPage.jsx` (`removePatrol`)
 
 ## Antipatrones (no hacer)
 

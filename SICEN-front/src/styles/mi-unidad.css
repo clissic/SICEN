@@ -30,3 +30,716 @@ body:not([data-bs-theme="dark"]) .escudo-contraste-claro {
   background-color: var(--bs-secondary-bg);
   border-bottom: 1px solid var(--bs-border-color);
 }
+
+.empre-patrol-cal {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.empre-patrol-cal--head {
+  margin-bottom: 0.35rem;
+}
+
+.empre-patrol-cal__weekday {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--bs-secondary-color);
+}
+
+.empre-patrol-day {
+  min-height: 8rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.4rem;
+  padding: 0.35rem;
+  background: var(--bs-body-bg);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+
+.empre-patrol-day:hover,
+.empre-patrol-day.is-selected {
+  border-color: var(--bs-primary);
+}
+
+.empre-patrol-day.is-selected {
+  box-shadow: inset 0 0 0 1px var(--bs-primary);
+}
+
+.empre-patrol-day.is-past {
+  background: var(--bs-secondary-bg);
+}
+
+html[data-bs-theme="dark"] .empre-patrol-day.is-past {
+  background: var(--bs-tertiary-bg);
+}
+
+.empre-patrol-day.is-today,
+.empre-patrol-day.is-today:hover,
+.empre-patrol-day.is-today.is-selected {
+  border-color: #198754;
+}
+
+html[data-bs-theme="dark"] .empre-patrol-day.is-today,
+html[data-bs-theme="dark"] .empre-patrol-day.is-today:hover,
+html[data-bs-theme="dark"] .empre-patrol-day.is-today.is-selected {
+  border-color: #196f3d;
+}
+
+.empre-patrol-month-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.empre-patrol-month-actions .btn {
+  flex: 1 1 0;
+}
+
+.empre-patrol-status-btns {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.empre-patrol-status-btns .btn {
+  flex: 1 1 0;
+}
+
+.empre-patrol-block {
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--bs-border-color);
+}
+
+.empre-patrol-block__title {
+  font-size: 0.58rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--bs-secondary-color);
+  margin-bottom: 0.12rem;
+}
+
+.empre-patrol-day__counts {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.empre-patrol-count {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.2rem;
+  min-width: 0;
+  flex: 1 1 0;
+  border-top: 2px solid transparent;
+  padding-top: 0.12rem;
+}
+
+.empre-patrol-count--fluvial {
+  border-top-color: #5dade2;
+}
+
+.empre-patrol-count--terrestre {
+  border-top-color: #c4a574;
+}
+
+html[data-bs-theme="dark"] .empre-patrol-count--fluvial {
+  border-top-color: #1a5276;
+}
+
+html[data-bs-theme="dark"] .empre-patrol-count--terrestre {
+  border-top-color: #6e4b2a;
+}
+
+/* Colores de Gran Mando. En la casilla solo se muestran PRENA y COMFLO. */
+.empre-patrol-count--cmd-prena {
+  border-top-color: #111111;
+}
+
+.empre-patrol-count--cmd-comflo {
+  border-top-color: #c0392b;
+}
+
+.empre-patrol-count--cmd-diper {
+  border-top-color: #ffffff;
+}
+
+.empre-patrol-count--cmd-digfa {
+  border-top-color: #2471a3;
+}
+
+.empre-patrol-count--cmd-dimat {
+  border-top-color: #196f3d;
+}
+
+.empre-patrol-count--cmd-esmay {
+  border-top-color: #f4d03f;
+}
+
+html[data-bs-theme="dark"] .empre-patrol-count--cmd-prena {
+  border-top-color: #f2f2f2;
+}
+
+.empre-patrol-count.is-zero,
+html[data-bs-theme="dark"] .empre-patrol-count.is-zero {
+  border-top-color: var(--bs-border-color);
+}
+
+.empre-patrol-count__n {
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.empre-patrol-count.is-zero .empre-patrol-count__n,
+.empre-patrol-count.is-zero .empre-patrol-count__label {
+  color: var(--bs-secondary-color);
+  font-weight: 500;
+}
+
+.empre-patrol-count__label {
+  font-size: 0.58rem;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.empre-patrol-state {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.empre-patrol-state--planned {
+  color: #d4ac0d;
+}
+
+.empre-patrol-state--fulfilled {
+  color: #2eaa62;
+}
+
+.empre-patrol-state--missed {
+  color: #e06a62;
+}
+
+html[data-bs-theme="dark"] .empre-patrol-state--planned {
+  color: #f4d03f;
+}
+
+html[data-bs-theme="dark"] .empre-patrol-state--fulfilled {
+  color: #3dcc7a;
+}
+
+html[data-bs-theme="dark"] .empre-patrol-state--missed {
+  color: #e57373;
+}
+
+.empre-patrol-notes {
+  max-width: 18rem;
+  white-space: normal;
+}
+
+.empre-patrol-day.is-empty {
+  border-color: transparent;
+  background: transparent;
+  min-height: 0;
+}
+
+.empre-patrol-day__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.25rem;
+  line-height: 1;
+  padding-bottom: 0.35rem;
+}
+
+.empre-patrol-day__name {
+  font-size: 0.68rem;
+  text-transform: capitalize;
+  color: var(--bs-secondary-color);
+  padding-top: 0.2rem;
+}
+
+.empre-patrol-day__date {
+  font-size: 1.85rem;
+  font-weight: 700;
+  line-height: 0.85;
+}
+
+.patrol-kind-tabs {
+  display: flex;
+}
+
+.patrol-kind-tabs .nav-item {
+  flex: 1 1 50%;
+  max-width: 50%;
+}
+
+.patrol-kind-tabs .nav-link {
+  width: 100%;
+  text-align: center;
+}
+
+.empre-patrol-grid-wrap {
+  position: relative;
+}
+
+.empre-patrol-grid-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.75rem;
+}
+
+table.empre-patrol-grid {
+  width: max-content;
+}
+
+.empre-patrol-grid th,
+.empre-patrol-grid td {
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.empre-patrol-grid .empre-patrol-col {
+  cursor: help;
+}
+
+.popover:has(.empre-patrol-hint) {
+  max-width: 18rem;
+}
+
+.empre-patrol-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.empre-patrol-hint-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.empre-patrol-hint-k {
+  font-size: 0.7rem;
+  line-height: 1.2;
+  font-weight: 400;
+  color: var(--bs-secondary-color, #6c757d);
+}
+
+.empre-patrol-hint-field strong {
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.popover-body {
+  white-space: pre-line;
+}
+.empre-patrol-grid .empre-patrol-datecol {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.empre-patrol-grid-fade {
+  position: absolute;
+  top: 0;
+  bottom: 0.85rem;
+  width: 1.75rem;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.empre-patrol-grid-fade--left {
+  left: 0;
+  background: linear-gradient(to right, var(--bs-body-bg), transparent);
+}
+
+.empre-patrol-grid-fade--right {
+  right: 0;
+  background: linear-gradient(to left, var(--bs-body-bg), transparent);
+}
+
+@media (max-width: 767.98px) {
+  .empre-patrol-cal--head {
+    display: none;
+  }
+
+  .empre-patrol-cal {
+    grid-template-columns: 1fr;
+  }
+
+  .empre-patrol-day.is-empty {
+    display: none;
+  }
+}
+
+/* Estadísticas de combustible (EMPRE) */
+.empre-fuel-year-btn {
+  color: inherit;
+  font-size: 1.25rem;
+}
+
+.empre-fuel-year-total {
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  padding: 1rem 1.15rem;
+  background: color-mix(in srgb, var(--bs-body-bg) 88%, var(--bs-secondary-bg));
+}
+
+.empre-fuel-year-total__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.empre-fuel-year-total__label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--bs-secondary-color);
+}
+
+.empre-fuel-year-total__value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: 0.15rem;
+}
+
+.empre-fuel-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.empre-fuel-type-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--bs-border-color);
+  background: var(--bs-body-bg);
+  min-width: 0;
+}
+
+.empre-fuel-type-cell__name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--bs-secondary-color);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.empre-fuel-type-cell__name::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: var(--empre-fuel-dot, var(--bs-secondary-color));
+}
+
+.empre-fuel-type-cell__value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.empre-fuel-type-cell.is-zero {
+  opacity: 0.55;
+}
+
+.empre-fuel-type-grid--compact {
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+}
+
+.empre-fuel-type-grid--compact .empre-fuel-type-cell {
+  padding: 0.35rem 0.4rem;
+  background: color-mix(in srgb, var(--bs-body-bg) 70%, transparent);
+}
+
+.empre-fuel-type-grid--compact .empre-fuel-type-cell__name {
+  font-size: 0.65rem;
+}
+
+.empre-fuel-type-grid--compact .empre-fuel-type-cell__value {
+  font-size: 0.8rem;
+}
+
+.empre-fuel-type-cell__unit {
+  font-weight: 500;
+  font-size: 0.7em;
+  opacity: 0.8;
+}
+
+.empre-fuel-months {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.empre-fuel-month {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+  text-align: start;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  background: var(--bs-body-bg);
+  color: inherit;
+  padding: 0.75rem 0.85rem;
+  min-height: 0;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.empre-fuel-month:hover {
+  border-color: color-mix(in srgb, var(--bs-primary) 45%, var(--bs-border-color));
+}
+
+.empre-fuel-month.is-selected {
+  border-color: var(--bs-primary);
+  box-shadow: inset 0 0 0 1px var(--bs-primary);
+}
+
+.empre-fuel-month.is-zero .empre-fuel-month__total {
+  color: var(--bs-secondary-color);
+}
+
+.empre-fuel-month__name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.empre-fuel-month__total {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.empre-fuel-total-prefix {
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.empre-fuel-detail {
+  border-top: 1px solid var(--bs-border-color);
+  padding-top: 1rem;
+}
+
+.empre-fuel-detail__total {
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
+}
+
+.empre-fuel-mix {
+  display: flex;
+  height: 0.55rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bs-secondary-bg);
+}
+
+.empre-fuel-mix__seg {
+  display: block;
+  min-width: 2px;
+  height: 100%;
+}
+
+.empre-fuel-unit-tab__liters {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 500;
+  opacity: 0.75;
+  line-height: 1.2;
+}
+
+.empre-fuel-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.empre-fuel-bar__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.empre-fuel-bar__label {
+  font-weight: 600;
+}
+
+.empre-fuel-bar__value {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.empre-fuel-bar__track {
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--bs-secondary-bg);
+  overflow: hidden;
+}
+
+.empre-fuel-bar__fill {
+  height: 100%;
+  border-radius: inherit;
+  min-width: 2px;
+  transition: width 0.25s ease;
+}
+
+@media (max-width: 991.98px) {
+  .empre-fuel-months {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 575.98px) {
+  .empre-fuel-months {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .empre-fuel-year-total__value {
+    font-size: 1.45rem;
+  }
+}
+
+/* Registro diario */
+.empre-daily-day__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  margin-top: 0.35rem;
+  min-height: 2.4rem;
+}
+
+.empre-daily-day__count {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.empre-daily-day__caption {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--bs-secondary-color);
+}
+
+.empre-daily-day__caption.is-muted {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.75;
+}
+
+.empre-daily-day.is-empty-data .empre-daily-day__body {
+  opacity: 0.85;
+}
+
+.empre-daily-detail {
+  border-top: 1px solid var(--bs-border-color);
+  padding-top: 1rem;
+}
+
+.empre-daily-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.empre-daily-kpi {
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  padding: 0.75rem 0.85rem;
+  background: color-mix(in srgb, var(--bs-body-bg) 88%, var(--bs-secondary-bg));
+  min-width: 0;
+}
+
+.empre-daily-kpi__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--bs-secondary-color);
+}
+
+.empre-daily-kpi__value {
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: 0.2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.empre-daily-kpi__hint {
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+  margin-top: 0.2rem;
+}
+
+.empre-daily-craft {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.empre-daily-craft__metric {
+  width: 16%;
+}
+
+.empre-daily-craft th,
+.empre-daily-craft td {
+  vertical-align: middle;
+}
+
+.empre-daily-craft thead th {
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.empre-daily-craft th[scope="row"] {
+  font-weight: 600;
+}
+
+.empre-daily-craft__num {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.empre-daily-craft .is-total {
+  font-weight: 700;
+  background: color-mix(in srgb, var(--bs-secondary-bg) 65%, transparent);
+}
+
+@media (max-width: 991.98px) {
+  .empre-daily-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 575.98px) {
+  .empre-daily-kpis {
+    grid-template-columns: 1fr;
+  }
+}

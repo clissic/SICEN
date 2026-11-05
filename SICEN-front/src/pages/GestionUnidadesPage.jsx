@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Swal from "sweetalert2";
 import { getUnit, listUnitsRegistered } from "../api/client.js";
+import { highCommandLabel } from "../constants/highCommands.js";
 import { ErrorAlert } from "../components/ErrorAlert.jsx";
 import { Layout } from "../components/Layout.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -91,7 +92,7 @@ function buildUnitDetailHtml(unit) {
     <img src="${shieldSrc}" alt="" />
     <div class="sicen-unit-head__meta">
       <p class="sicen-unit-head__name">${escapeHtml(unit.name)}</p>
-      <p class="sicen-unit-head__acr">Sigla ${escapeHtml(unit.acronym)}</p>
+      <p class="sicen-unit-head__acr">Sigla ${escapeHtml(unit.acronym)} · ${escapeHtml(highCommandLabel(unit.highCommand))}</p>
     </div>
   </div>
   <div class="row g-1 gx-2 gy-0">
@@ -337,6 +338,7 @@ export function GestionUnidadesPage() {
                   </th>
                   <th scope="col">Sigla</th>
                   <th scope="col">Nombre</th>
+                  <th scope="col">Gran Mando</th>
                   <th scope="col" className="d-none d-md-table-cell">
                     Dirección
                   </th>
@@ -380,6 +382,7 @@ export function GestionUnidadesPage() {
                     </td>
                     <td className="fw-semibold text-nowrap">{u.acronym}</td>
                     <td className="text-break">{u.name}</td>
+                    <td className="text-nowrap">{u.highCommand || "—"}</td>
                     <td className="d-none d-md-table-cell small text-muted text-break">
                       {u.address?.trim() ? u.address : "—"}
                     </td>

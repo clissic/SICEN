@@ -3,6 +3,8 @@ import { Layout } from "../components/Layout.jsx";
 import { ProcedimientosFilesList } from "../components/ProcedimientosFilesList.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getMiUnidadDivisionMenuItem } from "../constants/miUnidadDivisionMenus.js";
+import { MiUnidadPatrolPlanPage } from "./MiUnidadPatrolPlanPage.jsx";
+import { MiUnidadPatrolTypesPage } from "./MiUnidadPatrolTypesPage.jsx";
 
 export function MiUnidadDivisionMenuItemPage() {
   const { user } = useAuth();
@@ -18,6 +20,18 @@ export function MiUnidadDivisionMenuItemPage() {
   }
 
   const { division, section, item } = resolved;
+  if (
+    division.slug === "division-i" &&
+    item.slug === "patrullas-de-frontera"
+  ) {
+    return <MiUnidadPatrolTypesPage />;
+  }
+  if (
+    division.slug === "division-i" &&
+    item.slug === "planificacion-mensual"
+  ) {
+    return <MiUnidadPatrolPlanPage />;
+  }
   const showProcedimientos =
     item.slug === "procedimientos" &&
     (division.slug === "division-i" || division.slug === "division-ii");
