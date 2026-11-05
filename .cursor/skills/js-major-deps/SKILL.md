@@ -54,6 +54,12 @@ y elimina `react-router-dom`. v7.18+ ya parchea el open-redirect de `@remix-run/
    `devDependency`). El default `lightningcss` descarta el `backdrop-filter`
    sin prefijo y deja solo `-webkit-backdrop-filter`; Chromium no lo aplica
    y se pierde el glass de El Centinela (vite#22649 / lightningcss#695).
+   **Docker:** imagen `node:24.22.1-alpine`. El stage de front debe hacer
+   `npm ci` **con** devDependencies (vite, plugin-react, esbuild, PWA) y
+   **sin** `--omit=optional` (bindings musl de esbuild/rolldown). El `outDir`
+   de Vite 8 es `../SICEN-back/public`, no `dist/`: el Dockerfile replica el
+   layout del monorepo (`/repo/SICEN-front` → `/repo/SICEN-back/public`).
+   Ver `SICEN-back/Dockerfile`.
 4. **Vitest 5**: peer de Vite ≥ 6.4; `clearMocks` default `true`; `vi.mock`
    solo a nivel de módulo. Front: `SICEN-front/vitest.config.js` + script
    `npm test`. Back: `SICEN-back/vitest.config.js`.
@@ -79,3 +85,4 @@ y elimina `react-router-dom`. v7.18+ ya parchea el open-redirect de `@remix-run/
 - `returnDocument`: `mapMarkers.service.js`, DAOs de multas
 - Vite 8 + PWA 2: `SICEN-front/vite.config.js`
 - Vitest 5 front: `SICEN-front/vitest.config.js`
+- Docker Node 24.22.1 + Vite 8 outDir: `SICEN-back/Dockerfile`
