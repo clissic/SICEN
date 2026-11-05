@@ -213,7 +213,7 @@ if (isSarSimEnabled()) {
 
 if (hasSpaBuild) {
   app.use(express.static(CLIENT_DIST));
-  app.get("*", (req, res, next) => {
+  app.get("/{*splat}", (req, res, next) => {
     if (req.path.startsWith("/api")) {
       return next();
     }
