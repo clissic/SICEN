@@ -30,3 +30,154 @@ body:not([data-bs-theme="dark"]) .escudo-contraste-claro {
   background-color: var(--bs-secondary-bg);
   border-bottom: 1px solid var(--bs-border-color);
 }
+
+/* P3 EMPRE — estadísticas de combustible (bloque oscuro minimalista) */
+.empre-fuel-stats {
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.1rem 1.05rem;
+  border-radius: 0.6rem;
+  background-color: #2b3035;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f4f6f8;
+}
+
+.empre-fuel-stats__head {
+  margin-bottom: 0.85rem;
+}
+
+.empre-fuel-stats__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.empre-fuel-stats__subtitle {
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.empre-fuel-stats__meters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.empre-fuel-meter__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.empre-fuel-meter__label {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.empre-fuel-meter__value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: #fff;
+}
+
+.empre-fuel-meter__track {
+  margin-top: 0.22rem;
+  height: 0.38rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.empre-fuel-meter__fill {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.empre-fuel-stats__mix-label {
+  margin: 0.15rem 0 0.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.empre-fuel-mix__track {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  min-width: 0;
+  height: 1.35rem;
+  border-radius: 0.4rem;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.empre-fuel-mix__seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  font-size: 0.68rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.95);
+  white-space: nowrap;
+  cursor: default;
+}
+
+.empre-fuel-mix__seg.is-compact {
+  color: transparent;
+}
+
+.empre-fuel-mix__seg--gasoil,
+.empre-fuel-meter__fill--gasoil {
+  background: #6b8f71;
+}
+
+.empre-fuel-mix__seg--naftaSuper,
+.empre-fuel-meter__fill--naftaSuper {
+  background: #c4a35a;
+}
+
+.empre-fuel-mix__seg--naftaPremium,
+.empre-fuel-meter__fill--naftaPremium {
+  background: #7d8793;
+}
+
+.empre-fuel-mix__seg--otros,
+.empre-fuel-meter__fill--otros {
+  background: #5b8fa8;
+}
+
+.empre-fuel-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.9rem;
+  margin-top: 0.55rem;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.empre-fuel-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.empre-fuel-legend__swatch {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 0.15rem;
+  flex-shrink: 0;
+}
+
+html[data-bs-theme="dark"] .empre-fuel-stats {
+  background-color: #1c2126;
+  border-color: rgba(255, 255, 255, 0.1);
+}

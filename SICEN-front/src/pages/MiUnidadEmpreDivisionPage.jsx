@@ -1,6 +1,7 @@
 import { Link, Navigate, useParams } from "react-router-dom";
 import { Layout } from "../components/Layout.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { EmpreFuelStats } from "../components/EmpreFuelStats.jsx";
 import {
   getMiUnidadEmpreDivision,
   isEmpreUnit,
@@ -16,6 +17,7 @@ export function MiUnidadEmpreDivisionPage() {
   }
 
   const hasItems = division.menuItems?.length > 0;
+  const showFuelStats = division.slug === "p3-planes-y-operaciones";
 
   return (
     <Layout>
@@ -29,6 +31,8 @@ export function MiUnidadEmpreDivisionPage() {
             Mi Unidad
           </Link>
         </div>
+
+        {showFuelStats ? <EmpreFuelStats /> : null}
 
         {hasItems ? (
           <div className="row row-cols-1 row-cols-md-3 g-3">
