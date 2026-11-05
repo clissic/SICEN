@@ -37,8 +37,11 @@ export const securityHeaders = helmet({
         "https://www.marineregions.org",
         "wss:",
       ],
+      /* blob: cubre object URLs de AuthenticatedImage (img) y previews de
+         PDF autenticados abiertos en pestaña/iframe (frame). No se usa
+         <object>/<embed> para /api/files, así que object-src queda 'none'. */
       workerSrc: ["'self'", "blob:"],
-      frameSrc: ["'self'"],
+      frameSrc: ["'self'", "blob:"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"],

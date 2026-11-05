@@ -15,7 +15,9 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m
     volumes:
-      # Directorio de uploads/storage: único volumen con escritura
+      # Uploads autenticados (/api/files): avatars, pruebas de multas,
+      # PDFs de inspecciones, identidad skipper, pruebas de admin de buque.
+      # Rootfs read-only; este bind es el único path persistente escribible.
       - ./SICEN-back/storage:/app/storage:rw
 
     ports:

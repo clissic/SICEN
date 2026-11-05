@@ -11,23 +11,11 @@ import { securityHeaders } from "./middlewares/securityHeaders.js";
 import { rejectBrotliMiddleware } from "./middlewares/rejectBrotli.js";
 import { mongoSanitizeMiddleware } from "./middlewares/mongoSanitize.js";
 import { globalErrorHandler } from "./middlewares/errorHandler.js";
-import { AVATARS_DIR, ensureAvatarsDirSync } from "./utils/avatarFiles.js";
-import {
-  CAR_FINE_PROVES_DIR,
-  ensureCarFineProvesDirSync,
-} from "./utils/carFineProveFiles.js";
-import {
-  SHIP_FINE_PROVES_DIR,
-  ensureShipFineProvesDirSync,
-} from "./utils/shipFineProveFiles.js";
-import {
-  PERSONAL_FINE_PROVES_DIR,
-  ensurePersonalFineProvesDirSync,
-} from "./utils/personalFineProveFiles.js";
-import {
-  INSPECTION_PDFS_DIR,
-  ensureInspectionPdfsDirSync,
-} from "./utils/inspectionPDFFiles.js";
+import { ensureAvatarsDirSync } from "./utils/avatarFiles.js";
+import { ensureCarFineProvesDirSync } from "./utils/carFineProveFiles.js";
+import { ensureShipFineProvesDirSync } from "./utils/shipFineProveFiles.js";
+import { ensurePersonalFineProvesDirSync } from "./utils/personalFineProveFiles.js";
+import { ensureInspectionPdfsDirSync } from "./utils/inspectionPDFFiles.js";
 import { ensureSeafarerLinkIdentityDirSync } from "./utils/seafarerLinkIdentityFiles.js";
 import { ensureVesselAdminProofDirSync } from "./utils/vesselAdminProofFiles.js";
 import { usersRouter } from "./routes/users.router.js";
@@ -60,6 +48,7 @@ import { mapMarkersRouter } from "./routes/mapMarkers.router.js";
 import { mapZonesRouter } from "./routes/mapZones.router.js";
 import { mapMeasurementsRouter } from "./routes/mapMeasurements.router.js";
 import { seafarerLinksRouter } from "./routes/seafarerLinks.router.js";
+import { filesRouter } from "./routes/files.router.js";
 import { warmAisBridge } from "./services/aisBridge.service.js";
 import { startNmeaReceiver } from "./services/aisNmeaReceiver.service.js";
 import {
@@ -149,23 +138,10 @@ app.use(express.urlencoded({ extended: true, limit: "3mb" }));
 app.use(mongoSanitizeMiddleware);
 
 ensureAvatarsDirSync();
-app.use("/uploads/avatars", express.static(AVATARS_DIR));
-
 ensureCarFineProvesDirSync();
-app.use("/uploads/carFineProves", express.static(CAR_FINE_PROVES_DIR));
-
 ensureShipFineProvesDirSync();
-app.use("/uploads/shipFineProves", express.static(SHIP_FINE_PROVES_DIR));
-
 ensurePersonalFineProvesDirSync();
-app.use(
-  "/uploads/personalFineProves",
-  express.static(PERSONAL_FINE_PROVES_DIR)
-);
-
 ensureInspectionPdfsDirSync();
-app.use("/uploads/inspectionsERP", express.static(INSPECTION_PDFS_DIR));
-
 ensureSeafarerLinkIdentityDirSync();
 ensureVesselAdminProofDirSync();
 
@@ -199,6 +175,7 @@ app.use("/api/mapMarkers", mapMarkersRouter);
 app.use("/api/mapZones", mapZonesRouter);
 app.use("/api/mapMeasurements", mapMeasurementsRouter);
 app.use("/api/seafarer-links", seafarerLinksRouter);
+app.use("/api/files", filesRouter);
 
 warmAisBridge();
 startNmeaReceiver();

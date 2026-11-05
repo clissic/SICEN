@@ -13,6 +13,7 @@ import {
   getActiveInspectionYear,
   subscribeActiveInspectionYear,
 } from "../utils/inspectionExercise.js";
+import { AuthenticatedDownloadLink } from "../hooks/useAuthenticatedFile.jsx";
 
 const PAGE_SIZE = 5;
 
@@ -46,7 +47,7 @@ function vesselLabel(v) {
 /**
  * Sugerencia de nombre amigable para el PDF al descargarse. El atributo
  * `download` sólo es honrado por el navegador si el archivo es same-origin
- * (en producción el backend sirve `/uploads/...` desde el mismo dominio).
+ * (el blob autenticado es same-origin; el backend ya no sirve `/uploads/` público).
  */
 function inspectionPdfDownloadName(r) {
   const v = r?.vesselId;
@@ -314,18 +315,16 @@ function InspectionsSearchSection({
                         ) : null}
                         <td className="text-center">
                           {r.inspectionPDF ? (
-                            <a
+                            <AuthenticatedDownloadLink
                               href={r.inspectionPDF}
                               download={inspectionPdfDownloadName(r)}
-                              target="_blank"
-                              rel="noopener noreferrer"
                               className="d-inline-flex align-items-center justify-content-center text-decoration-none"
                               style={{ color: "#fd7e14", fontSize: "1.4rem" }}
                               aria-label="Descargar PDF de la inspección"
                               data-sicen-popover="Descargar PDF"
                             >
                               <i className="bi bi-filetype-pdf" aria-hidden />
-                            </a>
+                            </AuthenticatedDownloadLink>
                           ) : (
                             <span
                               className="d-inline-flex align-items-center justify-content-center text-muted"

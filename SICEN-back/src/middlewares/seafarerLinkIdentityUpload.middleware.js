@@ -1,10 +1,12 @@
 import { randomUUID } from "crypto";
 import path from "path";
+import fs from "fs/promises";
 import multer from "multer";
 import {
   ensureSeafarerLinkIdentityDirSync,
   SEAFARER_LINK_IDENTITY_DIR,
 } from "../utils/seafarerLinkIdentityFiles.js";
+import { validateFileType } from "../utils/fileValidation.js";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const FIELD_NAME = "identityDocument";
@@ -75,7 +77,7 @@ function mapMulterErrorToJson(err, res) {
  * Recibe un archivo obligatorio en el campo `identityDocument` (foto/PDF).
  */
 export function uploadSeafarerLinkIdentityRequired(req, res, next) {
-  upload.single(FIELD_NAME)(req, res, (err) => {
+  upload.single(FIELD_NAME)(req, res, async (err) => {
     if (err) return mapMulterErrorToJson(err, res);
     if (!req.file) {
       return res.status(400).json({
@@ -83,6 +85,19 @@ export function uploadSeafarerLinkIdentityRequired(req, res, next) {
         msg: "Adjunte una foto o PDF del frente de su cédula o de la hoja de datos del pasaporte.",
       });
     }
+
+    // Validar tipo de archivo por magic bytes
+    const allowedMimes = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    const isValid = await validateFileType(req.file.path, allowedMimes);
+    if (!isValid) {
+      // Eliminar el archivo inválido
+      await fs.unlink(req.file.path).catch(() => {});
+      return res.status(400).json({
+        ok: false,
+        msg: "El archivo debe ser una imagen (JPG, PNG, WEBP) o PDF válido.",
+      });
+    }
+
     return next();
   });
 }
