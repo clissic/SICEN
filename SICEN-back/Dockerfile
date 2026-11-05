@@ -66,6 +66,8 @@ USER sicenapp
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV LOGGER_ENV=production
+# Rootfs read-only: Winston no puede crear errors.log. docker logs lee stdout.
+ENV LOG_TO_FILE=false
 
 EXPOSE 3000
 

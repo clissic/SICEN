@@ -36,6 +36,14 @@ async def run_opendrift_simulation(payload: dict[str, Any], oil: OilSpec) -> dic
     o.set_config("processes:emulsification", True)
     o.set_config("drift:vertical_mixing", True)
 
+    # OpenDrift ≥1.13 resuelve aceites con adios_db (GENERIC * extra oils).
+    # OilLibrary / oil_library-oil están archivados y no se instalan.
+    oil_name = oil.get("adios_name") or "GENERIC DIESEL"
+    try:
+        o.set_oiltype(oil_name)
+    except Exception:
+        o.set_oiltype("GENERIC DIESEL")
+
     # Forzado constante de respaldo (m/s)
     reader_wind = reader_constant.Reader(
         {
@@ -52,14 +60,12 @@ async def run_opendrift_simulation(payload: dict[str, Any], oil: OilSpec) -> dic
     o.add_reader([reader_current, reader_wind])
 
     n = int(min(2000, max(100, int(payload.get("numParticles") or 500))))
-    # seed
     try:
         o.seed_elements(
             lon=lon,
             lat=lat,
             time=start,
             number=n,
-            oiltype=oil.get("adios_name"),
             mass_oil=(volume_m3 * oil["density"]) / n,
         )
     except Exception:
@@ -68,7 +74,6 @@ async def run_opendrift_simulation(payload: dict[str, Any], oil: OilSpec) -> dic
             lat=lat,
             time=start,
             number=n,
-            oil_type=oil.get("adios_name"),
         )
 
     o.run(duration=timedelta(hours=horizon), time_step=900, time_step_output=3600)

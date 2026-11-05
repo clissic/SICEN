@@ -1,3 +1,13 @@
-# Opcional: motor OpenDrift/OpenOil (imagen Docker Linux recomendada).
-opendrift>=1.11.0
-oil_library-oil>=1.0.0; python_version < "3.12"
+# Motor OpenDrift / OpenOil (imagen Docker Linux).
+#
+# Decisión (aceites):
+# - `oil_library` (NOAA-ORR-ERD/OilLibrary) está archivada.
+# - `oil_library-oil` NO existe en PyPI (404) y rompía `pip install`.
+# - OpenDrift ≥1.13 depende de `adios_db` (PyPI: adios-db) y trae aceites
+#   GENERIC (DIESEL, IFO 180, LIGHT/HEAVY CRUDE, etc.).
+# - El catálogo de SICEN-sim usa esos nombres (`oils.py` → `adios_name`).
+# - Sin OpenDrift, el worker sigue funcionando con el motor Lagrangian.
+#
+# No reintroducir oil_library ni oil_library-oil.
+opendrift>=1.13.0,<2
+adios-db>=1.2.7

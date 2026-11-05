@@ -117,8 +117,10 @@ Luego completá los valores según tu entorno (y recordá que **`JWT_SECRET` es 
 | `JWT_EXPIRES_IN` | Caducidad del access token (default `8h`). |
 | `MFA_ENCRYPTION_KEY` | Cifrado AES-256-GCM del secreto TOTP de admin. **Obligatoria en producción** (distinta de `JWT_SECRET`); si falta, el proceso termina. |
 | `MFA_CHALLENGE_EXPIRES_IN` | Caducidad del token de desafío entre login y TOTP (default `5m`). |
-| `MONGO_URI` | URI completa de MongoDB (obligatoria en producción). Atlas o el contenedor local; **no** hay cluster hardcodeado. |
-| `LOGGER_ENV` | `development` \| `production` (comportamiento de logs). |
+| `MONGO_URI` | Host/esquema Mongo (obligatoria en producción). **Sin** usuario ni contraseña en la URI. Atlas o el contenedor local; **no** hay cluster hardcodeado. |
+| `MONGO_USER` / `MONGO_PASSWORD` | Credenciales Mongo. El backend las inserta en `MONGO_URI` al conectar. `MONGODB_PASSWORD` sigue como alias legacy. |
+| `LOGGER_ENV` | `development` \| `production` (formato de logs). |
+| `LOG_TO_FILE` | `true` escribe `errors.log` (solo local). `false` o contenedor Docker → stdout/stderr. |
 | `API_URL` | URL base pública (emails, enlaces). |
 | `PUBLIC_APP_URL` | Opcional; si existe, tiene prioridad sobre `API_URL` para la URL pública de la app (sin barra final). |
 | `GOOGLE_EMAIL` / `GOOGLE_PASS` | Credenciales Nodemailer (p. ej. Gmail con app password). |
@@ -154,11 +156,11 @@ SICEN incluye soporte Docker para despliegue con backend, frontend (compilado y 
 | **`sim`** | `sicen-sim:latest` | Simulador de derrames HC (FastAPI + OpenDrift) | 8091 (interno) |
 | **`mongo`** | `mongo:8.0` | Base de datos MongoDB (perfil demo opcional) | 27017 (bound a `127.0.0.1`, solo perfil demo) |
 
-El contenedor `back` usa **`node:24.22.1-alpine`**. El stage de front corre **Vite 8** (`npm ci` con devDependencies: vite, plugin-react, esbuild, PWA) y escribe a `../SICEN-back/public` (el `outDir` de `vite.config.js`, no `dist/`). Ese output se copia a `public/` del runtime Express. En producción, apuntás a Mongo Atlas con **`MONGO_URI`** (`mongodb+srv://…`) y no hace falta el contenedor `mongo`.
+El contenedor `back` usa **`node:24.22.1-alpine`**. El stage de front corre **Vite 8** (`npm ci` con devDependencies: vite, plugin-react, esbuild, PWA) y escribe a `../SICEN-back/public` (el `outDir` de `vite.config.js`, no `dist/`). Ese output se copia a `public/` del runtime Express. En producción, apuntás a Mongo Atlas con **`MONGO_URI`** en esquema `mongodb+srv` (host del cluster, **sin** credenciales en la URI) más `MONGO_USER` / `MONGO_PASSWORD`, y no hace falta el contenedor `mongo`. Los logs del back van a **stdout** (`LOG_TO_FILE=false`): `docker compose logs -f back`. El rootfs es read-only, así que Winston no escribe `errors.log` dentro de la imagen.
 
 ### Hardening aplicado
 
-- **Rootfs read-only** (`read_only: true`) con `tmpfs` para logs y cache transitorios.
+- **Rootfs read-only** (`read_only: true`) con `tmpfs` para `/tmp` y cache. Logs de aplicación a **stdout/stderr** (`LOG_TO_FILE=false`).
 - **Usuario no-root** en todas las imágenes (`sicenapp` uid 10001, `sicensim` uid 10002).
 - **Capabilities mínimas** (`cap_drop: [ALL]`), `no-new-privileges:true`.
 - Solo el directorio **`SICEN-back/storage`** (avatares, multas, PDFs de inspecciones, etc.) se monta con escritura.
@@ -171,7 +173,7 @@ El contenedor `back` usa **`node:24.22.1-alpine`**. El stage de front corre **Vi
 ```bash
 # 1. Copiá .env.example a .env en la raíz del repo y reemplazá los changeme
 cp .env.example .env
-# Editá .env: JWT_SECRET, MFA_ENCRYPTION_KEY, MONGO_URI, CORS_ORIGIN, MONGO_INITDB_ROOT_PASSWORD, claves de APIs, etc.
+# Editá .env: JWT_SECRET, MFA_ENCRYPTION_KEY, MONGO_URI, MONGO_USER, MONGO_PASSWORD, CORS_ORIGIN, MONGO_INITDB_ROOT_PASSWORD, claves de APIs, etc.
 
 # 2. Construí las imágenes
 docker compose build
@@ -204,7 +206,9 @@ Los secretos en `docker-compose.yml` se interpolan como `${VAR:?mensaje}` **sin 
 **Secretos obligatorios:**
 - `JWT_SECRET` — firma de tokens JWT (generar con `openssl rand -hex 32`)
 - `MFA_ENCRYPTION_KEY` — cifrado del secreto TOTP (distinta de `JWT_SECRET`; `openssl rand -hex 32`)
-- `MONGO_URI` — URI completa de MongoDB (Atlas o el contenedor local)
+- `MONGO_URI` — host/esquema Mongo (Atlas o el contenedor local), **sin** credenciales en la URI
+- `MONGO_USER` / `MONGO_PASSWORD` — el backend las inserta al conectar (en demo, la misma que `MONGO_INITDB_ROOT_PASSWORD`)
+- `LOG_TO_FILE` — `false` en el contenedor (stdout); `true` solo si corrés el back en el host y querés `errors.log`
 - `CORS_ORIGIN` — orígenes permitidos separados por coma (p. ej. `https://sicen.dominio.com`)
 - `MONGO_INITDB_ROOT_PASSWORD` — contraseña root del contenedor `mongo` (perfil demo; Compose la exige aunque no actives el perfil)
 - `GOOGLE_EMAIL` / `GOOGLE_PASS` — credenciales Nodemailer (opcional si no enviás mails)
@@ -242,7 +246,7 @@ Esto instala `pip-audit` temporalmente dentro del contenedor y escanea las libre
 ### Despliegue en producción
 
 1. **Túnel Cloudflare** o proxy inverso (Nginx, Traefik) apuntando al puerto 3000 del host.
-2. **Mongo Atlas** (URI completa en `MONGO_URI` como `mongodb+srv://...`).
+2. **Mongo Atlas** (`MONGO_URI` con esquema `mongodb+srv` y el host del cluster, más `MONGO_USER` / `MONGO_PASSWORD`; no pegues credenciales en la URI).
 3. **Volumen persistente** para `SICEN-back/storage` (avatares, multas, PDFs de inspecciones).
 4. **Reinicio automático** (`restart: unless-stopped` ya configurado en `docker-compose.yml`).
 5. **Backups periódicos** de MongoDB y del volumen `storage/`.
@@ -471,7 +475,7 @@ Pendientes ya enumerados al cierre de **Seguridad (resumen)**, listados aquí co
 - **Rate limiting** sobre `POST /api/users/sendNewAccEmail` / `createAndSendEmail` (login y recuperación ya tienen límite). Sugerencia: `express-rate-limit` con almacén Redis si hay más de una instancia.
 - **Deshabilitar `POST /api/sessions/signup`** o protegerlo detrás de un feature flag si no se desea registro público (las altas operativas pasan por `/usuarios/nuevo`, que sí valida rol).
 - Revisar **`.env.production`** para que `JWT_SECRET` rote periódicamente y `MONGO_URI`/`GOOGLE_PASS` provengan de un gestor de secretos.
-- Logging estructurado y rotación de logs en producción (`LOGGER_ENV=production`), idealmente enviados a un agregador (Loki / CloudWatch).
+- Logging estructurado en producción (`LOGGER_ENV=production`, `LOG_TO_FILE=false` en Docker → stdout para Loki / CloudWatch). En local se puede `LOG_TO_FILE=true` (`errors.log`).
 - Backups programados de MongoDB y rotación de los directorios `SICEN-back/storage/<tipo>FineProves/` (archivos de pruebas), `SICEN-back/storage/inspectionsERP/` (PDFs de inspección) y `SICEN-back/public/files/units/` (procedimientos).
 
 > Cuando se cierre cualquiera de estos puntos, mover la fila correspondiente a la tabla de **Cambios recientes documentados en código** y, si introduce un patrón reutilizable, registrar/actualizar el skill correspondiente bajo `.cursor/skills/` (regla `proactive-skill-creation.mdc`).

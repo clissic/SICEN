@@ -88,10 +88,17 @@ export default {
   jwtSecret,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "8h",
   mongoUri: process.env.MONGO_URI || "",
+  /** Usuario Mongo (opcional). Si MONGO_URI no trae userinfo, db-connection lo inyecta. */
+  mongoUser: process.env.MONGO_USER || "",
+  /**
+   * Contraseña Mongo (opcional). Preferir MONGO_PASSWORD;
+   * MONGODB_PASSWORD queda como alias legacy.
+   */
+  mongoPassword:
+    process.env.MONGO_PASSWORD || process.env.MONGODB_PASSWORD || "",
   /** Clave AES-256-GCM del secreto TOTP. En producción es obligatoria (distinta de JWT_SECRET). */
   mfaEncryptionKey,
   mfaChallengeExpiresIn: process.env.MFA_CHALLENGE_EXPIRES_IN || "5m",
-  mongoPassword: process.env.MONGODB_PASSWORD,
   githubSecret: process.env.GITHUB_LOGIN_SECRET,
   persistence: process.env.PERSISTENCE,
   googleEmail: process.env.GOOGLE_EMAIL,
@@ -100,6 +107,11 @@ export default {
   twilioToken: process.env.TWILIO_AUTH_TOKEN,
   twilioPhoneNumber: process.env.TWILIO_PHONE_NUMBER,
   loggerEnv: process.env.LOGGER_ENV,
+  /**
+   * Forzar archivo (`true`) o consola (`false`).
+   * Si falta: archivo solo en producción local; consola en Docker.
+   */
+  logToFile: process.env.LOG_TO_FILE,
   apiUrl: process.env.API_URL,
   publicAppUrl,
   emailAssetsBaseUrl,
