@@ -1,6 +1,8 @@
 import express from "express";
 import { sessionsController } from "../controllers/sessions.controller.js";
 import { optionalJwt } from "../middlewares/auth.js";
+import { loginOnly } from "../middlewares/authChains.js";
+import { mfaVerifyRateLimit } from "../middlewares/mfaRateLimit.js";
 import { loginRateLimiter } from "../middlewares/rateLimiting.js";
 
 export const sessionsRouter = express.Router();
@@ -12,3 +14,11 @@ sessionsRouter.post("/signup", sessionsController.signup);
 sessionsRouter.post("/login", loginRateLimiter, sessionsController.login);
 
 sessionsRouter.post("/logout", optionalJwt, sessionsController.logout);
+
+sessionsRouter.post("/mfa/enroll", sessionsController.mfaEnroll);
+sessionsRouter.post(
+  "/mfa/verify",
+  mfaVerifyRateLimit,
+  sessionsController.mfaVerify
+);
+sessionsRouter.post("/mfa/disable", ...loginOnly, sessionsController.mfaDisable);

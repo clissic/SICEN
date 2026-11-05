@@ -24,6 +24,9 @@ function userWithoutPassword(user) {
   if (!user) return null;
   const o = user.toObject ? user.toObject() : { ...user };
   delete o.password;
+  const mfaEnabled = o.mfa?.enabled === true;
+  delete o.mfa;
+  o.mfaEnabled = mfaEnabled;
   return o;
 }
 

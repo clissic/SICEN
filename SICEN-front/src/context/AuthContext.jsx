@@ -47,17 +47,30 @@ export function AuthProvider({ children }) {
     refresh();
   }, [refresh]);
 
+  const applySessionUser = useCallback(async (userObj) => {
+    await syncUnitCacheWithUser(userObj, true);
+    setUser(
+      userObj
+        ? { ...userObj, userTutorial: userObj.userTutorial === true }
+        : userObj,
+    );
+  }, []);
+
   const login = useCallback(async (email, password) => {
     api.clearUserUnitCache();
     const data = await api.login(email, password);
-    await syncUnitCacheWithUser(data.user, true);
-    setUser(
-      data.user
-        ? { ...data.user, userTutorial: data.user.userTutorial === true }
-        : data.user,
-    );
+    if (data?.mfaRequired) return data;
+    await applySessionUser(data.user);
     return data;
-  }, []);
+  }, [applySessionUser]);
+
+  const completeMfaLogin = useCallback(async (data) => {
+    if (!data?.token || !data?.user) {
+      throw new Error("No se pudo completar el ingreso.");
+    }
+    await applySessionUser(data.user);
+    return data;
+  }, [applySessionUser]);
 
   const signup = useCallback(async (body) => {
     api.clearUserUnitCache();
@@ -78,10 +91,11 @@ export function AuthProvider({ children }) {
       loading: user === undefined,
       refresh,
       login,
+      completeMfaLogin,
       signup,
       logout,
     }),
-    [user, refresh, login, signup, logout],
+    [user, refresh, login, completeMfaLogin, signup, logout],
   );
 
   return (

@@ -26,7 +26,7 @@ Centinela (tiles Leaflet).
 | CORS + montaje | `SICEN-back/src/app.js` |
 | URI Mongo | `SICEN-back/src/utils/db-connection.js` (`MONGO_URI`) |
 | Fail-fast prod | `SICEN-back/src/config/env.config.js` |
-| Compose | `docker-compose.yml` (`MONGO_URI`, `CORS_ORIGIN`) |
+| Compose | `docker-compose.yml` (`JWT_SECRET`, `MFA_ENCRYPTION_KEY`, `MONGO_URI`, `CORS_ORIGIN`) |
 | Plantillas env | `.env.example` (raíz) y `SICEN-back/.env.example` |
 
 ## Reglas obligatorias
@@ -51,10 +51,11 @@ Centinela (tiles Leaflet).
    `authenticated-uploads`.
 6. **Logger**: los niveles custom de Winston definen `warning`, no `warn`.
    `logger.js` alias `warn` → `warning`. Preferir `logger.warning`.
-7. **Docker**: `docker-compose.yml` interpola `${MONGO_URI:?…}` y
-   `${CORS_ORIGIN:?…}` (sin default). El `.env.example` de la raíz debe
-   documentar ambas. El volumen `./SICEN-back/storage:/app/storage:rw`
-   es el único path persistente escribible (uploads autenticados).
+7. **Docker**: `docker-compose.yml` interpola `${JWT_SECRET:?…}`,
+   `${MFA_ENCRYPTION_KEY:?…}`, `${MONGO_URI:?…}` y `${CORS_ORIGIN:?…}`
+   (sin default). El `.env.example` de la raíz debe documentarlas. El
+   volumen `./SICEN-back/storage:/app/storage:rw` es el único path
+   persistente escribible (uploads autenticados).
 
 ## Antipatrones
 
@@ -83,6 +84,7 @@ Obligatorias en producción / Compose:
 MONGO_URI=mongodb+srv://usuario:contraseña@cluster.mongodb.net/SIGMU_DB?retryWrites=true&w=majority
 CORS_ORIGIN=https://sicen.dominio.com,https://www.sicen.dominio.com
 JWT_SECRET=...
+MFA_ENCRYPTION_KEY=...
 ```
 
 ## Ejemplos vivos

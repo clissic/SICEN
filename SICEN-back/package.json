@@ -47,6 +47,7 @@
     "multer": "^2.1.1",
     "nodemailer": "^10.3.1",
     "polygon-clipping": "^0.15.7",
+    "qrcode": "^1.5.4",
     "sweetalert2": "^11.7.31",
     "winston": "^3.10.0",
     "ws": "^8.21.3"

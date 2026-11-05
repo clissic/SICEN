@@ -115,6 +115,8 @@ Luego completá los valores según tu entorno (y recordá que **`JWT_SECRET` es 
 | `PORT` | Puerto HTTP del servidor (por defecto `3000`). |
 | `JWT_SECRET` | Firma de tokens. **Obligatoria en producción**; si falta, el proceso termina. En desarrollo puede omitirse (se usa un valor por defecto inseguro solo para local). |
 | `JWT_EXPIRES_IN` | Caducidad del access token (default `8h`). |
+| `MFA_ENCRYPTION_KEY` | Cifrado AES-256-GCM del secreto TOTP de admin. **Obligatoria en producción** (distinta de `JWT_SECRET`); si falta, el proceso termina. |
+| `MFA_CHALLENGE_EXPIRES_IN` | Caducidad del token de desafío entre login y TOTP (default `5m`). |
 | `MONGO_URI` | URI completa de MongoDB (obligatoria en producción). Atlas o el contenedor local; **no** hay cluster hardcodeado. |
 | `LOGGER_ENV` | `development` \| `production` (comportamiento de logs). |
 | `API_URL` | URL base pública (emails, enlaces). |
@@ -169,7 +171,7 @@ El contenedor `back` usa **`node:24.22.1-alpine`**. El stage de front corre **Vi
 ```bash
 # 1. Copiá .env.example a .env en la raíz del repo y reemplazá los changeme
 cp .env.example .env
-# Editá .env: JWT_SECRET, MONGO_URI, CORS_ORIGIN, MONGO_INITDB_ROOT_PASSWORD, claves de APIs, etc.
+# Editá .env: JWT_SECRET, MFA_ENCRYPTION_KEY, MONGO_URI, CORS_ORIGIN, MONGO_INITDB_ROOT_PASSWORD, claves de APIs, etc.
 
 # 2. Construí las imágenes
 docker compose build
@@ -201,6 +203,7 @@ Los secretos en `docker-compose.yml` se interpolan como `${VAR:?mensaje}` **sin 
 
 **Secretos obligatorios:**
 - `JWT_SECRET` — firma de tokens JWT (generar con `openssl rand -hex 32`)
+- `MFA_ENCRYPTION_KEY` — cifrado del secreto TOTP (distinta de `JWT_SECRET`; `openssl rand -hex 32`)
 - `MONGO_URI` — URI completa de MongoDB (Atlas o el contenedor local)
 - `CORS_ORIGIN` — orígenes permitidos separados por coma (p. ej. `https://sicen.dominio.com`)
 - `MONGO_INITDB_ROOT_PASSWORD` — contraseña root del contenedor `mongo` (perfil demo; Compose la exige aunque no actives el perfil)
