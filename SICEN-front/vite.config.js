@@ -187,6 +187,11 @@ export default defineConfig({
   ],
   build: {
     outDir: "../SICEN-back/public",
+    /* Vite 8 default: lightningcss. Ese minifier tira `backdrop-filter` y deja
+       solo `-webkit-backdrop-filter` (parcel-bundler/lightningcss#695,
+       vitejs/vite#22649). Chromium no honra el prefijo → los paneles glass de
+       El Centinela quedan opacos. esbuild conserva ambas declaraciones. */
+    cssMinify: "esbuild",
     /* No vaciar todo public/ en cada rebuild: en Windows + OneDrive el rmdir de
        carpetas grandes (files/OSERP, units, img) suele fallar con UNKNOWN y deja
        el build sin index.html. Los assets hashed se reemplazan solos al compilar. */

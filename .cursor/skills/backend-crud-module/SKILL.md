@@ -55,6 +55,11 @@ app.use("/api/vesselInspections", vesselInspectionsRouter);
 9. **Nombre de la colección**: pasar el nombre en `camelCase` y plural a
    `model("<plural>", schema)`. Coincide con el segmento de la URL
    (`/api/vesselInspections`).
+10. **Mongoose 9**: `findOneAndUpdate` / `findOneAndReplace` usan
+    `{ returnDocument: "after" }` (no `{ new: true }`, deprecado). Los
+    `schema.pre("save")` van **sin** `next()`: función sync o `async`.
+    El catch-all de la SPA en `app.js` es `app.get("/{*splat}", …)`
+    (Express 5; `app.get("*")` ya no es válido).
 
 ## Antipatrones a evitar
 
