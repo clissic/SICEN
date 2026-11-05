@@ -16,6 +16,7 @@ export function MiUnidadEmpreDivisionItemPage() {
   }
 
   const { division, item } = resolved;
+  const children = item.menuItems ?? [];
 
   return (
     <Layout>
@@ -40,9 +41,42 @@ export function MiUnidadEmpreDivisionItemPage() {
             </Link>
           </div>
         </div>
-        <div className="alert alert-secondary mb-0">
-          Contenido en preparación.
-        </div>
+        {children.length > 0 ? (
+          <div className="row row-cols-1 row-cols-md-3 g-3">
+            {children.map((child) => (
+              <div key={child.slug} className="col">
+                <Link
+                  className="text-decoration-none"
+                  to={`/mi-unidad/${division.slug}/${item.slug}/${child.slug}`}
+                >
+                  <div className="card h-100 shadow-sm">
+                    <div className="card-body">
+                      <div className="d-flex align-items-start gap-2">
+                        <i
+                          className={`menu-tile-icon bi ${child.iconClass} me-1 px-2 py-1 border border-secondary rounded-1 bg-secondary text-white flex-shrink-0`}
+                          style={{ fontSize: "0.95rem", marginTop: "0.15rem" }}
+                          aria-hidden
+                        />
+                        <div className="min-w-0">
+                          <div className="fw-semibold text-body text-break">
+                            {child.title}
+                          </div>
+                          <div className="text-muted small text-break mt-1">
+                            {child.subtitle}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="alert alert-secondary mb-0">
+            Contenido en preparación.
+          </div>
+        )}
       </div>
     </Layout>
   );

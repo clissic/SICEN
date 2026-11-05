@@ -2198,3 +2198,67 @@ export async function openSportMovementTrackingStream(handlers = {}) {
     handlers.onError?.(err);
   }
 }
+
+/**
+ * Patrullas de frontera.
+ * Con `month` (1–12): ese mes. Sin `month`: todo el año (útil para estadísticas).
+ */
+export function listBorderPatrols({ year, month }) {
+  const params = new URLSearchParams({ year: String(year) });
+  if (month !== undefined && month !== null && month !== "") {
+    params.set("month", String(month));
+  }
+  return apiFetch(`/api/borderPatrols?${params.toString()}`);
+}
+
+export function createBorderPatrol(payload) {
+  return apiFetch("/api/borderPatrols", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateBorderPatrolStatus(id, payload) {
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  const body = typeof payload === "string" ? { status: payload } : payload;
+  return apiFetch(`/api/borderPatrols/${enc}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+/** Alias semántico: status + observations + fulfillment opcional. */
+export function updateBorderPatrol(id, payload) {
+  return updateBorderPatrolStatus(id, payload);
+}
+
+export function deleteBorderPatrol(id) {
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/borderPatrols/${enc}`, { method: "DELETE" });
+}
+
+/** Números de patrulla definidos por una unidad. */
+export function listBorderPatrolTypes(unitAcronym) {
+  const params = new URLSearchParams({ unitAcronym: String(unitAcronym || "") });
+  return apiFetch(`/api/borderPatrolTypes?${params.toString()}`);
+}
+
+export function createBorderPatrolType(payload) {
+  return apiFetch("/api/borderPatrolTypes", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateBorderPatrolType(id, payload) {
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/borderPatrolTypes/${enc}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteBorderPatrolType(id) {
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/borderPatrolTypes/${enc}`, { method: "DELETE" });
+}

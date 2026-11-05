@@ -2,6 +2,7 @@ import { useEffect } from "react";
 
 export const SICEN_POPOVER_ATTR = "data-sicen-popover";
 export const SICEN_POPOVER_TOUCH_ATTR = "data-sicen-popover-touch";
+export const SICEN_POPOVER_HTML_ATTR = "data-sicen-popover-html";
 
 const TOUCH_MQ =
   "(hover: none), (pointer: coarse), (max-width: 767.98px)";
@@ -69,15 +70,17 @@ export function useDocumentSicenPopovers() {
       }
 
       if (Bootstrap.Popover.getInstance(el)) return;
+      const allowHtml = el.getAttribute(SICEN_POPOVER_HTML_ATTR) === "true";
       try {
         new Bootstrap.Popover(el, {
           trigger: touchUi ? "click" : "hover",
           placement:
             el.getAttribute("data-sicen-popover-placement") || "top",
           container: "body",
+          html: allowHtml,
           sanitize: true,
-          // Hover: demora 1 s en aparecer. Click (mobile info): sin demora.
-          delay: touchUi ? 0 : { show: 1000, hide: 0 },
+          // Hover: demora 0,75 s en aparecer. Click (mobile info): sin demora.
+          delay: touchUi ? 0 : { show: 750, hide: 0 },
           content: () => el.getAttribute(SICEN_POPOVER_ATTR) || "",
         });
       } catch {
@@ -165,7 +168,11 @@ export function useDocumentSicenPopovers() {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: [SICEN_POPOVER_ATTR, SICEN_POPOVER_TOUCH_ATTR],
+      attributeFilter: [
+        SICEN_POPOVER_ATTR,
+        SICEN_POPOVER_TOUCH_ATTR,
+        SICEN_POPOVER_HTML_ATTR,
+      ],
     });
 
     return () => {

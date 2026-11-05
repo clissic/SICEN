@@ -1,6 +1,11 @@
 /** Divisiones P1–P6 del menú Mi Unidad exclusivo para la unidad EMPRE. */
 export const EMPRE_UNIT_ACRONYM = "EMPRE";
 
+/** Segmentos fijos de la ruta de menús bajo Control de fronteras. */
+export const EMPRE_P3_SLUG = "p3-planes-y-operaciones";
+export const EMPRE_BORDER_SLUG = "control-de-fronteras";
+export const EMPRE_PATROLS_SLUG = "gestion-de-patrullas";
+
 export const MI_UNIDAD_EMPRE_DIVISIONES = Object.freeze([
   {
     slug: "p1-personal",
@@ -28,6 +33,14 @@ export const MI_UNIDAD_EMPRE_DIVISIONES = Object.freeze([
         title: "Control de fronteras",
         subtitle: "Seguimiento y control en zonas de frontera.",
         iconClass: "bi-signpost-split-fill",
+        menuItems: [
+          {
+            slug: "gestion-de-patrullas",
+            title: "Gestión de patrullas",
+            subtitle: "Planificación mensual y carga de patrullas.",
+            iconClass: "bi-signpost-2",
+          },
+        ],
       },
     ],
   },
@@ -79,4 +92,13 @@ export function getMiUnidadEmpreDivisionItem(divisionSlug, itemSlug) {
   const item = division.menuItems.find((i) => i.slug === itemSlug);
   if (!item) return null;
   return { division, item };
+}
+
+/** Ítem hijo de un menú EMPRE (p. ej. Control de fronteras → Gestión de patrullas). */
+export function getMiUnidadEmpreNestedMenu(divisionSlug, itemSlug, menuSlug) {
+  const resolved = getMiUnidadEmpreDivisionItem(divisionSlug, itemSlug);
+  if (!resolved?.item?.menuItems?.length) return null;
+  const menu = resolved.item.menuItems.find((m) => m.slug === menuSlug);
+  if (!menu) return null;
+  return { ...resolved, menu };
 }

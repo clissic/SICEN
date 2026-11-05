@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { createUnit } from "../api/client.js";
+import { HIGH_COMMANDS } from "../constants/highCommands.js";
 import { Layout } from "../components/Layout.jsx";
 import {
   UnitJurisdictionPortsFields,
@@ -100,6 +101,27 @@ export function SumarUnidadPage() {
                   <div className="form-text">
                     Se guardará en mayúsculas; entre 4 y 6 caracteres.
                   </div>
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label" htmlFor="su-mando">
+                    Gran Mando <span className="text-danger">*</span>
+                  </label>
+                  <select
+                    id="su-mando"
+                    name="granMando"
+                    className="form-select"
+                    required
+                    defaultValue=""
+                  >
+                    <option value="" disabled>
+                      Elegí el Gran Mando
+                    </option>
+                    {HIGH_COMMANDS.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.id} — {item.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="col-12">

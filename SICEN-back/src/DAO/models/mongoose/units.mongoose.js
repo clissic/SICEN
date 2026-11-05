@@ -1,4 +1,5 @@
 import { Schema, model } from "mongoose";
+import { HIGH_COMMAND_IDS } from "../../../constants/highCommands.js";
 
 const schema = new Schema(
   {
@@ -10,6 +11,13 @@ const schema = new Schema(
       trim: true,
     },
     name: { type: String, required: true, maxlength: 200 },
+    /** Gran Mando al que pertenece la unidad. */
+    highCommand: {
+      type: String,
+      required: true,
+      enum: HIGH_COMMAND_IDS,
+      default: "PRENA",
+    },
     address: { type: String, default: "", maxlength: 500 },
     phone: { type: String, default: "", maxlength: 50 },
     emailRadio: { type: String, default: "", maxlength: 120 },

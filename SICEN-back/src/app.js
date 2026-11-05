@@ -48,6 +48,8 @@ import { mapMarkersRouter } from "./routes/mapMarkers.router.js";
 import { mapZonesRouter } from "./routes/mapZones.router.js";
 import { mapMeasurementsRouter } from "./routes/mapMeasurements.router.js";
 import { seafarerLinksRouter } from "./routes/seafarerLinks.router.js";
+import { borderPatrolsRouter } from "./routes/borderPatrols.router.js";
+import { borderPatrolTypesRouter } from "./routes/borderPatrolTypes.router.js";
 import { filesRouter } from "./routes/files.router.js";
 import { warmAisBridge } from "./services/aisBridge.service.js";
 import { startNmeaReceiver } from "./services/aisNmeaReceiver.service.js";
@@ -175,6 +177,8 @@ app.use("/api/mapMarkers", mapMarkersRouter);
 app.use("/api/mapZones", mapZonesRouter);
 app.use("/api/mapMeasurements", mapMeasurementsRouter);
 app.use("/api/seafarer-links", seafarerLinksRouter);
+app.use("/api/borderPatrols", borderPatrolsRouter);
+app.use("/api/borderPatrolTypes", borderPatrolTypesRouter);
 app.use("/api/files", filesRouter);
 
 warmAisBridge();
