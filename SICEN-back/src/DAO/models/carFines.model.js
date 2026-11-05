@@ -156,7 +156,7 @@ class CarFinesModel {
   async findOneAndUpdate(query, update) {
     try {
 
-      const updatedCarFine = await CarFinesMongoose.findOneAndUpdate(query, update, { new: true });
+      const updatedCarFine = await CarFinesMongoose.findOneAndUpdate(query, update, { returnDocument: "after" });
 
       if (!updatedCarFine) {
         throw new Error('No se encontró la multa para actualizar');

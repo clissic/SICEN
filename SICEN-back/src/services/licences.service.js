@@ -120,7 +120,7 @@ export async function updateLicenceById(id, body, user) {
       },
       $unset: { issueDate: "", expirationDate: "" },
     },
-    { new: true, runValidators: true },
+    { returnDocument: "after", runValidators: true },
   )
     .lean()
     .exec();

@@ -106,12 +106,60 @@ class SessionsController {
       const user = await UserMongoose.findOne({
         email: { $regex: new RegExp(`^${escaped}$`, "i") },
       });
-      if (!user || !isValidPassword(password, user.password)) {
+
+      if (!user) {
         return res.status(401).json({
           ok: false,
           msg: "Email o contraseña incorrectos.",
         });
       }
+
+      if (user.isLocked) {
+        const minutesLeft = Math.ceil(
+          (user.lockUntil.getTime() - Date.now()) / 60000
+        );
+        logger.warning(
+          `Intento de login en cuenta bloqueada: ${email} — ${minutesLeft} min restantes`
+        );
+        return res.status(423).json({
+          ok: false,
+          msg: `Cuenta bloqueada temporalmente por intentos fallidos. Intentá nuevamente en ${minutesLeft} minuto(s).`,
+        });
+      }
+
+      if (!isValidPassword(password, user.password)) {
+        const MAX_ATTEMPTS = 5;
+        const LOCK_TIME_MS = 15 * 60 * 1000;
+        user.loginAttempts = (user.loginAttempts || 0) + 1;
+
+        if (user.loginAttempts >= MAX_ATTEMPTS) {
+          user.lockUntil = new Date(Date.now() + LOCK_TIME_MS);
+          await user.save();
+          logger.warning(
+            `Cuenta bloqueada por intentos fallidos: ${email} (${user.loginAttempts} intentos)`
+          );
+          return res.status(423).json({
+            ok: false,
+            msg: `Cuenta bloqueada temporalmente por múltiples intentos fallidos. Intentá nuevamente en 15 minutos.`,
+          });
+        }
+
+        await user.save();
+        logger.info(
+          `Login fallido: ${email} — intento ${user.loginAttempts}/${MAX_ATTEMPTS}`
+        );
+        return res.status(401).json({
+          ok: false,
+          msg: "Email o contraseña incorrectos.",
+        });
+      }
+
+      if (user.loginAttempts > 0 || user.lockUntil) {
+        user.loginAttempts = 0;
+        user.lockUntil = null;
+        await user.save();
+      }
+
       logger.info(
         `${user.rank} ${user.first_name} ${user.last_name} logged in as ${user.role}`
       );

@@ -77,6 +77,12 @@ const schema = new Schema({
       activeRequestId: null,
     }),
   },
+  loginAttempts: { type: Number, default: 0 },
+  lockUntil: { type: Date, default: null },
+});
+
+schema.virtual("isLocked").get(function () {
+  return !!(this.lockUntil && this.lockUntil > Date.now());
 });
 
 /** Un seafarer solo puede estar linked a una cuenta a la vez. */
