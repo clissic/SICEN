@@ -2,15 +2,17 @@
 name: js-major-deps
 description: >-
   Versiones major actuales del stack JS de SICEN (Vite 8, Vitest 5, React 19,
-  react-router-dom 7, Express 5, Mongoose 9, bcrypt 6, nodemailer 10). Usar al
-  agregar o actualizar dependencias, tocar vite.config / vitest.config, el
-  catch-all de Express, hooks Mongoose, o al limpiar `npm audit`.
+  react-router-dom 7, Express 5, Mongoose 9, bcrypt 6, nodemailer 10,
+  file-type 22). Usar al agregar o actualizar dependencias, tocar vite.config /
+  vitest.config, el catch-all de Express, hooks Mongoose, validación de uploads
+  con magic bytes, o al limpiar `npm audit`.
 ---
 
 # Majors JS de SICEN (front + back)
 
-Última alineación: PR de majors (Vite 8 / Express 5 / Mongoose 9). Antes de
-subir otro major, revisar este skill y `npm outdated` en cada paquete.
+Última alineación: PR de majors restantes (`file-type` 22; Vite 8 / Express 5 /
+Mongoose 9 del PR #16). Antes de subir otro major, revisar este skill y
+`npm outdated` en cada paquete.
 
 ## Pin de Node.js
 
@@ -54,6 +56,7 @@ y elimina `react-router-dom`. v7.18+ ya parchea el open-redirect de `@remix-run/
 | `commander` | 15 |
 | `concurrently` | 10 |
 | `vitest` | 5 |
+| `file-type` | 22 |
 
 ## Reglas al tocar este stack
 
@@ -83,6 +86,12 @@ y elimina `react-router-dom`. v7.18+ ya parchea el open-redirect de `@remix-run/
 6. **Overrides** (audit): front fuerza `nanoid`, `postcss`, `glob`,
    `minimatch`, `@babel/core`, etc. Back fuerza `qs`, `tar`, `minimatch`,
    `ip-address`, `shell-quote`. No usar `npm audit fix --force`.
+7. **file-type 22**: `fileTypeFromFile()` sigue en el export principal (requiere
+   Node ≥ 22). `fileTypeFromStream()` ahora pide un `ReadableStream` web, no
+   `stream.Readable` de Node. Sub-exports (`file-type/core`) eliminados.
+   Word 97–2003 (`.doc`) se detecta como `application/x-cfb`, no
+   `application/msword`; `validateDocument` acepta ambos. No instalar
+   `@file-type/cfbf`: tampoco distingue .doc de .xls/.msi.
 
 ## Antipatrones
 
@@ -93,6 +102,7 @@ y elimina `react-router-dom`. v7.18+ ya parchea el open-redirect de `@remix-run/
 - ❌ `express-mongo-sanitize` o `req.query = …` (Express 5: getter).
 - ❌ Sacar `build.cssMinify: "esbuild"` en Vite 8 (rompe el blur de los
   paneles de El Centinela).
+- ❌ Validar `.doc` solo con `application/msword` (file-type reporta CFB).
 
 ## Ejemplos vivos
 
@@ -103,3 +113,4 @@ y elimina `react-router-dom`. v7.18+ ya parchea el open-redirect de `@remix-run/
 - Vite 8 + PWA 2: `SICEN-front/vite.config.js`
 - Vitest 5 front: `SICEN-front/vitest.config.js`
 - Docker Node 24.22.1 + Vite 8 outDir: `SICEN-back/Dockerfile`
+- Magic bytes + `.doc` CFB: `SICEN-back/src/utils/fileValidation.js`

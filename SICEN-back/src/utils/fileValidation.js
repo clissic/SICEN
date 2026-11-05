@@ -61,12 +61,17 @@ export async function validateImage(filePath) {
 }
 
 /**
- * Valida que un archivo sea un documento (PDF, DOC, DOCX) por magic bytes
+ * Valida que un archivo sea un documento (PDF, DOC, DOCX) por magic bytes.
+ *
+ * `file-type` (v19 y v22) no distingue Word 97–2003 de otros OLE: el
+ * contenedor CFB se reporta como `application/x-cfb`, no `application/msword`.
+ * El filtro de extensión (`.doc`) vive en el multer de procedimientos.
  */
 export async function validateDocument(filePath) {
   return validateFileType(filePath, [
     "application/pdf",
     "application/msword",
+    "application/x-cfb",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   ]);
 }

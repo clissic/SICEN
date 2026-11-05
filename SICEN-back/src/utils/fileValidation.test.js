@@ -154,6 +154,18 @@ describe("fileValidation", () => {
       const result = await validateDocument(filePath);
       expect(result).toBe(false);
     });
+
+    it("debe aceptar un OLE/CFB (Word 97–2003 .doc)", async () => {
+      const filePath = path.join(TEST_FILES_DIR, "legacy.doc");
+      // Magic bytes CFB: D0 CF 11 E0 A1 B1 1A E1
+      const cfbHeader = Buffer.from([
+        0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1,
+      ]);
+      await fs.writeFile(filePath, cfbHeader);
+
+      const result = await validateDocument(filePath);
+      expect(result).toBe(true);
+    });
   });
 
   describe("validateFileType - casos límite", () => {
