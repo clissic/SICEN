@@ -32,10 +32,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copiamos requirements y los instalamos con versiones pinneadas
 COPY requirements.txt requirements-opendrift.txt ./
 
-# Actualizamos pip/setuptools, instalamos dependencias base y luego OpenDrift (puede fallar en ciertas archs)
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir -r requirements-opendrift.txt || true
+# Core siempre. OpenDrift + adios-db (reemplazo de oil_library / oil_library-oil,
+# que no existe en PyPI y rompía el extra). Si Cartopy u otra nativa falla,
+# la imagen igual arranca con el motor Lagrangian.
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-opendrift.txt \
+    || echo "[SICEN-sim] OpenDrift/adios-db no se instaló; queda el motor Lagrangian."
 
 # Copiamos el código fuente
 COPY app ./app
@@ -52,6 +55,9 @@ USER sicensim
 ENV SICEN_SIM_ENGINE=auto
 ENV SICEN_SIM_CACHE_DIR=/data/cache
 ENV PORT=8091
+# Rootfs read-only: Matplotlib/OpenDrift no pueden escribir ~/.config
+ENV MPLCONFIGDIR=/tmp/matplotlib
+ENV XDG_CONFIG_HOME=/tmp
 
 EXPOSE 8091
 
