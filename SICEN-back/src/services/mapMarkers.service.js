@@ -154,7 +154,7 @@ export async function updateMapMarker(user, id, body) {
         "metadata.lastModifiedBy": userEmail(user),
       },
     },
-    { new: true }
+    { returnDocument: "after" }
   ).lean();
   if (!doc) {
     throw httpError("Marcador no encontrado.", 404);

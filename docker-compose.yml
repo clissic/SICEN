@@ -1,0 +1,126 @@
+services:
+  # ──────────────────────────────────────────────────────────────────────────
+  # SICEN-back: API Express + frontend React (SPA estático servido por Express)
+  # ──────────────────────────────────────────────────────────────────────────
+  back:
+    build:
+      context: .
+      dockerfile: SICEN-back/Dockerfile
+    image: sicen-back:latest
+    container_name: sicen-back
+    restart: unless-stopped
+
+    # Hardening: rootfs read-only, tmpfs para logs transitorios, solo storage escribible
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    volumes:
+      # Directorio de uploads/storage: único volumen con escritura
+      - ./SICEN-back/storage:/app/storage:rw
+
+    ports:
+      # Puerto bound a 127.0.0.1 por defecto (proxy inverso local o túnel Cloudflare)
+      - "127.0.0.1:3000:3000"
+
+    env_file:
+      - .env
+
+    # Secretos sin defaults: Compose aborta si faltan en .env
+    environment:
+      - JWT_SECRET=${JWT_SECRET:?Definí JWT_SECRET en el archivo .env}
+      - MONGO_URI=${MONGO_URI:?Definí MONGO_URI en el archivo .env}
+      - CORS_ORIGIN=${CORS_ORIGIN:?Definí CORS_ORIGIN en el archivo .env}
+
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+    # Dependencia: arrancar solo si mongo está listo (perfil demo)
+    # (comentado si se usa Mongo Atlas externo)
+    # depends_on:
+    #   mongo:
+    #     condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/api/sessions/me', (res) => { process.exit(res.statusCode === 401 || res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # SICEN-sim: simulador de derrames HC (FastAPI + OpenDrift/Lagrangian)
+  # ──────────────────────────────────────────────────────────────────────────
+  sim:
+    build:
+      context: ./SICEN-sim
+      dockerfile: Dockerfile
+    image: sicen-sim:latest
+    container_name: sicen-sim
+    restart: unless-stopped
+
+    # Hardening: rootfs read-only, tmpfs para cache y logs
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+      - /data/cache:rw,noexec,nosuid,size=256m
+
+    ports:
+      # Puerto interno solo accesible desde back (no bound a host por defecto)
+      # Si hace falta acceso directo para debug: cambiar a "127.0.0.1:8091:8091"
+      - "8091"
+
+    environment:
+      - SICEN_SIM_ENGINE=auto
+      - SICEN_SIM_CACHE_DIR=/data/cache
+      - PORT=8091
+
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8091/docs').read()"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # MongoDB local (perfil demo): base de datos demo con datos falsos
+  # ──────────────────────────────────────────────────────────────────────────
+  # Activar con: docker compose --profile demo up
+  mongo:
+    image: mongo:8.0
+    container_name: sicen-mongo-demo
+    restart: unless-stopped
+    profiles:
+      - demo
+
+    ports:
+      - "127.0.0.1:27017:27017"
+
+    volumes:
+      - mongo-data:/data/db
+
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=sicen
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD:?Definí MONGO_INITDB_ROOT_PASSWORD en el archivo .env}
+      - MONGO_INITDB_DATABASE=SIGMU_DB
+
+    security_opt:
+      - no-new-privileges:true
+    # MongoDB necesita ciertas capabilities para WiredTiger, no aplicamos cap_drop ALL
+
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+volumes:
+  mongo-data:
+    driver: local

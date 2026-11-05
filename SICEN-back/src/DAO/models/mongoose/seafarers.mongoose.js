@@ -354,7 +354,7 @@ const schema = new Schema(
   { timestamps: false }
 );
 
-schema.pre("save", function (next) {
+schema.pre("save", function () {
   const now = new Date();
   if (!this.metadata || typeof this.metadata !== "object") {
     this.metadata = {};
@@ -363,7 +363,6 @@ schema.pre("save", function (next) {
     this.metadata.createdAt = now;
   }
   this.metadata.updatedAt = now;
-  next();
 });
 
 /** Claves válidas para `licenses` (arrays de licencias). */

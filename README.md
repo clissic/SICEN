@@ -1,6 +1,6 @@
 # Sistema Centinela (SICEN)
 
-Aplicación para la **Prefectura del Puerto de Montevideo**: API **Node.js (Express, ESM)** con **MongoDB (Mongoose)** y autenticación **JWT**, más SPA **React 18 + Vite 5** y **React Router 6**. Estilos: **Bootstrap 5.3** (CDN) e iconos Bootstrap Icons; tema claro/oscuro con `data-bs-theme` y estilos en `SICEN-front/src/styles/sistema.css`, `SICEN-front/src/styles/menu-tiles.css` (tarjetas de menú e inicio) y `SICEN-front/src/styles/user-state-badges.css` (barras de especializaciones en el inicio).
+Aplicación para la **Prefectura del Puerto de Montevideo**: API **Node.js 24 (Express 5, ESM)** con **MongoDB (Mongoose 9)** y autenticación **JWT**, más SPA **React 19 + Vite 8** y **React Router 7**. Estilos: **Bootstrap 5.3** (CDN) e iconos Bootstrap Icons; tema claro/oscuro con `data-bs-theme` y estilos en `SICEN-front/src/styles/sistema.css`, `SICEN-front/src/styles/menu-tiles.css` (tarjetas de menú e inicio) y `SICEN-front/src/styles/user-state-badges.css` (barras de especializaciones en el inicio).
 
 ## Estructura del monorepo
 
@@ -115,12 +115,12 @@ Luego completá los valores según tu entorno (y recordá que **`JWT_SECRET` es 
 | `PORT` | Puerto HTTP del servidor (por defecto `3000`). |
 | `JWT_SECRET` | Firma de tokens. **Obligatoria en producción**; si falta, el proceso termina. En desarrollo puede omitirse (se usa un valor por defecto inseguro solo para local). |
 | `JWT_EXPIRES_IN` | Caducidad del access token (p. ej. `24h`). |
-| `MONGODB_PASSWORD` | Contraseña inyectada en el string de conexión a MongoDB. |
+| `MONGO_URI` | URI completa de MongoDB (obligatoria en producción). Atlas o el contenedor local; **no** hay cluster hardcodeado. |
 | `LOGGER_ENV` | `development` \| `production` (comportamiento de logs). |
 | `API_URL` | URL base pública (emails, enlaces). |
 | `PUBLIC_APP_URL` | Opcional; si existe, tiene prioridad sobre `API_URL` para la URL pública de la app (sin barra final). |
 | `GOOGLE_EMAIL` / `GOOGLE_PASS` | Credenciales Nodemailer (p. ej. Gmail con app password). |
-| `CORS_ORIGIN` | Opcional. Orígenes permitidos separados por **coma**. Si no se define, se usan por defecto el propio servidor (`localhost`/`127.0.0.1` al `PORT`) y `http://localhost:5173` (Vite). |
+| `CORS_ORIGIN` | Orígenes permitidos separados por **coma**. **Obligatorio en producción** (el proceso termina si falta). En desarrollo, si no se define, se usan `localhost`/`127.0.0.1` al `PORT` y `http://localhost:5173` (Vite). |
 | `AIS_STREAM_API_KEY` | API key de AISStream para la capa AIS de El Centinela (solo backend). |
 | `SKYLIGHT_API_KEY` | API key de Skylight (detecciones satelitales / IUU) para El Centinela (solo backend). |
 | `GFW_API_TOKEN` | Token Bearer de Global Fishing Watch para enriquecer OMI/identidad en la capa AIS (uso no comercial; solo backend). |
@@ -139,6 +139,112 @@ Luego completá los valores según tu entorno (y recordá que **`JWT_SECRET` es 
 | Variable | Uso |
 |----------|-----|
 | `VITE_CARTO_API_KEY` | Key de basemaps CARTO. Se agrega como `?key=` a las URLs Voyager / `dark_all` de El Centinela y quita el watermark. Visible en el navegador. |
+
+## Docker y Despliegue
+
+SICEN incluye soporte Docker para despliegue con backend, frontend (compilado y servido por Express) y simulador de derrames HC. El stack está pensado para un servidor Debian/Linux con Docker (demo local con MongoDB o producción con Mongo Atlas).
+
+### Estructura de contenedores
+
+| Servicio | Imagen | Rol | Puerto |
+|----------|--------|-----|--------|
+| **`back`** | `sicen-back:latest` | Backend Express + frontend React (SPA estática) | 3000 (bound a `127.0.0.1`) |
+| **`sim`** | `sicen-sim:latest` | Simulador de derrames HC (FastAPI + OpenDrift) | 8091 (interno) |
+| **`mongo`** | `mongo:8.0` | Base de datos MongoDB (perfil demo opcional) | 27017 (bound a `127.0.0.1`, solo perfil demo) |
+
+El contenedor `back` usa **`node:24.22.1-alpine`**. El stage de front corre **Vite 8** (`npm ci` con devDependencies: vite, plugin-react, esbuild, PWA) y escribe a `../SICEN-back/public` (el `outDir` de `vite.config.js`, no `dist/`). Ese output se copia a `public/` del runtime Express. En producción, apuntás a Mongo Atlas con **`MONGO_URI`** (`mongodb+srv://…`) y no hace falta el contenedor `mongo`.
+
+### Hardening aplicado
+
+- **Rootfs read-only** (`read_only: true`) con `tmpfs` para logs y cache transitorios.
+- **Usuario no-root** en todas las imágenes (`sicenapp` uid 10001, `sicensim` uid 10002).
+- **Capabilities mínimas** (`cap_drop: [ALL]`), `no-new-privileges:true`.
+- Solo el directorio **`SICEN-back/storage`** (avatares, multas, PDFs de inspecciones, etc.) se monta con escritura.
+- El puerto del backend se bind a **`127.0.0.1`** por defecto (usa un proxy inverso o túnel Cloudflare para exponer públicamente).
+- El puerto del simulador **no** se expone al host; back y sim se comunican por la red interna de Docker.
+- `.dockerignore` excluye `.env` con secretos, `node_modules`, archivos de desarrollo y testing.
+
+### Build y ejecución
+
+```bash
+# 1. Copiá .env.example a .env en la raíz del repo y reemplazá los changeme
+cp .env.example .env
+# Editá .env: JWT_SECRET, MONGO_URI, CORS_ORIGIN, MONGO_INITDB_ROOT_PASSWORD, claves de APIs, etc.
+
+# 2. Construí las imágenes
+docker compose build
+
+# 3. Levantá el stack (back + sim, sin mongo)
+docker compose up -d
+
+# 4. (Opcional) Levantá el stack con MongoDB local para demo/desarrollo
+docker compose --profile demo up -d
+
+# 5. Verificá los logs y la salud de los contenedores
+docker compose logs -f back
+docker compose ps
+```
+
+Para actualizar solo el código sin recrear volúmenes:
+
+```bash
+git pull
+docker compose build back sim
+docker compose up -d --no-deps back sim
+```
+
+### Variables de entorno para Docker
+
+El archivo **`.env`** en la raíz del repo es leído por `docker-compose.yml` para inyectar variables en los contenedores. Podés usar **`.env.example`** como plantilla.
+
+Los secretos en `docker-compose.yml` se interpolan como `${VAR:?mensaje}` **sin valores por defecto**: si faltan en `.env`, Compose aborta. En `.env.example` figuran como `changeme`; reemplazalos antes de levantar el stack.
+
+**Secretos obligatorios:**
+- `JWT_SECRET` — firma de tokens JWT (generar con `openssl rand -hex 32`)
+- `MONGO_URI` — URI completa de MongoDB (Atlas o el contenedor local)
+- `CORS_ORIGIN` — orígenes permitidos separados por coma (p. ej. `https://sicen.dominio.com`)
+- `MONGO_INITDB_ROOT_PASSWORD` — contraseña root del contenedor `mongo` (perfil demo; Compose la exige aunque no actives el perfil)
+- `GOOGLE_EMAIL` / `GOOGLE_PASS` — credenciales Nodemailer (opcional si no enviás mails)
+
+**Claves de APIs externas (El Centinela):**
+- `AIS_STREAM_API_KEY` — streaming AIS en vivo (https://aisstream.io)
+- `SKYLIGHT_API_KEY` — detecciones satelitales IUU (https://api.skylight.earth)
+- `GFW_API_TOKEN` — identidad de buques (https://globalfishingwatch.org/our-apis/)
+- `VITE_CARTO_API_KEY` — basemaps CARTO sin watermark (El Centinela)
+
+**Simulador HC:**
+- `HC_SIM_ENABLED=true` — habilitar el simulador de derrames
+- `HC_SIM_URL=http://sim:8091` — URL interna del contenedor `sim`
+
+El resto de variables (puertos, TTLs de cache, bboxes, etc.) tienen valores sensatos por defecto en el código; podés sobreescribirlas en `.env` según necesidad.
+
+### Healthchecks
+
+Ambas imágenes incluyen healthchecks nativos:
+- **`back`**: verifica que Express responda en `/api/sessions/me` (endpoint público, 200 con `user: null` si no hay JWT).
+- **`sim`**: verifica que FastAPI responda en `/docs` (ruta pública de la API).
+
+Revisá el estado de salud con `docker compose ps` o `docker inspect <container>`.
+
+### Auditoría de dependencias Python (SICEN-sim)
+
+La imagen `sicen-sim` usa Python 3.11.11 con dependencias actualizadas. Para auditar vulnerabilidades conocidas en las dependencias instaladas, ejecutá:
+
+```bash
+docker compose run --rm --no-deps sim sh -c "pip install pip-audit && pip-audit"
+```
+
+Esto instala `pip-audit` temporalmente dentro del contenedor y escanea las librerías instaladas contra la base de datos OSV (Open Source Vulnerabilities). Al momento del último build, no se detectaron vulnerabilidades críticas en las dependencias pinneadas.
+
+### Despliegue en producción
+
+1. **Túnel Cloudflare** o proxy inverso (Nginx, Traefik) apuntando al puerto 3000 del host.
+2. **Mongo Atlas** (URI completa en `MONGO_URI` como `mongodb+srv://...`).
+3. **Volumen persistente** para `SICEN-back/storage` (avatares, multas, PDFs de inspecciones).
+4. **Reinicio automático** (`restart: unless-stopped` ya configurado en `docker-compose.yml`).
+5. **Backups periódicos** de MongoDB y del volumen `storage/`.
+
+Para el perfil demo (con `mongo` local), activá el servicio con `--profile demo`. En producción, comentá la línea `depends_on` en el servicio `back` si no usás el contenedor `mongo`.
 
 ## Desarrollo
 
@@ -359,10 +465,9 @@ El módulo de inspecciones (`ConsultInspectionsListPage`, `DeleteInspectionPage`
 
 Pendientes ya enumerados al cierre de **Seguridad (resumen)**, listados aquí con detalle:
 
-- **Rate limiting** sobre `POST /api/sessions/login`, `POST /api/tokens/...` (recuperación) y `POST /api/users/sendNewAccEmail` / `createAndSendEmail`. Sugerencia: `express-rate-limit` con almacén Redis si hay más de una instancia.
-- **CORS** restringido por `CORS_ORIGIN` explícito (hoy ya se respeta si está definido, pero el fallback admite localhost; conviene exigirlo en producción).
+- **Rate limiting** sobre `POST /api/users/sendNewAccEmail` / `createAndSendEmail` (login y recuperación ya tienen límite). Sugerencia: `express-rate-limit` con almacén Redis si hay más de una instancia.
 - **Deshabilitar `POST /api/sessions/signup`** o protegerlo detrás de un feature flag si no se desea registro público (las altas operativas pasan por `/usuarios/nuevo`, que sí valida rol).
-- Revisar **`.env.production`** para que `JWT_SECRET` rote periódicamente y `MONGODB_PASSWORD`/`GOOGLE_PASS` provengan de un gestor de secretos.
+- Revisar **`.env.production`** para que `JWT_SECRET` rote periódicamente y `MONGO_URI`/`GOOGLE_PASS` provengan de un gestor de secretos.
 - Logging estructurado y rotación de logs en producción (`LOGGER_ENV=production`), idealmente enviados a un agregador (Loki / CloudWatch).
 - Backups programados de MongoDB y rotación de los directorios `SICEN-back/storage/<tipo>FineProves/` (archivos de pruebas), `SICEN-back/storage/inspectionsERP/` (PDFs de inspección) y `SICEN-back/public/files/units/` (procedimientos).
 

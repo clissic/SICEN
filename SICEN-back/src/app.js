@@ -1,7 +1,6 @@
 import compression from "compression";
 import cors from "cors";
 import express from "express";
-import mongoSanitize from "express-mongo-sanitize";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -10,6 +9,7 @@ import { logger } from "./utils/logger.js";
 import { connectMongo } from "./utils/db-connection.js";
 import { securityHeaders } from "./middlewares/securityHeaders.js";
 import { rejectBrotliMiddleware } from "./middlewares/rejectBrotli.js";
+import { mongoSanitizeMiddleware } from "./middlewares/mongoSanitize.js";
 import { globalErrorHandler } from "./middlewares/errorHandler.js";
 import { AVATARS_DIR, ensureAvatarsDirSync } from "./utils/avatarFiles.js";
 import {
@@ -77,8 +77,6 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = env.port;
-const MONGO_PASSWORD = env.mongoPassword;
-const dbName = "SIGMU_DB";
 
 const CLIENT_DIST = path.join(__dirname, "../public");
 const CLIENT_INDEX = path.join(CLIENT_DIST, "index.html");
@@ -90,11 +88,11 @@ const httpServer = app.listen(PORT, () => {
   if (hasSpaBuild) {
     logger.info(`SPA (React) servida desde ${CLIENT_DIST}`);
   } else if (fs.existsSync(CLIENT_DIST)) {
-    logger.warn(
+    logger.warning(
       "Carpeta /public sin index.html (build incompleto o fallido). Ejecutá: cd SICEN-front && npm run build"
     );
   } else {
-    logger.warn(
+    logger.warning(
       "No hay build del front en /public. Ejecutá: cd SICEN-front && npm run build"
     );
   }
@@ -148,17 +146,7 @@ app.use(
 );
 app.use(express.json({ limit: "3mb" }));
 app.use(express.urlencoded({ extended: true, limit: "3mb" }));
-
-app.use(
-  mongoSanitize({
-    replaceWith: "_",
-    onSanitize: ({ req, key }) => {
-      logger.warning(
-        `NoSQL injection detectada y sanitizada — IP: ${req.ip}, key: ${key}`
-      );
-    },
-  })
-);
+app.use(mongoSanitizeMiddleware);
 
 ensureAvatarsDirSync();
 app.use("/uploads/avatars", express.static(AVATARS_DIR));
@@ -247,7 +235,7 @@ if (isSarSimEnabled()) {
 
 if (hasSpaBuild) {
   app.use(express.static(CLIENT_DIST));
-  app.get("*", (req, res, next) => {
+  app.get("/{*splat}", (req, res, next) => {
     if (req.path.startsWith("/api")) {
       return next();
     }

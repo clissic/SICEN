@@ -143,7 +143,7 @@ export async function updateTitleById(id, body, user) {
         "metadata.lastModifiedBy": label,
       },
     },
-    { new: true, runValidators: true },
+    { returnDocument: "after", runValidators: true },
   )
     .lean()
     .exec();
