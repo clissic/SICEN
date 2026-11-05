@@ -44,17 +44,24 @@ Centinela (tiles Leaflet).
    y OSM (`*.tile.openstreetmap.org`). `workerSrc` incluye `'self'` y
    `blob:` (PWA / canvas). Si se agrega un CDN o capa de mapa, actualizar
    `LEAFLET_TILE_ORIGINS` o `connectSrc`.
-5. **Logger**: los niveles custom de Winston definen `warning`, no `warn`.
+5. **CSP archivos autenticados** (`/api/files`): el front descarga con
+   `fetch` (`connect-src 'self'`) y muestra object URLs. `imgSrc` y
+   `frameSrc` deben incluir `blob:`. No relajar `objectSrc` (`'none'`):
+   no hay `<object>`/`<embed>` para esos archivos. Ver
+   `authenticated-uploads`.
+6. **Logger**: los niveles custom de Winston definen `warning`, no `warn`.
    `logger.js` alias `warn` → `warning`. Preferir `logger.warning`.
-6. **Docker**: `docker-compose.yml` interpola `${MONGO_URI:?…}` y
+7. **Docker**: `docker-compose.yml` interpola `${MONGO_URI:?…}` y
    `${CORS_ORIGIN:?…}` (sin default). El `.env.example` de la raíz debe
-   documentar ambas.
+   documentar ambas. El volumen `./SICEN-back/storage:/app/storage:rw`
+   es el único path persistente escribible (uploads autenticados).
 
 ## Antipatrones
 
 - ❌ `req.query = sanitizedQuery`
 - ❌ `mongodb+srv://usuario:${password}@cluster0.…` en código
 - ❌ CSP sin hosts de tiles (rompe El Centinela y el mapa de tracking)
+- ❌ CSP sin `blob:` en `imgSrc`/`frameSrc` (rompe avatares, pruebas y PDFs)
 - ❌ Tratar `CORS_ORIGIN` como opcional en producción
 - ❌ Reintroducir `express-mongo-sanitize`
 
@@ -81,6 +88,7 @@ JWT_SECRET=...
 ## Ejemplos vivos
 
 - CSP tiles: `securityHeaders.js` (`LEAFLET_TILE_ORIGINS`)
+- CSP blob de uploads: `securityHeaders.js` + `securityHeaders.test.js`
 - Sanitización: `mongoSanitize.js` + `mongoSanitize.test.js`
 - URI Mongo: `db-connection.js` + `db-connection.test.js`
 - CORS fail-fast: `app.js` + `env.config.js`

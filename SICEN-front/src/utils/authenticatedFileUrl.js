@@ -38,6 +38,15 @@ export function toAuthenticatedFileUrl(url) {
 }
 
 /**
+ * True si la URL apunta a un archivo servido por /api/files (o la ruta
+ * pública vieja /uploads/ que el helper convierte).
+ */
+export function isProtectedFileUrl(url) {
+  if (!url || typeof url !== "string") return false;
+  return url.startsWith("/uploads/") || url.startsWith("/api/files/");
+}
+
+/**
  * Convierte un array de URLs a URLs autenticadas
  */
 export function toAuthenticatedFileUrls(urls) {

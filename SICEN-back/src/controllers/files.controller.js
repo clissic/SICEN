@@ -92,7 +92,7 @@ export async function getFile(req, res) {
 
     // Validar filename (prevenir path traversal)
     if (!isValidFilename(filename)) {
-      logger.warn(`Path traversal attempt blocked: ${type}/${filename} by user ${user._id}`);
+      logger.warning(`Path traversal attempt blocked: ${type}/${filename} by user ${user._id}`);
       return res.status(400).json({
         ok: false,
         msg: "Nombre de archivo no válido.",
@@ -118,7 +118,7 @@ export async function getFile(req, res) {
 
     // Verificar que el archivo resuelto está dentro del directorio permitido
     if (!filePath.startsWith(baseDir + path.sep)) {
-      logger.warn(`Directory escape attempt blocked: ${filePath} by user ${user._id}`);
+      logger.warning(`Directory escape attempt blocked: ${filePath} by user ${user._id}`);
       return res.status(400).json({
         ok: false,
         msg: "Ruta de archivo no válida.",

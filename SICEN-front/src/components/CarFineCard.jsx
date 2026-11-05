@@ -6,6 +6,7 @@ import {
   statusMeta,
 } from "../utils/carFineFormatters.js";
 import { AuthenticatedImage } from "../hooks/useAuthenticatedFile.jsx";
+import { isProtectedFileUrl } from "../utils/authenticatedFileUrl.js";
 
 /**
  * Tarjeta de una multa vehicular. Reutilizable desde la página de consulta y
@@ -239,11 +240,11 @@ export function CarFineCard({ fine, onStatusEdit, onDataEdit, onOpenProve }) {
             >
               {(() => {
                 const imageItems = proves.filter(
-                  (p) => typeof p === "string" && p.startsWith("/uploads/")
+                  (p) => typeof p === "string" && isProtectedFileUrl(p)
                 );
                 return proves.map((p, idx) => {
                   const isImg =
-                    typeof p === "string" && p.startsWith("/uploads/");
+                    typeof p === "string" && isProtectedFileUrl(p);
                   if (isImg) {
                     const imageIdx = imageItems.indexOf(p);
                     return (

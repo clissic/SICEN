@@ -10,6 +10,7 @@ const __dirname = path.dirname(__filename);
 vi.mock("../utils/logger.js", () => ({
   logger: {
     warn: vi.fn(),
+    warning: vi.fn(),
     info: vi.fn(),
     error: vi.fn(),
   },

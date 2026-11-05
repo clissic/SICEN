@@ -91,7 +91,11 @@ export function AuthenticatedImage({ src, alt, className, style, placeholder, er
 
   if (loading) {
     return placeholder || (
-      <div className={className} style={{ ...style, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#f8f9fa" }}>
+      <div
+        className={className}
+        style={{ ...style, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#f8f9fa" }}
+        {...props}
+      >
         <div className="spinner-border spinner-border-sm text-secondary" role="status">
           <span className="visually-hidden">Cargando...</span>
         </div>

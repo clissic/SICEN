@@ -15,7 +15,7 @@ export async function validateFileType(filePath, allowedMimes) {
     
     // Si file-type no puede detectar el tipo, rechazamos por seguridad
     if (!result) {
-      logger.warn(`fileTypeFromFile returned null for ${filePath}`);
+      logger.warning(`fileTypeFromFile returned null for ${filePath}`);
       return false;
     }
 
@@ -23,7 +23,7 @@ export async function validateFileType(filePath, allowedMimes) {
     const isValid = allowedMimes.includes(result.mime);
     
     if (!isValid) {
-      logger.warn(
+      logger.warning(
         `File type validation failed: expected one of [${allowedMimes.join(", ")}], got ${result.mime} for ${filePath}`
       );
     }

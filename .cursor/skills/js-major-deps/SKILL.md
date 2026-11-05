@@ -83,7 +83,8 @@ y elimina `react-router-dom`. v7.18+ ya parchea el open-redirect de `@remix-run/
 
 ## Ejemplos vivos
 
-- Catch-all SPA: `SICEN-back/src/app.js`
+- Catch-all SPA: `SICEN-back/src/app.js` (`/{*splat}`)
+- Files autenticados (params, no `*`): `SICEN-back/src/routes/files.router.js`
 - Pre-hook Mongoose 9: `SICEN-back/src/DAO/models/mongoose/seafarers.mongoose.js`
 - `returnDocument`: `mapMarkers.service.js`, DAOs de multas
 - Vite 8 + PWA 2: `SICEN-front/vite.config.js`

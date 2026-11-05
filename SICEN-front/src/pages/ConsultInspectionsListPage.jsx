@@ -47,7 +47,7 @@ function vesselLabel(v) {
 /**
  * Sugerencia de nombre amigable para el PDF al descargarse. El atributo
  * `download` sólo es honrado por el navegador si el archivo es same-origin
- * (en producción el backend sirve `/uploads/...` desde el mismo dominio).
+ * (el blob autenticado es same-origin; el backend ya no sirve `/uploads/` público).
  */
 function inspectionPdfDownloadName(r) {
   const v = r?.vesselId;

@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 vi.mock("./logger.js", () => ({
   logger: {
     warn: vi.fn(),
+    warning: vi.fn(),
     info: vi.fn(),
     error: vi.fn(),
   },
