@@ -1,0 +1,41 @@
+# SICEN-back — .dockerignore
+# Nunca copiar al contenedor: .env con secretos, logs, node_modules (reinstalados en build),
+# archivos de desarrollo y testing.
+
+.env
+.env.*
+!.env.example
+
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+*.log
+logs
+*.pid
+*.seed
+*.pid.lock
+
+.DS_Store
+Thumbs.db
+
+.git
+.gitignore
+.cursor
+.vscode
+.idea
+
+storage/*
+!storage/.gitkeep
+
+*.test.js
+*.spec.js
+coverage
+.nyc_output
+
+Dockerfile
+.dockerignore
+docker-compose*.yml
+README.md

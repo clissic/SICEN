@@ -1,9 +1,11 @@
 import { randomUUID } from "crypto";
+import fs from "fs/promises";
 import multer from "multer";
 import {
   SHIP_FINE_PROVES_DIR,
   ensureShipFineProvesDirSync,
 } from "../utils/shipFineProveFiles.js";
+import { validateJpeg } from "../utils/fileValidation.js";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_FILES = 3;
@@ -41,12 +43,30 @@ const shipFineProvesUpload = multer({
 });
 
 export function uploadShipFineProves(req, res, next) {
-  shipFineProvesUpload.array(FIELD_NAME, MAX_FILES)(req, res, (err) => {
-    if (!err) {
-      next();
-      return;
+  shipFineProvesUpload.array(FIELD_NAME, MAX_FILES)(req, res, async (err) => {
+    if (err) {
+      return mapMulterErrorToJson(err, res);
     }
-    return mapMulterErrorToJson(err, res);
+
+    // Validar cada archivo por magic bytes
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const isValid = await validateJpeg(file.path);
+        if (!isValid) {
+          // Eliminar todos los archivos subidos en esta petición
+          for (const f of req.files) {
+            await fs.unlink(f.path).catch(() => {});
+          }
+          return res.status(400).json({
+            ok: false,
+            status: "failed",
+            msg: "Uno o más archivos no son imágenes JPEG válidas.",
+          });
+        }
+      }
+    }
+
+    next();
   });
 }
 
@@ -57,12 +77,35 @@ export const PROVE_SLOT_FIELDS = [
 ];
 
 export function uploadShipFineProveSlots(req, res, next) {
-  shipFineProvesUpload.fields(PROVE_SLOT_FIELDS)(req, res, (err) => {
-    if (!err) {
-      next();
-      return;
+  shipFineProvesUpload.fields(PROVE_SLOT_FIELDS)(req, res, async (err) => {
+    if (err) {
+      return mapMulterErrorToJson(err, res);
     }
-    return mapMulterErrorToJson(err, res);
+
+    // Validar cada archivo por magic bytes
+    if (req.files) {
+      const allFiles = [];
+      for (const fieldName of Object.keys(req.files)) {
+        allFiles.push(...req.files[fieldName]);
+      }
+      
+      for (const file of allFiles) {
+        const isValid = await validateJpeg(file.path);
+        if (!isValid) {
+          // Eliminar todos los archivos subidos
+          for (const f of allFiles) {
+            await fs.unlink(f.path).catch(() => {});
+          }
+          return res.status(400).json({
+            ok: false,
+            status: "failed",
+            msg: "Uno o más archivos no son imágenes JPEG válidas.",
+          });
+        }
+      }
+    }
+
+    next();
   });
 }
 

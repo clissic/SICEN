@@ -32,25 +32,35 @@
   },
   "homepage": "https://github.com/clissic/SIGMU#readme",
   "dependencies": {
-    "bcrypt": "^5.1.1",
-    "commander": "^11.0.0",
-    "compression": "^1.7.4",
+    "bcrypt": "^6.0.0",
+    "commander": "^15.0.0",
+    "compression": "^1.8.2",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.3",
+    "file-type": "^19.6.0",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^7.5.3",
-    "mongoose-paginate-v2": "^1.7.4",
+    "mongoose": "^9.12.0",
+    "mongoose-paginate-v2": "^1.9.5",
     "multer": "^2.1.1",
-    "nodemailer": "^6.9.5",
+    "nodemailer": "^10.3.1",
     "polygon-clipping": "^0.15.7",
     "sweetalert2": "^11.7.31",
     "winston": "^3.10.0",
     "ws": "^8.21.3"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2",
-    "nodemon": "^3.0.1",
-    "vitest": "^3.2.7"
+    "concurrently": "^10.0.6",
+    "nodemon": "^3.1.14",
+    "vitest": "^5.1.0"
+  },
+  "overrides": {
+    "qs": "^6.17.1",
+    "tar": "^7.5.22",
+    "ip-address": "^10.7.6",
+    "shell-quote": "^1.12.0",
+    "minimatch": "^11.0.4"
   }
 }

@@ -14,6 +14,7 @@ import {
   skipperTrackingStatus,
 } from "../api/client.js";
 import { SkipperReportArrivalModal } from "../components/SkipperReportArrivalModal.jsx";
+import { AuthenticatedImage } from "../hooks/useAuthenticatedFile.jsx";
 import {
   stopSportMovementPositionEmitter,
   useSportMovementPositionEmitter,
@@ -135,15 +136,21 @@ export function HomePage() {
             <div className="card shadow-sm">
               <div className="card-body">
                 <div className="d-flex flex-column flex-xl-row align-items-center align-items-xl-center gap-3">
-                  <img
+                  <AuthenticatedImage
                     src={user?.avatar}
                     alt="perfil"
                     width="72"
                     height="72"
                     className="rounded-circle object-fit-cover border flex-shrink-0"
-                    onError={(e) => {
-                      e.target.src = "/img/avatar.png";
-                    }}
+                    errorPlaceholder={
+                      <img
+                        src="/img/avatar.png"
+                        alt="perfil"
+                        width="72"
+                        height="72"
+                        className="rounded-circle object-fit-cover border flex-shrink-0"
+                      />
+                    }
                   />
                   <div className="flex-grow-1 w-100 text-center text-xl-start">
                     <div className="fw-semibold">
