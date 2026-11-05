@@ -2219,8 +2219,9 @@ export function createBorderPatrol(payload) {
 }
 
 export function updateBorderPatrolStatus(id, payload) {
+  const enc = encodeURIComponent(String(id ?? "").trim());
   const body = typeof payload === "string" ? { status: payload } : payload;
-  return apiFetch(`/api/borderPatrols/${id}`, {
+  return apiFetch(`/api/borderPatrols/${enc}`, {
     method: "PATCH",
     body: JSON.stringify(body),
   });
@@ -2232,7 +2233,8 @@ export function updateBorderPatrol(id, payload) {
 }
 
 export function deleteBorderPatrol(id) {
-  return apiFetch(`/api/borderPatrols/${id}`, { method: "DELETE" });
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/borderPatrols/${enc}`, { method: "DELETE" });
 }
 
 /** Números de patrulla definidos por una unidad. */
@@ -2249,12 +2251,14 @@ export function createBorderPatrolType(payload) {
 }
 
 export function updateBorderPatrolType(id, payload) {
-  return apiFetch(`/api/borderPatrolTypes/${id}`, {
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/borderPatrolTypes/${enc}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
 }
 
 export function deleteBorderPatrolType(id) {
-  return apiFetch(`/api/borderPatrolTypes/${id}`, { method: "DELETE" });
+  const enc = encodeURIComponent(String(id ?? "").trim());
+  return apiFetch(`/api/borderPatrolTypes/${enc}`, { method: "DELETE" });
 }
