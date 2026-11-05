@@ -21,6 +21,7 @@ Centinela (tiles Leaflet).
 | Helmet / CSP | `SICEN-back/src/middlewares/securityHeaders.js` |
 | Sanitización NoSQL | `SICEN-back/src/middlewares/mongoSanitize.js` |
 | Rechazo Brotli | `SICEN-back/src/middlewares/rejectBrotli.js` |
+| Pin de Node | `.nvmrc` (`24.22.1`) + `engines.node` en los 3 `package.json` |
 | Rate limit login/recovery | `SICEN-back/src/middlewares/rateLimiting.js` |
 | Error handler | `SICEN-back/src/middlewares/errorHandler.js` |
 | CORS + montaje | `SICEN-back/src/app.js` |
@@ -56,6 +57,9 @@ Centinela (tiles Leaflet).
    (sin default). El `.env.example` de la raíz debe documentarlas. El
    volumen `./SICEN-back/storage:/app/storage:rw` es el único path
    persistente escribible (uploads autenticados).
+8. **Node parcheado**: runtime `>=24.22.1 <25 || >=26.12.1` (`.nvmrc` +
+   `engines`). Complementa `rejectBrotli` contra CVE-2026-111497. Ver
+   `js-major-deps`.
 
 ## Antipatrones
 
