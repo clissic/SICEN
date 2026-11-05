@@ -7,6 +7,10 @@ import { fileURLToPath } from "url";
 import env from "./config/env.config.js";
 import { logger } from "./utils/logger.js";
 import { connectMongo } from "./utils/db-connection.js";
+import { securityHeaders } from "./middlewares/securityHeaders.js";
+import { rejectBrotliMiddleware } from "./middlewares/rejectBrotli.js";
+import { mongoSanitizeMiddleware } from "./middlewares/mongoSanitize.js";
+import { globalErrorHandler } from "./middlewares/errorHandler.js";
 import { AVATARS_DIR, ensureAvatarsDirSync } from "./utils/avatarFiles.js";
 import {
   CAR_FINE_PROVES_DIR,
@@ -73,8 +77,6 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = env.port;
-const MONGO_PASSWORD = env.mongoPassword;
-const dbName = "SIGMU_DB";
 
 const CLIENT_DIST = path.join(__dirname, "../public");
 const CLIENT_INDEX = path.join(CLIENT_DIST, "index.html");
@@ -86,11 +88,11 @@ const httpServer = app.listen(PORT, () => {
   if (hasSpaBuild) {
     logger.info(`SPA (React) servida desde ${CLIENT_DIST}`);
   } else if (fs.existsSync(CLIENT_DIST)) {
-    logger.warn(
+    logger.warning(
       "Carpeta /public sin index.html (build incompleto o fallido). Ejecutá: cd SICEN-front && npm run build"
     );
   } else {
-    logger.warn(
+    logger.warning(
       "No hay build del front en /public. Ejecutá: cd SICEN-front && npm run build"
     );
   }
@@ -98,12 +100,29 @@ const httpServer = app.listen(PORT, () => {
 
 connectMongo();
 
-const corsOrigins =
-  process.env.CORS_ORIGIN?.split(",").map((s) => s.trim()) || [
+const isProduction = process.env.NODE_ENV === "production" || env.mode === "PRODUCTION";
+
+let corsOrigins;
+if (process.env.CORS_ORIGIN) {
+  corsOrigins = process.env.CORS_ORIGIN.split(",").map((s) => s.trim());
+} else {
+  if (isProduction) {
+    logger.error(
+      "CORS_ORIGIN es obligatorio en producción. Definilo en .env.production como lista separada por comas."
+    );
+    process.exit(1);
+  }
+  corsOrigins = [
     `http://localhost:${PORT}`,
     "http://127.0.0.1:" + PORT,
     "http://localhost:5173",
   ];
+  logger.warning(
+    `CORS_ORIGIN no definido — usando orígenes de desarrollo: ${corsOrigins.join(", ")}`
+  );
+}
+
+app.use(securityHeaders);
 
 app.use(
   cors({
@@ -111,6 +130,8 @@ app.use(
     credentials: true,
   })
 );
+
+app.use(rejectBrotliMiddleware);
 
 app.use(
   compression({
@@ -124,7 +145,8 @@ app.use(
   })
 );
 app.use(express.json({ limit: "3mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: "3mb" }));
+app.use(mongoSanitizeMiddleware);
 
 ensureAvatarsDirSync();
 app.use("/uploads/avatars", express.static(AVATARS_DIR));
@@ -254,3 +276,5 @@ app.use((req, res) => {
       "Sin SPA en /public. Generá el front: cd SICEN-front && npm run build (o npm run build:client desde SICEN-back).",
   });
 });
+
+app.use(globalErrorHandler);

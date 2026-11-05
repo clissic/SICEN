@@ -28,7 +28,8 @@ services:
     # Secretos sin defaults: Compose aborta si faltan en .env
     environment:
       - JWT_SECRET=${JWT_SECRET:?Definí JWT_SECRET en el archivo .env}
-      - MONGODB_PASSWORD=${MONGODB_PASSWORD:?Definí MONGODB_PASSWORD en el archivo .env}
+      - MONGO_URI=${MONGO_URI:?Definí MONGO_URI en el archivo .env}
+      - CORS_ORIGIN=${CORS_ORIGIN:?Definí CORS_ORIGIN en el archivo .env}
 
     security_opt:
       - no-new-privileges:true

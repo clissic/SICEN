@@ -19,6 +19,22 @@ if (workMode === 'PRODUCTION' && !jwtSecretFromEnv) {
   );
   process.exit(1);
 }
+const mongoUriFromEnv = String(process.env.MONGO_URI || "").trim();
+if (
+  workMode === 'PRODUCTION' &&
+  !/^mongodb(\+srv)?:\/\//i.test(mongoUriFromEnv)
+) {
+  console.error(
+    "[SICEN-back] MONGO_URI es obligatorio en producción (.env.production) y debe ser una URI mongodb:// o mongodb+srv://."
+  );
+  process.exit(1);
+}
+if (workMode === 'PRODUCTION' && !String(process.env.CORS_ORIGIN || "").trim()) {
+  console.error(
+    "[SICEN-back] CORS_ORIGIN es obligatorio en producción (.env.production)."
+  );
+  process.exit(1);
+}
 const jwtSecret =
   jwtSecretFromEnv ||
   "dev-insecure-jwt-secret-cambiar-en-produccion-min-32-chars!";
@@ -46,9 +62,11 @@ const emailAssetsBaseUrl =
   stripTrailingSlash(process.env.EMAIL_LOGO_BASE_URL || "") || publicAppUrl;
 
 export default {
+  mode: workMode,
   port: process.env.PORT,
   jwtSecret,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "24h",
+  mongoUri: process.env.MONGO_URI || "",
   mongoPassword: process.env.MONGODB_PASSWORD,
   githubSecret: process.env.GITHUB_LOGIN_SECRET,
   persistence: process.env.PERSISTENCE,

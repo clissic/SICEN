@@ -45,7 +45,9 @@ y elimina `react-router-dom`. v7.18+ ya parchea el open-redirect de `@remix-run/
 ## Reglas al tocar este stack
 
 1. **Express 5**: el fallback SPA es `app.get("/{*splat}", …)`. No volver a
-   `app.get("*")`. No asignar `req.query` (en v5 es getter).
+   `app.get("*")`. No asignar `req.query` (en v5 es getter). No usar
+   `express-mongo-sanitize` (reasigna `req.query` y rompe). Sanitizar con
+   `mongoSanitizeMiddleware` (`SICEN-back/src/middlewares/mongoSanitize.js`).
 2. **Mongoose 9**: `{ returnDocument: "after" }` en vez de `{ new: true }`.
    `schema.pre("save")` sin `next()`. Ver `backend-crud-module`.
 3. **Vite 8**: Rolldown/Oxc. No reintroducir `build.rollupOptions` (usar
@@ -75,6 +77,7 @@ y elimina `react-router-dom`. v7.18+ ya parchea el open-redirect de `@remix-run/
 - ❌ `npm audit fix --force` sobre `vite-plugin-pwa` (te deja en 0.2 / 1.1).
 - ❌ `{ new: true }` en updates Mongoose.
 - ❌ Catch-all Express 4 (`*`) o wildcards sin nombre.
+- ❌ `express-mongo-sanitize` o `req.query = …` (Express 5: getter).
 - ❌ Sacar `build.cssMinify: "esbuild"` en Vite 8 (rompe el blur de los
   paneles de El Centinela).
 

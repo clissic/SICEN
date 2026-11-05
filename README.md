@@ -115,12 +115,12 @@ Luego completá los valores según tu entorno (y recordá que **`JWT_SECRET` es 
 | `PORT` | Puerto HTTP del servidor (por defecto `3000`). |
 | `JWT_SECRET` | Firma de tokens. **Obligatoria en producción**; si falta, el proceso termina. En desarrollo puede omitirse (se usa un valor por defecto inseguro solo para local). |
 | `JWT_EXPIRES_IN` | Caducidad del access token (p. ej. `24h`). |
-| `MONGODB_PASSWORD` | Contraseña inyectada en el string de conexión a MongoDB. |
+| `MONGO_URI` | URI completa de MongoDB (obligatoria en producción). Atlas o el contenedor local; **no** hay cluster hardcodeado. |
 | `LOGGER_ENV` | `development` \| `production` (comportamiento de logs). |
 | `API_URL` | URL base pública (emails, enlaces). |
 | `PUBLIC_APP_URL` | Opcional; si existe, tiene prioridad sobre `API_URL` para la URL pública de la app (sin barra final). |
 | `GOOGLE_EMAIL` / `GOOGLE_PASS` | Credenciales Nodemailer (p. ej. Gmail con app password). |
-| `CORS_ORIGIN` | Opcional. Orígenes permitidos separados por **coma**. Si no se define, se usan por defecto el propio servidor (`localhost`/`127.0.0.1` al `PORT`) y `http://localhost:5173` (Vite). |
+| `CORS_ORIGIN` | Orígenes permitidos separados por **coma**. **Obligatorio en producción** (el proceso termina si falta). En desarrollo, si no se define, se usan `localhost`/`127.0.0.1` al `PORT` y `http://localhost:5173` (Vite). |
 | `AIS_STREAM_API_KEY` | API key de AISStream para la capa AIS de El Centinela (solo backend). |
 | `SKYLIGHT_API_KEY` | API key de Skylight (detecciones satelitales / IUU) para El Centinela (solo backend). |
 | `GFW_API_TOKEN` | Token Bearer de Global Fishing Watch para enriquecer OMI/identidad en la capa AIS (uso no comercial; solo backend). |
@@ -152,7 +152,7 @@ SICEN incluye soporte Docker para despliegue con backend, frontend (compilado y 
 | **`sim`** | `sicen-sim:latest` | Simulador de derrames HC (FastAPI + OpenDrift) | 8091 (interno) |
 | **`mongo`** | `mongo:8.0` | Base de datos MongoDB (perfil demo opcional) | 27017 (bound a `127.0.0.1`, solo perfil demo) |
 
-El contenedor `back` usa **`node:24.22.1-alpine`**. El stage de front corre **Vite 8** (`npm ci` con devDependencies: vite, plugin-react, esbuild, PWA) y escribe a `../SICEN-back/public` (el `outDir` de `vite.config.js`, no `dist/`). Ese output se copia a `public/` del runtime Express. En producción, apuntás a Mongo Atlas (variable `MONGODB_PASSWORD`) y no hace falta el contenedor `mongo`.
+El contenedor `back` usa **`node:24.22.1-alpine`**. El stage de front corre **Vite 8** (`npm ci` con devDependencies: vite, plugin-react, esbuild, PWA) y escribe a `../SICEN-back/public` (el `outDir` de `vite.config.js`, no `dist/`). Ese output se copia a `public/` del runtime Express. En producción, apuntás a Mongo Atlas con **`MONGO_URI`** (`mongodb+srv://…`) y no hace falta el contenedor `mongo`.
 
 ### Hardening aplicado
 
@@ -169,7 +169,7 @@ El contenedor `back` usa **`node:24.22.1-alpine`**. El stage de front corre **Vi
 ```bash
 # 1. Copiá .env.example a .env en la raíz del repo y reemplazá los changeme
 cp .env.example .env
-# Editá .env: JWT_SECRET, MONGODB_PASSWORD, MONGO_INITDB_ROOT_PASSWORD, claves de APIs, etc.
+# Editá .env: JWT_SECRET, MONGO_URI, CORS_ORIGIN, MONGO_INITDB_ROOT_PASSWORD, claves de APIs, etc.
 
 # 2. Construí las imágenes
 docker compose build
@@ -201,7 +201,8 @@ Los secretos en `docker-compose.yml` se interpolan como `${VAR:?mensaje}` **sin 
 
 **Secretos obligatorios:**
 - `JWT_SECRET` — firma de tokens JWT (generar con `openssl rand -hex 32`)
-- `MONGODB_PASSWORD` — contraseña de MongoDB (Atlas o el contenedor local)
+- `MONGO_URI` — URI completa de MongoDB (Atlas o el contenedor local)
+- `CORS_ORIGIN` — orígenes permitidos separados por coma (p. ej. `https://sicen.dominio.com`)
 - `MONGO_INITDB_ROOT_PASSWORD` — contraseña root del contenedor `mongo` (perfil demo; Compose la exige aunque no actives el perfil)
 - `GOOGLE_EMAIL` / `GOOGLE_PASS` — credenciales Nodemailer (opcional si no enviás mails)
 
@@ -238,7 +239,7 @@ Esto instala `pip-audit` temporalmente dentro del contenedor y escanea las libre
 ### Despliegue en producción
 
 1. **Túnel Cloudflare** o proxy inverso (Nginx, Traefik) apuntando al puerto 3000 del host.
-2. **Mongo Atlas** (URI en `MONGODB_PASSWORD` como `mongodb+srv://...`).
+2. **Mongo Atlas** (URI completa en `MONGO_URI` como `mongodb+srv://...`).
 3. **Volumen persistente** para `SICEN-back/storage` (avatares, multas, PDFs de inspecciones).
 4. **Reinicio automático** (`restart: unless-stopped` ya configurado en `docker-compose.yml`).
 5. **Backups periódicos** de MongoDB y del volumen `storage/`.
@@ -464,10 +465,9 @@ El módulo de inspecciones (`ConsultInspectionsListPage`, `DeleteInspectionPage`
 
 Pendientes ya enumerados al cierre de **Seguridad (resumen)**, listados aquí con detalle:
 
-- **Rate limiting** sobre `POST /api/sessions/login`, `POST /api/tokens/...` (recuperación) y `POST /api/users/sendNewAccEmail` / `createAndSendEmail`. Sugerencia: `express-rate-limit` con almacén Redis si hay más de una instancia.
-- **CORS** restringido por `CORS_ORIGIN` explícito (hoy ya se respeta si está definido, pero el fallback admite localhost; conviene exigirlo en producción).
+- **Rate limiting** sobre `POST /api/users/sendNewAccEmail` / `createAndSendEmail` (login y recuperación ya tienen límite). Sugerencia: `express-rate-limit` con almacén Redis si hay más de una instancia.
 - **Deshabilitar `POST /api/sessions/signup`** o protegerlo detrás de un feature flag si no se desea registro público (las altas operativas pasan por `/usuarios/nuevo`, que sí valida rol).
-- Revisar **`.env.production`** para que `JWT_SECRET` rote periódicamente y `MONGODB_PASSWORD`/`GOOGLE_PASS` provengan de un gestor de secretos.
+- Revisar **`.env.production`** para que `JWT_SECRET` rote periódicamente y `MONGO_URI`/`GOOGLE_PASS` provengan de un gestor de secretos.
 - Logging estructurado y rotación de logs en producción (`LOGGER_ENV=production`), idealmente enviados a un agregador (Loki / CloudWatch).
 - Backups programados de MongoDB y rotación de los directorios `SICEN-back/storage/<tipo>FineProves/` (archivos de pruebas), `SICEN-back/storage/inspectionsERP/` (PDFs de inspección) y `SICEN-back/public/files/units/` (procedimientos).
 
