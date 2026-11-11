@@ -25,6 +25,15 @@ COPY SICEN-front/package.json SICEN-front/package-lock.json ./
 RUN npm ci
 
 COPY SICEN-front/ ./
+
+# Vite incrusta VITE_* en build time. Opcional: sin DSN el front no inicializa Sentry.
+ARG VITE_SENTRY_DSN=
+ARG VITE_SENTRY_ENVIRONMENT=
+ARG VITE_SENTRY_TRACES_SAMPLE_RATE=
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN \
+    VITE_SENTRY_ENVIRONMENT=$VITE_SENTRY_ENVIRONMENT \
+    VITE_SENTRY_TRACES_SAMPLE_RATE=$VITE_SENTRY_TRACES_SAMPLE_RATE
+
 RUN npm run build
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -76,4 +85,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://127.0.0.1:3000/api/sessions/me', (res) => { process.exit(res.statusCode === 401 || res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["node", "./src/app.js", "--mode", "PRODUCTION"]
+# --import carga instrument.js antes que Express (Sentry ESM).
+CMD ["node", "--import", "./src/instrument.js", "./src/app.js", "--mode", "PRODUCTION"]

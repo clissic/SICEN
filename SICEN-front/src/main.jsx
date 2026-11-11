@@ -16,6 +16,9 @@ import "./styles/login-page.css";
 import "./styles/centinela-map.css";
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
+import { initSentry, isSentryEnabled, Sentry } from "./sentry.js";
+
+initSentry();
 
 applyStoredBootstrapTheme();
 
@@ -41,7 +44,7 @@ async function setupPwa() {
 
 void setupPwa();
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+const tree = (
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
@@ -49,4 +52,23 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
+);
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  isSentryEnabled() ? (
+    <Sentry.ErrorBoundary
+      fallback={
+        <div className="container py-5">
+          <p className="text-danger mb-0">
+            Ocurrió un error inesperado. Recargá la página o volvé a intentar más
+            tarde.
+          </p>
+        </div>
+      }
+    >
+      {tree}
+    </Sentry.ErrorBoundary>
+  ) : (
+    tree
+  )
 );

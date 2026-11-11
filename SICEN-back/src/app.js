@@ -1,3 +1,7 @@
+/* Sentry: primer import (también via `node --import ./src/instrument.js`). */
+import {
+  registerSentryExpressErrorHandler,
+} from "./instrument.js";
 import compression from "compression";
 import cors from "cors";
 import express from "express";
@@ -257,5 +261,8 @@ app.use((req, res) => {
       "Sin SPA en /public. Generá el front: cd SICEN-front && npm run build (o npm run build:client desde SICEN-back).",
   });
 });
+
+/* Sentry error handler: después de las rutas, antes del handler propio. */
+registerSentryExpressErrorHandler(app);
 
 app.use(globalErrorHandler);

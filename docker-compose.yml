@@ -6,6 +6,11 @@ services:
     build:
       context: .
       dockerfile: SICEN-back/Dockerfile
+      # Vite necesita VITE_* en build time (quedan embebidas en el JS del SPA).
+      args:
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+        VITE_SENTRY_ENVIRONMENT: ${VITE_SENTRY_ENVIRONMENT:-}
+        VITE_SENTRY_TRACES_SAMPLE_RATE: ${VITE_SENTRY_TRACES_SAMPLE_RATE:-}
     image: sicen-back:latest
     container_name: sicen-back
     restart: unless-stopped
@@ -38,6 +43,10 @@ services:
       - CORS_ORIGIN=${CORS_ORIGIN:?Definí CORS_ORIGIN en el archivo .env}
       - LOGGER_ENV=${LOGGER_ENV:-production}
       - LOG_TO_FILE=${LOG_TO_FILE:-false}
+      # Sentry (backend). Vacío = no inicializa. DSN solo por env, nunca en imagen.
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-}
+      - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-}
 
     security_opt:
       - no-new-privileges:true
