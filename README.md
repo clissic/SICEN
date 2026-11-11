@@ -137,12 +137,18 @@ Luego completá los valores según tu entorno (y recordá que **`JWT_SECRET` es 
 | `WAVES_CACHE_TTL_MS` | Cache del proxy de oleaje (default 10 min). |
 | `BATHYMETRY_CACHE_TTL_MS` | Cache del proxy GEBCO / OpenTopoData (default 7 días). |
 | `GITHUB_LOGIN_SECRET`, `PERSISTENCE`, variables Twilio | Declaradas en `env.config.js`; reservadas u opcionales según evolución del proyecto. |
+| `SENTRY_DSN` | DSN de Sentry del backend (opcional). Vacío = no se inicializa; la API sigue igual. |
+| `SENTRY_ENVIRONMENT` | Environment de Sentry (fallback: `NODE_ENV` / `--mode`). |
+| `SENTRY_TRACES_SAMPLE_RATE` | Sample rate de traces (0–1; default `0.1`). `sendDefaultPii: false` + redacción de Authorization/Cookie/JWT/passwords/MFA. |
 
 **Frontend (`SICEN-front/`):** Vite solo expone variables `VITE_*` (ver `.env.example`). Se incrustan al hacer `npm run dev` / `npm run build`.
 
 | Variable | Uso |
 |----------|-----|
 | `VITE_CARTO_API_KEY` | Key de basemaps CARTO. Se agrega como `?key=` a las URLs Voyager / `dark_all` de El Centinela y quita el watermark. Visible en el navegador. |
+| `VITE_SENTRY_DSN` | DSN de Sentry del frontend (opcional). Vacío = no se inicializa. Se embebe en **build time**. |
+| `VITE_SENTRY_ENVIRONMENT` | Environment de Sentry en el front (fallback: `import.meta.env.MODE`). |
+| `VITE_SENTRY_TRACES_SAMPLE_RATE` | Sample rate de traces del front (0–1; default `0.1`). Sin Session Replay. |
 
 ## Docker y Despliegue
 
@@ -218,6 +224,10 @@ Los secretos en `docker-compose.yml` se interpolan como `${VAR:?mensaje}` **sin 
 - `SKYLIGHT_API_KEY` — detecciones satelitales IUU (https://api.skylight.earth)
 - `GFW_API_TOKEN` — identidad de buques (https://globalfishingwatch.org/our-apis/)
 - `VITE_CARTO_API_KEY` — basemaps CARTO sin watermark (El Centinela)
+
+**Sentry (opcional):**
+- `SENTRY_DSN` / `SENTRY_ENVIRONMENT` / `SENTRY_TRACES_SAMPLE_RATE` — runtime del contenedor `back`
+- `VITE_SENTRY_DSN` / `VITE_SENTRY_ENVIRONMENT` / `VITE_SENTRY_TRACES_SAMPLE_RATE` — **build args** del stage Vite (hay que rebuildar la imagen si cambian)
 
 **Simulador HC:**
 - `HC_SIM_ENABLED=true` — habilitar el simulador de derrames
