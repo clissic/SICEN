@@ -56,11 +56,16 @@ describe("sin DSN no se llama Sentry.init", () => {
     vi.resetModules();
     const prevDsn = process.env.SENTRY_DSN;
     const prevDebug = process.env.SENTRY_DEBUG;
-    delete process.env.SENTRY_DSN;
-    delete process.env.SENTRY_DEBUG;
+    // Cadena vacía (no delete): dotenv no pisa vars ya definidas, así el test
+    // no depende de SENTRY_DSN en .env.development local del desarrollador.
+    process.env.SENTRY_DSN = "";
+    process.env.SENTRY_DEBUG = "";
 
     const init = vi.fn();
     const setupExpressErrorHandler = vi.fn();
+    vi.doMock("dotenv", () => ({
+      default: { config: vi.fn(() => ({ parsed: {} })) },
+    }));
     vi.doMock("@sentry/node", () => ({
       init,
       setupExpressErrorHandler,
@@ -78,6 +83,7 @@ describe("sin DSN no se llama Sentry.init", () => {
     if (prevDebug === undefined) delete process.env.SENTRY_DEBUG;
     else process.env.SENTRY_DEBUG = prevDebug;
     vi.doUnmock("@sentry/node");
+    vi.doUnmock("dotenv");
     vi.resetModules();
   });
 });
