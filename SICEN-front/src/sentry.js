@@ -15,12 +15,15 @@ let sentryEnabled = false;
 
 /**
  * Inicializa Sentry si hay DSN. Idempotente.
+ * @param {ImportMetaEnv | Record<string, string | undefined>} [envSource]
+ *   Env a usar (tests); por defecto `import.meta.env`. Así los tests no
+ *   dependen de `VITE_SENTRY_DSN` en `.env.development` local.
  * @returns {boolean} true si quedó habilitado
  */
-export function initSentry() {
+export function initSentry(envSource) {
   if (sentryEnabled) return true;
 
-  const env = import.meta.env || {};
+  const env = envSource || import.meta.env || {};
   const dsn = resolveSentryDsn({
     VITE_SENTRY_DSN: env.VITE_SENTRY_DSN,
   });

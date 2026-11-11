@@ -13,9 +13,10 @@ description: >-
 1. **DSN solo por env**: `SENTRY_DSN` (back) / `VITE_SENTRY_DSN` (front). Nunca hardcodear.
 2. **Sin DSN = no-op**: no llamar `Sentry.init`; la app debe comportarse igual (sin warnings). Log solo con `SENTRY_DEBUG=1` / `VITE_SENTRY_DEBUG=1`.
 3. **Privacidad**: `sendDefaultPii: false`; `beforeSend` / `beforeBreadcrumb` en `scrubEvent.js` (Authorization, Cookie, JWT, passwords, MFA/TOTP, bodies). Sin Session Replay. Sin upload de source maps.
-4. **Back ESM**: `node --import ./src/instrument.js` + primer import en `app.js`. Error handler con `registerSentryExpressErrorHandler(app)` **después de las rutas** y **antes** de `globalErrorHandler`.
+4. **Back ESM**: `node --import ./src/instrument.js` + primer import en `app.js`. En dev, nodemon usa `exec` en `nodemon.json` (multiplataforma; no usar `NODE_OPTIONS='...'` estilo POSIX en scripts npm). Error handler con `registerSentryExpressErrorHandler(app)` **después de las rutas** y **antes** de `globalErrorHandler`.
 5. **Front**: `initSentry()` en `main.jsx`; `VITE_*` en **build time** (Docker ARG).
 6. Logger del back: niveles `fatal|error|warning|info|debug` (+ alias `warn` → `warning`). No usar APIs que no existan.
+7. **Tests deterministas**: no depender de `.env.development` local. En back, stubear `SENTRY_DSN=""` (no `delete`) y mockear `dotenv`. En front, pasar env vacío a `initSentry(env)`.
 
 ## Archivos
 

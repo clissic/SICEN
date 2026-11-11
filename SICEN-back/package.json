@@ -10,7 +10,7 @@
     "build:client": "npm run build --prefix ../SICEN-front",
     "build": "npm run build:client",
     "dev:client": "npm run build:watch --prefix ../SICEN-front",
-    "dev:server": "NODE_OPTIONS='--import ./src/instrument.js' nodemon ./src/app.js --mode DEVELOPMENT",
+    "dev:server": "nodemon ./src/app.js --mode DEVELOPMENT",
     "dev": "concurrently -n front,api -c cyan,magenta \"npm run dev:client\" \"npm run dev:server\"",
     "start": "node --import ./src/instrument.js ./src/app.js --mode PRODUCTION"
   },

@@ -2,5 +2,6 @@
   "watch": ["src", ".env.development", ".env.production"],
   "ignore": ["node_modules"],
   "ext": "js,yaml,env",
-  "delay": 800
+  "delay": 800,
+  "exec": "node --import ./src/instrument.js"
 }

@@ -46,7 +46,6 @@ describe("initSentry sin DSN", () => {
   });
 
   afterEach(() => {
-    vi.unstubAllEnvs();
     vi.resetModules();
   });
 
@@ -57,12 +56,15 @@ describe("initSentry sin DSN", () => {
       ErrorBoundary: ({ children }) => children,
     }));
 
-    // import.meta.env lo provee Vite; stubear vía vi.stubEnv si está disponible
-    vi.stubEnv("VITE_SENTRY_DSN", "");
-    vi.stubEnv("VITE_SENTRY_DEBUG", "");
+    // Env explícito: no leer VITE_SENTRY_DSN de .env.development local.
+    const emptyEnv = {
+      VITE_SENTRY_DSN: "",
+      VITE_SENTRY_DEBUG: "",
+      MODE: "test",
+    };
 
     const { initSentry, isSentryEnabled } = await import("../sentry.js");
-    expect(initSentry()).toBe(false);
+    expect(initSentry(emptyEnv)).toBe(false);
     expect(isSentryEnabled()).toBe(false);
     expect(init).not.toHaveBeenCalled();
   });
